@@ -5,7 +5,12 @@
          xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
          xmlns:local="clr-namespace:ScottWisper"
          mc:Ignorable="d"
-         Title="ScottWisper Settings" Height="350" Width="400">
+         Title="ScottWisper Settings" 
+         Height="350" 
+         Width="400"
+         WindowStyle="None"
+         ShowInTaskbar="False"
+         WindowState="Minimized">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

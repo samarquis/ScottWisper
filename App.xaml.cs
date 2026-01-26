@@ -40,13 +40,12 @@ namespace ScottWisper
             _systemTrayService.StartDictationRequested += OnSystemTrayStartDictation;
             _systemTrayService.StopDictationRequested += OnSystemTrayStopDictation;
             _systemTrayService.SettingsRequested += OnSystemTraySettings;
+            _systemTrayService.WindowToggleRequested += OnSystemTrayToggleWindow;
             _systemTrayService.ExitRequested += OnSystemTrayExit;
             _systemTrayService.Initialize();
             
-            // Hide main window - run in system tray
-            _mainWindow.ShowInTaskbar = false;
-            _mainWindow.WindowState = WindowState.Minimized;
-            _mainWindow.Hide();
+            // Initialize MainWindow (it will handle its own visibility)
+            _mainWindow.Show();
         }
 
         private async Task InitializeServices()
@@ -310,10 +309,30 @@ namespace ScottWisper
             Task.Run(async () => await StopDictationInternal());
         }
 
+        private void OnSystemTrayToggleWindow(object? sender, EventArgs e)
+        {
+            // Toggle main window visibility from tray
+            if (_mainWindow != null)
+            {
+                _mainWindow.ToggleVisibility();
+            }
+        }
+
         private void OnSystemTraySettings(object? sender, EventArgs e)
         {
-            // For now, show a simple message about settings
-            MessageBox.Show("Settings window will be implemented in a future plan.", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Show main window from tray when settings requested
+            if (_mainWindow != null)
+            {
+                if (_mainWindow.IsWindowHidden)
+                {
+                    _mainWindow.ShowFromTray();
+                }
+                else
+                {
+                    _mainWindow.Activate();
+                    _mainWindow.Focus();
+                }
+            }
         }
 
         private void OnSystemTrayExit(object? sender, EventArgs e)

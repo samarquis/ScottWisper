@@ -19,6 +19,7 @@ namespace ScottWisper
         public event EventHandler? StartDictationRequested;
         public event EventHandler? StopDictationRequested;
         public event EventHandler? SettingsRequested;
+        public event EventHandler? WindowToggleRequested;
         public event EventHandler? ExitRequested;
 
         public void Initialize()
@@ -95,6 +96,14 @@ namespace ScottWisper
             dictationItem.Click += OnDictationClick;
             contextMenu.Items.Add(dictationItem);
 
+            // Show/Hide Window item
+            var windowItem = new ToolStripMenuItem
+            {
+                Text = "Show Window"
+            };
+            windowItem.Click += OnWindowClick;
+            contextMenu.Items.Add(windowItem);
+
             // Separator
             contextMenu.Items.Add(new ToolStripSeparator());
 
@@ -122,14 +131,21 @@ namespace ScottWisper
 
         private void OnNotifyIconClick(object? sender, MouseEventArgs e)
         {
-            // Handle left-click - could show/hide a main window or status
-            // For now, toggle dictation on left-click
-            ToggleDictation();
+            // Handle left-click - toggle window visibility
+            if (e.Button == MouseButtons.Left)
+            {
+                WindowToggleRequested?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         private void OnDictationClick(object? sender, EventArgs e)
         {
             ToggleDictation();
+        }
+
+        private void OnWindowClick(object? sender, EventArgs e)
+        {
+            WindowToggleRequested?.Invoke(this, EventArgs.Empty);
         }
 
         private void OnSettingsClick(object? sender, EventArgs e)
