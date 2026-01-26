@@ -49,6 +49,75 @@ namespace ScottWisper.Configuration
     {
         public string ToggleRecording { get; set; } = "Ctrl+Alt+V";
         public string ShowSettings { get; set; } = "Ctrl+Alt+S";
+        public bool EnableRecording { get; set; } = true;
+        public string EmergencyStop { get; set; } = "Ctrl+Alt+Shift+X";
+        public Dictionary<string, HotkeyDefinition> CustomHotkeys { get; set; } = new Dictionary<string, HotkeyDefinition>();
+        public string CurrentProfile { get; set; } = "Default";
+        public Dictionary<string, HotkeyProfile> Profiles { get; set; } = new Dictionary<string, HotkeyProfile>();
+        public bool ShowConflictWarnings { get; set; } = true;
+        public bool EnableAccessibilityOptions { get; set; } = false;
+        public bool EnableKeyboardLayoutAwareness { get; set; } = true;
+        public int ConflictCheckInterval { get; set; } = 5000; // ms
+        public string BackupProfilePath { get; set; } = string.Empty;
+    }
+
+    public class HotkeyDefinition
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Combination { get; set; } = string.Empty;
+        public string Action { get; set; } = string.Empty;
+        public bool IsEnabled { get; set; } = true;
+        public bool IsEmergency { get; set; } = false;
+        public string Description { get; set; } = string.Empty;
+        public string TargetApplication { get; set; } = string.Empty; // Application-specific
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime LastUsed { get; set; } = DateTime.MinValue;
+        public int UsageCount { get; set; } = 0;
+    }
+
+    public class HotkeyProfile
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public Dictionary<string, HotkeyDefinition> Hotkeys { get; set; } = new Dictionary<string, HotkeyDefinition>();
+        public bool IsDefault { get; set; } = false;
+        public bool IsReadonly { get; set; } = false;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime ModifiedAt { get; set; } = DateTime.Now;
+        public string Version { get; set; } = "1.0";
+        public List<string> Tags { get; set; } = new List<string>();
+        public ProfileMetadata Metadata { get; set; } = new ProfileMetadata();
+    }
+
+    public class ProfileMetadata
+    {
+        public string Author { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Purpose { get; set; } = string.Empty;
+        public List<string> CompatibleApplications { get; set; } = new List<string>();
+        public Dictionary<string, object> CustomProperties { get; set; } = new Dictionary<string, object>();
+    }
+
+    public class HotkeyConflict
+    {
+        public string ConflictingHotkey { get; set; } = string.Empty;
+        public string ConflictingApplication { get; set; } = string.Empty;
+        public string ConflictType { get; set; } = string.Empty; // "system", "application", "profile"
+        public string Resolution { get; set; } = string.Empty;
+        public bool IsResolvable { get; set; } = true;
+        public DateTime DetectedAt { get; set; } = DateTime.Now;
+        public string SuggestedHotkey { get; set; } = string.Empty;
+    }
+
+    public class HotkeyValidationResult
+    {
+        public bool IsValid { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string WarningMessage { get; set; } = string.Empty;
+        public List<HotkeyConflict> Conflicts { get; set; } = new List<HotkeyConflict>();
+        public List<string> Suggestions { get; set; } = new List<string>();
     }
 
     public class UISettings

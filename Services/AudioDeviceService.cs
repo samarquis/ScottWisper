@@ -1,11 +1,13 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using ScottWisper.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace ScottWisper.Services
 {
@@ -41,7 +43,7 @@ namespace ScottWisper.Services
         private readonly object _lockObject = new object();
         private bool _disposed = false;
         private WaveInEvent? _monitoringWaveIn;
-        private Timer? _levelUpdateTimer;
+        private System.Threading.Timer? _levelUpdateTimer;
         private float _currentAudioLevel = 0f;
         private bool _isMonitoring = false;
 
@@ -551,7 +553,7 @@ namespace ScottWisper.Services
 
                     try
                     {
-                        _levelUpdateTimer?.Stop();
+                        _levelUpdateTimer?.Change(null, Timeout.Infinite, Timeout.Infinite, 0);
                         _levelUpdateTimer?.Dispose();
                         _levelUpdateTimer = null;
 
@@ -1039,18 +1041,6 @@ namespace ScottWisper.Services
         public float QualityScore { get; set; }
         public int LatencyMs { get; set; }
         public float NoiseFloorDb { get; set; }
-    }
-
-    public class AudioQualityMetrics
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public DateTime AnalysisTime { get; set; }
-        public float AverageLevel { get; set; }
-        public float RMSLevel { get; set; }
-        public float PeakLevel { get; set; }
-        public float PeakToRMSRatio { get; set; }
-        public float DynamicRange { get; set; }
-        public float SignalQuality { get; set; }
     }
 
     public class DeviceCompatibilityScore

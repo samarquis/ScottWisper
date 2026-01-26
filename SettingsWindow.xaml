@@ -319,10 +319,122 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     
-                    <!-- Global Hotkeys -->
-                    <GroupBox Grid.Row="0" Header="Global Hotkeys" Margin="0,0,0,12" Padding="12">
+                    <!-- Profile Management -->
+                    <GroupBox Grid.Row="0" Header="Hotkey Profiles" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Current Profile:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="ProfileComboBox" Grid.Row="0" Grid.Column="1" 
+                                      Width="250" HorizontalAlignment="Left" Margin="0,0,8,0" 
+                                      SelectionChanged="Profile_SelectionChanged"/>
+                            <Button x:Name="NewProfileButton" Grid.Row="0" Grid.Column="2" 
+                                    Content="New" Width="60" Margin="0,0,8,0" Click="NewProfile_Click"/>
+                            <Button x:Name="EditProfileButton" Grid.Row="0" Grid.Column="3" 
+                                    Content="Edit" Width="60" Margin="0,0,8,0" Click="EditProfile_Click"/>
+                            <Button x:Name="DeleteProfileButton" Grid.Row="0" Grid.Column="4" 
+                                    Content="Delete" Width="60" Margin="0,0,8,0" Click="DeleteProfile_Click"/>
+                            <Button x:Name="ExportProfileButton" Grid.Row="0" Grid.Column="5" 
+                                    Content="Export" Width="60" Margin="0,0,8,0" Click="ExportProfile_Click"/>
+                            <Button x:Name="ImportProfileButton" Grid.Row="0" Grid.Column="6" 
+                                    Content="Import" Width="60" Margin="0,0,8,0" Click="ImportProfile_Click"/>
+                            <Button x:Name="ResetToDefaultButton" Grid.Row="0" Grid.Column="7" 
+                                    Content="Reset" Width="60" Click="ResetToDefault_Click"/>
+                            
+                            <TextBlock x:Name="ProfileDescriptionText" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="8" 
+                                       Text="Profile description will appear here" 
+                                       VerticalAlignment="Center" Margin="0,8,0,0" Foreground="Gray" TextWrapping="Wrap"/>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="8" Orientation="Horizontal" Margin="0,8,0,0">
+                                <CheckBox x:Name="EnableConflictWarningsCheckBox" Content="Show conflict warnings" 
+                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableConflictWarnings_Checked"/>
+                                <CheckBox x:Name="EnableAccessibilityOptionsCheckBox" Content="Accessibility mode" 
+                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableAccessibilityOptions_Checked"/>
+                                <CheckBox x:Name="EnableKeyboardLayoutAwarenessCheckBox" Content="Keyboard layout awareness" 
+                                          VerticalAlignment="Center" Checked="EnableKeyboardLayoutAwareness_Checked"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Hotkey Configuration -->
+                    <GroupBox Grid.Row="1" Header="Hotkey Configuration" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Hotkey List Header -->
+                            <Grid Grid.Row="0" Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="180"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="200"/>
+                                    <ColumnDefinition Width="80"/>
+                                    <ColumnDefinition Width="60"/>
+                                    <ColumnDefinition Width="60"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Label Grid.Column="0" Content="☑" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                <Label Grid.Column="1" Content="Action Name" FontWeight="Bold"/>
+                                <Label Grid.Column="2" Content="Hotkey" FontWeight="Bold"/>
+                                <Label Grid.Column="3" Content="Description" FontWeight="Bold"/>
+                                <Label Grid.Column="4" Content="Emergency" FontWeight="Bold"/>
+                                <Label Grid.Column="5" Content="Edit" FontWeight="Bold"/>
+                                <Label Grid.Column="6" Content="Test" FontWeight="Bold"/>
+                            </Grid>
+                            
+                            <!-- Hotkey List -->
+                            <DataGrid x:Name="HotkeysDataGrid" Grid.Row="1" AutoGenerateColumns="False" 
+                                      CanUserAddRows="False" CanUserDeleteRows="False"
+                                      SelectionMode="Single" Height="200" 
+                                      SelectionChanged="HotkeysDataGrid_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Header="☑" Binding="{Binding IsEnabled}" Width="30"/>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180"/>
+                                    <DataGridTextColumn Header="Hotkey" Binding="{Binding Combination}" Width="150"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="200"/>
+                                    <DataGridCheckBoxColumn Header="Emergency" Binding="{Binding IsEmergency}" Width="80"/>
+                                    <DataGridTemplateColumn Header="Edit" Width="60">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="✏️" Width="50" Height="20" 
+                                                        Click="EditHotkey_Click" Tag="{Binding Id}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="Test" Width="60">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="▶️" Width="50" Height="20" 
+                                                        Click="TestHotkey_Click" Tag="{Binding Id}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Hotkey Recording Panel -->
+                    <GroupBox Grid.Row="2" Header="Hotkey Recording" Margin="0,0,0,12" Padding="12">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="200"/>
@@ -334,51 +446,93 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <Label Grid.Row="0" Grid.Column="0" Content="Toggle Recording:" VerticalAlignment="Center"/>
-                            <TextBox x:Name="ToggleRecordingHotkeyTextBox" Grid.Row="0" Grid.Column="1" 
-                                     IsReadOnly="True" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <Button x:Name="ToggleRecordingHotkeyButton" Grid.Row="0" Grid.Column="2" 
-                                    Content="Set" Width="60" Margin="0,0,8,0" Click="SetToggleRecordingHotkey_Click"/>
-                            <Button x:Name="ToggleRecordingResetButton" Grid.Row="0" Grid.Column="3" 
-                                    Content="Reset" Width="60" Click="ResetToggleRecordingHotkey_Click"/>
+                            <Label Grid.Row="0" Grid.Column="0" Content="Action Name:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="HotkeyNameTextBox" Grid.Row="0" Grid.Column="1" 
+                                     Text="New Action" Margin="0,0,8,0"/>
                             
-                            <Label Grid.Row="1" Grid.Column="0" Content="Show Settings:" VerticalAlignment="Center" Margin="0,8,0,0"/>
-                            <TextBox x:Name="ShowSettingsHotkeyTextBox" Grid.Row="1" Grid.Column="1" 
-                                     IsReadOnly="True" VerticalAlignment="Center" Margin="0,8,0,8,0"/>
-                            <Button x:Name="ShowSettingsHotkeyButton" Grid.Row="1" Grid.Column="2" 
-                                    Content="Set" Width="60" Margin="0,8,0,8,0" Click="SetShowSettingsHotkey_Click"/>
-                            <Button x:Name="ShowSettingsResetButton" Grid.Row="1" Grid.Column="3" 
-                                    Content="Reset" Width="60" Margin="0,8,0,0" Click="ResetShowSettingsHotkey_Click"/>
+                            <Label Grid.Row="1" Grid.Column="0" Content="Description:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                            <TextBox x:Name="HotkeyDescriptionTextBox" Grid.Row="1" Grid.Column="1" 
+                                     Text="Enter a description" Margin="0,8,0,8,0" Height="40" TextWrapping="Wrap"/>
                             
-                            <TextBlock x:Name="HotkeyStatusText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" 
-                                       Text="Click 'Set' button, then press desired key combination" 
-                                       VerticalAlignment="Center" Margin="0,12,0,0" Foreground="Gray"/>
+                            <Label Grid.Row="2" Grid.Column="0" Content="Hotkey Combination:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBox x:Name="HotkeyRecordingTextBox" Text="Press keys to record..." 
+                                         IsReadOnly="True" Width="200" VerticalAlignment="Center"/>
+                                <Button x:Name="StartRecordingButton" Content="🎤 Record" Width="80" 
+                                        Margin="8,0,8,0" Click="StartRecording_Click"/>
+                                <Button x:Name="StopRecordingButton" Content="⏹️ Stop" Width="80" 
+                                        Margin="0,0,8,0" Click="StopRecording_Click" IsEnabled="False"/>
+                                <CheckBox x:Name="IsEmergencyCheckBox" Content="Emergency" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <Button x:Name="AddHotkeyButton" Grid.Row="3" Grid.Column="2" 
+                                    Content="Add Hotkey" Width="100" Margin="0,8,0,0" 
+                                    VerticalAlignment="Top" Click="AddHotkey_Click"/>
+                            
+                            <ScrollViewer Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                                <TextBlock x:Name="RecordingInstructionsText" TextWrapping="Wrap" Foreground="Gray">
+                                    <Run Text="Instructions:" FontWeight="Bold"/>
+                                    <LineBreak/>
+                                    <Run Text="1. Click 'Record' button"/>
+                                    <LineBreak/>
+                                    <Run Text="2. Press desired key combination (e.g., Ctrl+Alt+V)"/>
+                                    <LineBreak/>
+                                    <Run Text="3. Click 'Stop' to finish recording"/>
+                                    <LineBreak/>
+                                    <Run Text="4. Click 'Add Hotkey' to save"/>
+                                    <LineBreak/>
+                                    <LineBreak/>
+                                    <Run Text="Supported modifiers: Ctrl, Alt, Shift, Win"/>
+                                    <LineBreak/>
+                                    <Run Text="Examples: Ctrl+Alt+V, Shift+F1, Ctrl+Shift+Space"/>
+                                </TextBlock>
+                            </ScrollViewer>
                         </Grid>
                     </GroupBox>
 
                     <!-- Hotkey Conflicts -->
-                    <GroupBox Grid.Row="1" Header="Conflict Detection" Margin="0,0,0,12" Padding="12">
+                    <GroupBox Grid.Row="3" Header="Conflict Detection and Resolution" Margin="0,0,0,12" Padding="12">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
-                            <Button x:Name="CheckConflictsButton" Grid.Row="0" 
-                                    Content="Check for Conflicts" Width="150" HorizontalAlignment="Left" 
-                                    Margin="0,0,0,8" Click="CheckConflicts_Click"/>
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                <Button x:Name="CheckConflictsButton" Content="🔍 Check for Conflicts" Width="140" 
+                                        Click="CheckConflicts_Click"/>
+                                <Button x:Name="AutoResolveButton" Content="🔧 Auto-Resolve" Width="120" 
+                                        Margin="8,0,0,0" Click="AutoResolve_Click"/>
+                                <TextBlock x:Name="ConflictStatusText" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="Gray"/>
+                            </StackPanel>
                             
                             <DataGrid x:Name="ConflictsDataGrid" Grid.Row="1" AutoGenerateColumns="False" 
                                       CanUserAddRows="False" CanUserDeleteRows="False"
                                       SelectionMode="Single" Height="120">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Hotkey" Binding="{Binding Hotkey}" Width="150"/>
-                                    <DataGridTextColumn Header="Application" Binding="{Binding Application}" Width="200"/>
-                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                                    <DataGridTextColumn Header="Conflicting Hotkey" Binding="{Binding ConflictingHotkey}" Width="150"/>
+                                    <DataGridTextColumn Header="Application" Binding="{Binding ConflictingApplication}" Width="150"/>
+                                    <DataGridTextColumn Header="Type" Binding="{Binding ConflictType}" Width="100"/>
+                                    <DataGridTextColumn Header="Suggested Fix" Binding="{Binding SuggestedHotkey}" Width="150"/>
+                                    <DataGridCheckBoxColumn Header="Resolvable" Binding="{Binding IsResolvable}" Width="80"/>
+                                    <DataGridTemplateColumn Header="Action" Width="80">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="Apply Fix" Width="70" Height="20" 
+                                                        Click="ApplyFix_Click" Tag="{Binding}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
+                            
+                            <TextBlock x:Name="ConflictHelpText" Grid.Row="2" TextWrapping="Wrap" Foreground="Gray" Margin="0,8,0,0">
+                                <Run Text="💡 Tip: System conflicts require administrator privileges. Application conflicts can be resolved by changing hotkey combinations."/>
+                            </TextBlock>
                         </Grid>
                     </GroupBox>
                 </Grid>

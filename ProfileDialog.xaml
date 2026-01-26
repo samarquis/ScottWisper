@@ -1,0 +1,72 @@
+<Window x:Class="ScottWisper.ProfileDialog"
+         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         Title="Hotkey Profile" Height="400" Width="500"
+         WindowStartupLocation="CenterScreen" 
+         ResizeMode="NoResize" Background="#FF2D2D30">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Profile Name -->
+        <Label Grid.Row="0" Content="Profile Name:" Foreground="White" Margin="0,0,0,8"/>
+        <TextBox x:Name="ProfileNameTextBox" Grid.Row="0" Text="{Binding Name, Mode=TwoWay}" 
+                 Margin="100,0,0,8" Height="25" VerticalAlignment="Center"/>
+        
+        <!-- Profile Description -->
+        <Label Grid.Row="1" Content="Description:" Foreground="White" Margin="0,8,0,8"/>
+        <TextBox x:Name="ProfileDescriptionTextBox" Grid.Row="1" Text="{Binding Description, Mode=TwoWay}" 
+                 Margin="100,8,0,8" Height="60" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+        
+        <!-- Profile Category -->
+        <Label Grid.Row="2" Content="Category:" Foreground="White" Margin="0,8,0,8"/>
+        <ComboBox x:Name="ProfileCategoryComboBox" Grid.Row="2" Margin="100,8,0,8" Height="25">
+            <ComboBoxItem Content="General" Tag="General"/>
+            <ComboBoxItem Content="Gaming" Tag="Gaming"/>
+            <ComboBoxItem Content="Productivity" Tag="Productivity"/>
+            <ComboBoxItem Content="Accessibility" Tag="Accessibility"/>
+            <ComboBoxItem Content="Custom" Tag="Custom"/>
+        </ComboBox>
+        
+        <!-- Profile Options -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,16,0,8">
+            <CheckBox x:Name="IsDefaultCheckBox" Content="Set as default profile" 
+                      Foreground="White" VerticalAlignment="Center"/>
+            <CheckBox x:Name="IsReadonlyCheckBox" Content="Read-only profile" 
+                      Foreground="White" VerticalAlignment="Center" Margin="20,0,0,0"/>
+        </StackPanel>
+        
+        <!-- Profile Tags -->
+        <Label Grid.Row="4" Content="Tags (comma separated):" Foreground="White" Margin="0,8,0,8"/>
+        <TextBox x:Name="ProfileTagsTextBox" Grid.Row="4" Text="{Binding TagsString, Mode=TwoWay}" 
+                 Margin="150,8,0,8" Height="25" VerticalAlignment="Center"/>
+        
+        <!-- Instructions -->
+        <TextBlock Grid.Row="5" TextWrapping="Wrap" Foreground="Gray" Margin="0,8,0,8">
+            <Run Text="💡 Tips:" FontWeight="Bold"/>
+            <LineBreak/>
+            <Run Text="• Use descriptive names to identify profile purpose"/>
+            <LineBreak/>
+            <Run Text="• Tags help organize profiles (e.g., gaming, work)"/>
+            <LineBreak/>
+            <Run Text="• Read-only profiles cannot be modified accidentally"/>
+            <LineBreak/>
+            <Run Text="• Default profile is loaded on application start"/>
+        </TextBlock>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button x:Name="CancelButton" Content="Cancel" Width="80" Margin="0,0,8,0" 
+                    Click="CancelButton_Click" Background="#FF5A5A5A" Foreground="White"/>
+            <Button x:Name="OKButton" Content="OK" Width="80" 
+                    Click="OKButton_Click" Background="#FF007ACC" Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>

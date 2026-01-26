@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ScottWisper")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9b8d87b9adc64937325ba7bd0fa134b17f289e77")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+036fe618a07606bcf3782b1e5c626c9ad86a8ec7")]
 [assembly: System.Reflection.AssemblyProductAttribute("ScottWisper")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ScottWisper")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

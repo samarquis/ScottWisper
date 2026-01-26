@@ -323,7 +323,7 @@ namespace ScottWisper
         public bool IsWindowHidden => _isHidden;
 
         // Public method for external components to update status
-        private void OnStatusHistoryUpdated(object? sender, FeedbackService.StatusHistoryEntry entry)
+        private void OnStatusHistoryUpdated(object? sender, ScottWisper.StatusHistoryEntry entry)
         {
             Dispatcher.Invoke(() =>
             {
@@ -347,7 +347,7 @@ namespace ScottWisper
             });
         }
 
-        private void OnProgressUpdated(object? sender, FeedbackService.ProgressState progress)
+        private void OnProgressUpdated(object? sender, ScottWisper.ProgressState progress)
         {
             Dispatcher.Invoke(() =>
             {

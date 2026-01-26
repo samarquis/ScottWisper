@@ -44,6 +44,17 @@ namespace ScottWisper.Services
         Task<bool> IsDeviceEnabledAsync(string deviceId);
         Task SetDeviceEnabledAsync(string deviceId, bool enabled);
         Task<string> GetRecommendedDeviceAsync(DeviceType type);
+        
+        // Hotkey management methods
+        Task<bool> CreateHotkeyProfileAsync(HotkeyProfile profile);
+        Task<bool> UpdateHotkeyProfileAsync(HotkeyProfile profile);
+        Task<bool> DeleteHotkeyProfileAsync(string profileId);
+        Task<bool> SwitchHotkeyProfileAsync(string profileId);
+        Task<List<HotkeyProfile>> GetHotkeyProfilesAsync();
+        Task<HotkeyProfile> GetCurrentHotkeyProfileAsync();
+        Task ExportHotkeyProfileAsync(string profileId, string filePath);
+        Task<HotkeyProfile> ImportHotkeyProfileAsync(string filePath);
+        Task<HotkeyValidationResult> ValidateHotkeyAsync(string combination);
     }
 
     public class SettingsService : ISettingsService
@@ -194,6 +205,23 @@ namespace ScottWisper.Services
             if (source.UI != null)
             {
                 target.UI = source.UI;
+            }
+            
+            if (source.Hotkeys?.Profiles != null)
+            {
+                // Merge profiles, with source taking precedence
+                foreach (var profile in source.Hotkeys.Profiles)
+                {
+                    target.Hotkeys.Profiles[profile.Key] = profile.Value;
+                }
+            }
+            
+            if (source.Hotkeys?.CustomHotkeys != null)
+            {
+                foreach (var hotkey in source.Hotkeys.CustomHotkeys)
+                {
+                    target.Hotkeys.CustomHotkeys[hotkey.Key] = hotkey.Value;
+                }
             }
         }
 
@@ -538,6 +566,174 @@ namespace ScottWisper.Services
             {
                 return string.Empty;
             }
+        }
+
+        public async Task<bool> CreateHotkeyProfileAsync(HotkeyProfile profile)
+        {
+            if (profile == null || string.IsNullOrWhiteSpace(profile.Id))
+                return false;
+
+            if (_currentSettings.Hotkeys.Profiles.ContainsKey(profile.Id))
+                return false;
+
+            profile.CreatedAt = DateTime.Now;
+            profile.ModifiedAt = DateTime.Now;
+            
+            _currentSettings.Hotkeys.Profiles[profile.Id] = profile;
+            await SaveAsync();
+            return true;
+        }
+
+        public async Task<bool> UpdateHotkeyProfileAsync(HotkeyProfile profile)
+        {
+            if (profile == null || string.IsNullOrWhiteSpace(profile.Id))
+                return false;
+
+            if (!_currentSettings.Hotkeys.Profiles.ContainsKey(profile.Id))
+                return false;
+
+            profile.ModifiedAt = DateTime.Now;
+            _currentSettings.Hotkeys.Profiles[profile.Id] = profile;
+            await SaveAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteHotkeyProfileAsync(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId) || profileId == "Default")
+                return false;
+
+            if (!_currentSettings.Hotkeys.Profiles.ContainsKey(profileId))
+                return false;
+
+            _currentSettings.Hotkeys.Profiles.Remove(profileId);
+
+            // If deleting current profile, switch to default
+            if (profileId == _currentSettings.Hotkeys.CurrentProfile)
+            {
+                _currentSettings.Hotkeys.CurrentProfile = "Default";
+            }
+
+            await SaveAsync();
+            return true;
+        }
+
+        public async Task<bool> SwitchHotkeyProfileAsync(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId))
+                return false;
+
+            if (!_currentSettings.Hotkeys.Profiles.ContainsKey(profileId))
+                return false;
+
+            _currentSettings.Hotkeys.CurrentProfile = profileId;
+            await SaveAsync();
+            return true;
+        }
+
+        public async Task<List<HotkeyProfile>> GetHotkeyProfilesAsync()
+        {
+            await Task.CompletedTask; // Make method async
+            return _currentSettings.Hotkeys.Profiles.Values.ToList();
+        }
+
+        public async Task<HotkeyProfile> GetCurrentHotkeyProfileAsync()
+        {
+            var profileId = _currentSettings.Hotkeys.CurrentProfile;
+            if (_currentSettings.Hotkeys.Profiles.TryGetValue(profileId, out var profile))
+            {
+                return profile;
+            }
+            
+            // Return default profile if current not found
+            return _currentSettings.Hotkeys.Profiles.TryGetValue("Default", out var defaultProfile) 
+                ? defaultProfile 
+                : new HotkeyProfile { Id = "Default", Name = "Default" };
+        }
+
+        public async Task ExportHotkeyProfileAsync(string profileId, string filePath)
+        {
+            if (!_currentSettings.Hotkeys.Profiles.TryGetValue(profileId, out var profile))
+                throw new ArgumentException($"Profile {profileId} not found");
+
+            var exportData = new
+            {
+                Profile = profile,
+                ExportedAt = DateTime.Now,
+                Version = "1.0",
+                Application = "ScottWisper",
+                Settings = new
+                {
+                    _currentSettings.Hotkeys.ShowConflictWarnings,
+                    _currentSettings.Hotkeys.EnableAccessibilityOptions,
+                    _currentSettings.Hotkeys.EnableKeyboardLayoutAwareness
+                }
+            };
+
+            var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(filePath, json);
+
+            // Store backup path
+            _currentSettings.Hotkeys.BackupProfilePath = filePath;
+            await SaveAsync();
+        }
+
+        public async Task<HotkeyProfile> ImportHotkeyProfileAsync(string filePath)
+        {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"Profile file not found: {filePath}");
+
+            var json = await File.ReadAllTextAsync(filePath);
+            var importData = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            var profile = JsonSerializer.Deserialize<HotkeyProfile>(
+                importData.GetProperty("Profile").GetRawText());
+
+            if (profile == null)
+                throw new InvalidOperationException("Invalid profile file format");
+
+            // Ensure unique ID
+            var originalId = profile.Id;
+            var counter = 1;
+            while (_currentSettings.Hotkeys.Profiles.ContainsKey(profile.Id))
+            {
+                profile.Id = $"{originalId}_{counter++}";
+            }
+
+            await CreateHotkeyProfileAsync(profile);
+            return profile;
+        }
+
+        public async Task<HotkeyValidationResult> ValidateHotkeyAsync(string combination)
+        {
+            // This is a basic validation - the comprehensive validation is in HotkeyService
+            var result = new HotkeyValidationResult { IsValid = true };
+            
+            if (string.IsNullOrWhiteSpace(combination))
+            {
+                result.IsValid = false;
+                result.ErrorMessage = "Hotkey combination cannot be empty";
+                return result;
+            }
+
+            // Check against existing hotkeys in current profile
+            var currentProfile = await GetCurrentHotkeyProfileAsync();
+            var conflictingHotkey = currentProfile.Hotkeys.Values
+                .FirstOrDefault(h => string.Equals(h.Combination, combination, StringComparison.OrdinalIgnoreCase));
+
+            if (conflictingHotkey != null)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = $"This hotkey is already used by: {conflictingHotkey.Name}";
+                result.Conflicts.Add(new HotkeyConflict
+                {
+                    ConflictingHotkey = conflictingHotkey.Combination,
+                    ConflictingApplication = "ScottWisper",
+                    ConflictType = "profile"
+                });
+            }
+
+            return result;
         }
 
         private string GetEncryptedFilePath(string key)

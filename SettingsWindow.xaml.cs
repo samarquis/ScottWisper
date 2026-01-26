@@ -3,11 +3,14 @@ using ScottWisper.Configuration;
 using ScottWisper.Services;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace ScottWisper
 {
@@ -19,6 +22,13 @@ namespace ScottWisper
         private readonly List<Services.AudioDevice> _outputDevices = new List<Services.AudioDevice>();
         private bool _isLoading = true;
         private AppSettings _originalSettings;
+        
+        // Hotkey management fields
+        private bool _isRecordingHotkey = false;
+        private List<Key> _pressedKeys = new List<Key>();
+        private HotkeyProfile? _currentHotkeyProfile;
+        private HotkeyDefinition? _editingHotkey;
+        private string _recordingHotkeyId = string.Empty;
 
         public SettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService)
         {
@@ -155,8 +165,7 @@ namespace ScottWisper
             PopulateTranscriptionControls();
             
             // Hotkey settings
-            ToggleRecordingHotkeyTextBox.Text = _settingsService.Settings.Hotkeys.ToggleRecording;
-            ShowSettingsHotkeyTextBox.Text = _settingsService.Settings.Hotkeys.ShowSettings;
+            LoadHotkeySettingsAsync();
             
             // UI settings
             ShowVisualFeedbackCheckBox.IsChecked = _settingsService.Settings.UI.ShowVisualFeedback;
@@ -672,46 +681,7 @@ namespace ScottWisper
             _ = _settingsService.SaveAsync();
         }
 
-        private async void CheckConflicts_Click(object sender, RoutedEventArgs e)
-        {
-            var conflicts = await DetectHotkeyConflictsAsync();
-            
-            ConflictsDataGrid.ItemsSource = conflicts.Select(c => new
-            {
-                Hotkey = c.Hotkey,
-                Application = c.Application,
-                Status = c.Status
-            }).ToList();
-            
-            if (conflicts.Any())
-            {
-                MessageBox.Show($"Found {conflicts.Count} potential hotkey conflicts.", 
-                    "Conflict Detection", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-            else
-            {
-                MessageBox.Show("No hotkey conflicts detected.", 
-                    "Conflict Detection", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
 
-        private async Task<List<HotkeyConflict>> DetectHotkeyConflictsAsync()
-        {
-            // Mock implementation - would actually check system-wide hotkey registrations
-            await Task.Delay(500);
-            
-            var conflicts = new List<HotkeyConflict>();
-            
-            // Simulate some conflicts for demonstration
-            conflicts.Add(new HotkeyConflict
-            {
-                Hotkey = "Ctrl+Alt+V",
-                Application = "Other App",
-                Status = "Potential Conflict"
-            });
-            
-            return conflicts;
-        }
 
         #endregion
 
@@ -953,12 +923,638 @@ namespace ScottWisper
             await Dispatcher.InvokeAsync(LoadDevicesAsync);
         }
 
+        #region Hotkey Management
+
+        private async Task LoadHotkeySettingsAsync()
+        {
+            try
+            {
+                // Load current profile
+                _currentHotkeyProfile = await _settingsService.GetCurrentHotkeyProfileAsync();
+                
+                // Populate profile combo box
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    PopulateProfileComboBox();
+                    PopulateHotkeyGrid();
+                    LoadProfileSettings();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading hotkey settings: {ex.Message}");
+            }
+        }
+
+        private void PopulateProfileComboBox()
+        {
+            ProfileComboBox.Items.Clear();
+            
+            var profiles = _settingsService.GetHotkeyProfilesAsync().Result;
+            foreach (var profile in profiles)
+            {
+                var item = new ComboBoxItem { Content = profile.Name, Tag = profile.Id };
+                ProfileComboBox.Items.Add(item);
+                
+                if (profile.Id == _currentHotkeyProfile?.Id)
+                {
+                    ProfileComboBox.SelectedItem = item;
+                }
+            }
+        }
+
+        private void PopulateHotkeyGrid()
+        {
+            if (_currentHotkeyProfile == null) return;
+            
+            var hotkeys = _currentHotkeyProfile.Hotkeys.Values.ToList();
+            HotkeysDataGrid.ItemsSource = hotkeys;
+        }
+
+        private void LoadProfileSettings()
+        {
+            if (_currentHotkeyProfile == null) return;
+            
+            ProfileDescriptionText.Text = _currentHotkeyProfile.Description;
+            EnableConflictWarningsCheckBox.IsChecked = _settingsService.Settings.Hotkeys.ShowConflictWarnings;
+            EnableAccessibilityOptionsCheckBox.IsChecked = _settingsService.Settings.Hotkeys.EnableAccessibilityOptions;
+            EnableKeyboardLayoutAwarenessCheckBox.IsChecked = _settingsService.Settings.Hotkeys.EnableKeyboardLayoutAwareness;
+        }
+
+        private async void Profile_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoading || ProfileComboBox.SelectedItem == null) return;
+            
+            var selectedProfile = (ComboBoxItem)ProfileComboBox.SelectedItem;
+            var profileId = (string)selectedProfile.Tag;
+            
+            if (profileId != _currentHotkeyProfile?.Id)
+            {
+                await SwitchProfileAsync(profileId);
+            }
+        }
+
+        private async Task SwitchProfileAsync(string profileId)
+        {
+            try
+            {
+                await _settingsService.SwitchHotkeyProfileAsync(profileId);
+                _currentHotkeyProfile = await _settingsService.GetCurrentHotkeyProfileAsync();
+                
+                PopulateHotkeyGrid();
+                LoadProfileSettings();
+                
+                MessageBox.Show($"Switched to profile: {_currentHotkeyProfile.Name}", 
+                    "Profile Switched", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to switch profile: {ex.Message}", 
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void NewProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ProfileDialog("Create New Profile");
+            var result = dialog.ShowDialog();
+            
+            if (result == true && dialog.Profile != null)
+            {
+                try
+                {
+                    await _settingsService.CreateHotkeyProfileAsync(dialog.Profile);
+                    PopulateProfileComboBox();
+                    MessageBox.Show($"Profile '{dialog.Profile.Name}' created successfully.", 
+                        "Profile Created", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to create profile: {ex.Message}", 
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void EditProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHotkeyProfile == null || _currentHotkeyProfile.IsReadonly) return;
+            
+            var dialog = new ProfileDialog("Edit Profile", CloneProfile(_currentHotkeyProfile));
+            var result = dialog.ShowDialog();
+            
+            if (result == true && dialog.Profile != null)
+            {
+                try
+                {
+                    await _settingsService.UpdateHotkeyProfileAsync(dialog.Profile);
+                    _currentHotkeyProfile = dialog.Profile;
+                    PopulateProfileComboBox();
+                    LoadProfileSettings();
+                    MessageBox.Show($"Profile '{dialog.Profile.Name}' updated successfully.", 
+                        "Profile Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to update profile: {ex.Message}", 
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void DeleteProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHotkeyProfile == null || _currentHotkeyProfile.Id == "Default") return;
+            
+            var result = MessageBox.Show(
+                $"Delete profile '{_currentHotkeyProfile.Name}'? This action cannot be undone.", 
+                "Delete Profile", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    await _settingsService.DeleteHotkeyProfileAsync(_currentHotkeyProfile.Id);
+                    await LoadHotkeySettingsAsync();
+                    MessageBox.Show("Profile deleted successfully.", 
+                        "Profile Deleted", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to delete profile: {ex.Message}", 
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void ExportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentHotkeyProfile == null) return;
+            
+            var saveFileDialog = new SaveFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                Title = "Export Hotkey Profile",
+                FileName = $"{_currentHotkeyProfile.Name}.json"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    await _settingsService.ExportHotkeyProfileAsync(_currentHotkeyProfile.Id, saveFileDialog.FileName);
+                    MessageBox.Show($"Profile exported to {saveFileDialog.FileName}", 
+                        "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to export profile: {ex.Message}", 
+                        "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void ImportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog
+            {
+                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                Title = "Import Hotkey Profile"
+            };
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var importedProfile = await _settingsService.ImportHotkeyProfileAsync(openFileDialog.FileName);
+                    await LoadHotkeySettingsAsync();
+                    
+                    MessageBox.Show($"Profile '{importedProfile.Name}' imported successfully.\n" +
+                                  $"Note: ID was changed to '{importedProfile.Id}' to avoid conflicts.", 
+                        "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to import profile: {ex.Message}", 
+                        "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void ResetToDefault_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show(
+                "Reset hotkey settings to default profile? All custom hotkeys will be lost.", 
+                "Reset to Default", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    // This would need to be implemented in HotkeyService
+                    MessageBox.Show("Reset to default functionality would be implemented in HotkeyService.", 
+                        "Feature Not Available", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to reset to default: {ex.Message}", 
+                        "Reset Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private async void StartRecording_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isRecordingHotkey) return;
+            
+            _isRecordingHotkey = true;
+            _pressedKeys.Clear();
+            _recordingHotkeyId = Guid.NewGuid().ToString("N")[..8]; // Short ID
+            
+            HotkeyRecordingTextBox.Text = "Press keys now...";
+            HotkeyRecordingTextBox.Background = System.Windows.Media.Brushes.LightYellow;
+            StartRecordingButton.IsEnabled = false;
+            StopRecordingButton.IsEnabled = true;
+            
+            // Focus the window to capture keys
+            this.Focus();
+            this.KeyDown += OnHotkeyRecordingKeyDown;
+            this.KeyUp += OnHotkeyRecordingKeyUp;
+        }
+
+        private void StopRecording_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_isRecordingHotkey) return;
+            
+            _isRecordingHotkey = false;
+            this.KeyDown -= OnHotkeyRecordingKeyDown;
+            this.KeyUp -= OnHotkeyRecordingKeyUp;
+            
+            if (_pressedKeys.Any())
+            {
+                var hotkeyCombination = BuildHotkeyString(_pressedKeys);
+                HotkeyRecordingTextBox.Text = hotkeyCombination;
+                HotkeyRecordingTextBox.Background = System.Windows.Media.Brushes.LightGreen;
+            }
+            else
+            {
+                HotkeyRecordingTextBox.Text = "No keys pressed";
+                HotkeyRecordingTextBox.Background = System.Windows.Media.Brushes.LightPink;
+            }
+            
+            StartRecordingButton.IsEnabled = true;
+            StopRecordingButton.IsEnabled = false;
+        }
+
+        private void OnHotkeyRecordingKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!_isRecordingHotkey) return;
+            
+            // Only add modifier keys and normal keys, not system keys
+            if (e.Key == Key.LeftCtrl || e.Key == Key.RightCtrl ||
+                e.Key == Key.LeftAlt || e.Key == Key.RightAlt ||
+                e.Key == Key.LeftShift || e.Key == Key.RightShift ||
+                e.Key == Key.LWin || e.Key == Key.RWin ||
+                (e.Key >= Key.A && e.Key <= Key.Z) ||
+                (e.Key >= Key.D0 && e.Key <= Key.D9) ||
+                (e.Key >= Key.F1 && e.Key <= Key.F24))
+            {
+                if (!_pressedKeys.Contains(e.Key))
+                {
+                    _pressedKeys.Add(e.Key);
+                    UpdateRecordingDisplay();
+                }
+            }
+            
+            e.Handled = true;
+        }
+
+        private void OnHotkeyRecordingKeyUp(object sender, KeyEventArgs e)
+        {
+            if (!_isRecordingHotkey) return;
+            
+            // When user releases all keys, stop recording
+            if (e.Key == Key.Escape)
+            {
+                StopRecording_Click(this, new RoutedEventArgs());
+            }
+        }
+
+        private void UpdateRecordingDisplay()
+        {
+            if (_pressedKeys.Any())
+            {
+                var combination = BuildHotkeyString(_pressedKeys);
+                HotkeyRecordingTextBox.Text = combination;
+            }
+        }
+
+        private string BuildHotkeyString(List<Key> keys)
+        {
+            var parts = new List<string>();
+            var modifiers = new List<Key> { Key.LeftCtrl, Key.RightCtrl, Key.LeftAlt, Key.RightAlt, 
+                                       Key.LeftShift, Key.RightShift, Key.LWin, Key.RWin };
+            
+            // Add modifiers first
+            if (keys.Any(k => k == Key.LeftCtrl || k == Key.RightCtrl))
+                parts.Add("Ctrl");
+            if (keys.Any(k => k == Key.LeftAlt || k == Key.RightAlt))
+                parts.Add("Alt");
+            if (keys.Any(k => k == Key.LeftShift || k == Key.RightShift))
+                parts.Add("Shift");
+            if (keys.Any(k => k == Key.LWin || k == Key.RWin))
+                parts.Add("Win");
+            
+            // Add the main key
+            var mainKey = keys.FirstOrDefault(k => !modifiers.Contains(k));
+            if (mainKey != null)
+            {
+                if (mainKey >= Key.A && mainKey <= Key.Z)
+                    parts.Add(mainKey.ToString());
+                else if (mainKey >= Key.D0 && mainKey <= Key.D9)
+                    parts.Add(mainKey.ToString().Replace("D", ""));
+                else if (mainKey >= Key.F1 && mainKey <= Key.F24)
+                    parts.Add(mainKey.ToString());
+                else if (mainKey == Key.Space)
+                    parts.Add("Space");
+                else if (mainKey == Key.Tab)
+                    parts.Add("Tab");
+                else if (mainKey == Key.Enter)
+                    parts.Add("Enter");
+                else if (mainKey == Key.Escape)
+                    parts.Add("Esc");
+                else if (mainKey == Key.Delete)
+                    parts.Add("Delete");
+                else if (mainKey == Key.Insert)
+                    parts.Add("Insert");
+                else if (mainKey == Key.Home)
+                    parts.Add("Home");
+                else if (mainKey == Key.End)
+                    parts.Add("End");
+                else if (mainKey == Key.PageUp)
+                    parts.Add("PageUp");
+                else if (mainKey == Key.PageDown)
+                    parts.Add("PageDown");
+                else
+                    parts.Add(mainKey.ToString());
+            }
+            
+            return string.Join("+", parts);
+        }
+
+        private async void AddHotkey_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(HotkeyRecordingTextBox.Text) || 
+                HotkeyRecordingTextBox.Text == "Press keys to record..." ||
+                HotkeyRecordingTextBox.Text == "No keys pressed")
+            {
+                MessageBox.Show("Please record a hotkey combination first.", 
+                    "Invalid Hotkey", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            
+            var hotkey = new HotkeyDefinition
+            {
+                Id = _recordingHotkeyId,
+                Name = HotkeyNameTextBox.Text.Trim(),
+                Combination = HotkeyRecordingTextBox.Text,
+                Action = "custom_action",
+                Description = HotkeyDescriptionTextBox.Text.Trim(),
+                IsEnabled = true,
+                IsEmergency = IsEmergencyCheckBox.IsChecked == true
+            };
+            
+            // Validate hotkey
+            var validation = await _settingsService.ValidateHotkeyAsync(hotkey.Combination);
+            if (!validation.IsValid)
+            {
+                MessageBox.Show($"Invalid hotkey: {validation.ErrorMessage}", 
+                    "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            
+            // Add to current profile
+            if (_currentHotkeyProfile != null)
+            {
+                _currentHotkeyProfile.Hotkeys[hotkey.Id] = hotkey;
+                await _settingsService.UpdateHotkeyProfileAsync(_currentHotkeyProfile);
+                
+                PopulateHotkeyGrid();
+                
+                // Clear recording fields
+                HotkeyNameTextBox.Text = "New Action";
+                HotkeyDescriptionTextBox.Text = "Enter a description";
+                HotkeyRecordingTextBox.Text = "Press keys to record...";
+                HotkeyRecordingTextBox.Background = System.Windows.Media.Brushes.White;
+                
+                MessageBox.Show($"Hotkey '{hotkey.Combination}' added successfully.", 
+                    "Hotkey Added", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void EditHotkey_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string hotkeyId)
+            {
+                if (_currentHotkeyProfile?.Hotkeys.TryGetValue(hotkeyId, out var hotkey))
+                {
+                    _editingHotkey = hotkey;
+                    HotkeyNameTextBox.Text = hotkey.Name;
+                    HotkeyDescriptionTextBox.Text = hotkey.Description;
+                    HotkeyRecordingTextBox.Text = hotkey.Combination;
+                    IsEmergencyCheckBox.IsChecked = hotkey.IsEmergency;
+                }
+            }
+        }
+
+        private async void TestHotkey_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string hotkeyId)
+            {
+                if (_currentHotkeyProfile?.Hotkeys.TryGetValue(hotkeyId, out var hotkey))
+                {
+                    MessageBox.Show($"Testing hotkey: {hotkey.Name}\n" +
+                                  $"Combination: {hotkey.Combination}\n" +
+                                  $"Description: {hotkey.Description}\n" +
+                                  $"This is a test - the actual hotkey will trigger when you press it.", 
+                        "Hotkey Test", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+        private async void CheckConflicts_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ConflictStatusText.Text = "Checking for conflicts...";
+                ConflictStatusText.Foreground = System.Windows.Media.Brushes.Orange;
+                
+                var conflicts = new List<HotkeyConflict>();
+                
+                if (_currentHotkeyProfile != null)
+                {
+                    foreach (var hotkey in _currentHotkeyProfile.Hotkeys.Values)
+                    {
+                        var validation = await _settingsService.ValidateHotkeyAsync(hotkey.Combination);
+                        conflicts.AddRange(validation.Conflicts);
+                    }
+                }
+                
+                ConflictsDataGrid.ItemsSource = conflicts;
+                
+                if (conflicts.Any())
+                {
+                    ConflictStatusText.Text = $"Found {conflicts.Count} conflict(s)";
+                    ConflictStatusText.Foreground = System.Windows.Media.Brushes.Red;
+                }
+                else
+                {
+                    ConflictStatusText.Text = "No conflicts found";
+                    ConflictStatusText.Foreground = System.Windows.Media.Brushes.Green;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to check conflicts: {ex.Message}", 
+                    "Conflict Check Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                ConflictStatusText.Text = "Error checking conflicts";
+                ConflictStatusText.Foreground = System.Windows.Media.Brushes.Red;
+            }
+        }
+
+        private async void AutoResolve_Click(object sender, RoutedEventArgs e)
+        {
+            var conflicts = ConflictsDataGrid.ItemsSource as List<HotkeyConflict>;
+            if (conflicts == null || !conflicts.Any()) return;
+            
+            var resolvedCount = 0;
+            
+            foreach (var conflict in conflicts.Where(c => c.IsResolvable))
+            {
+                if (!string.IsNullOrWhiteSpace(conflict.SuggestedHotkey))
+                {
+                    // Find the hotkey with this conflict and update it
+                    if (_currentHotkeyProfile != null)
+                    {
+                        var conflictingHotkey = _currentHotkeyProfile.Hotkeys.Values
+                            .FirstOrDefault(h => h.Combination == conflict.ConflictingHotkey);
+                        
+                        if (conflictingHotkey != null)
+                        {
+                            conflictingHotkey.Combination = conflict.SuggestedHotkey;
+                            resolvedCount++;
+                        }
+                    }
+                }
+            }
+            
+            if (resolvedCount > 0)
+            {
+                await _settingsService.UpdateHotkeyProfileAsync(_currentHotkeyProfile);
+                PopulateHotkeyGrid();
+                MessageBox.Show($"Resolved {resolvedCount} conflict(s) automatically.", 
+                    "Conflicts Resolved", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                // Re-check conflicts
+                await CheckConflicts_Click(this, e);
+            }
+            else
+            {
+                MessageBox.Show("No resolvable conflicts found.", 
+                    "Auto-Resolve", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void ApplyFix_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is HotkeyConflict conflict)
+            {
+                if (!string.IsNullOrWhiteSpace(conflict.SuggestedHotkey) && _currentHotkeyProfile != null)
+                {
+                    var conflictingHotkey = _currentHotkeyProfile.Hotkeys.Values
+                        .FirstOrDefault(h => h.Combination == conflict.ConflictingHotkey);
+                    
+                    if (conflictingHotkey != null)
+                    {
+                        conflictingHotkey.Combination = conflict.SuggestedHotkey;
+                        PopulateHotkeyGrid();
+                        MessageBox.Show($"Applied fix: {conflict.SuggestedHotkey}", 
+                            "Fix Applied", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                }
+            }
+        }
+
+        private async void EnableConflictWarnings_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading) return;
+            _settingsService.Settings.Hotkeys.ShowConflictWarnings = EnableConflictWarningsCheckBox.IsChecked == true;
+            await _settingsService.SaveAsync();
+        }
+
+        private async void EnableAccessibilityOptions_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading) return;
+            _settingsService.Settings.Hotkeys.EnableAccessibilityOptions = EnableAccessibilityOptionsCheckBox.IsChecked == true;
+            await _settingsService.SaveAsync();
+        }
+
+        private async void EnableKeyboardLayoutAwareness_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading) return;
+            _settingsService.Settings.Hotkeys.EnableKeyboardLayoutAwareness = EnableKeyboardLayoutAwarenessCheckBox.IsChecked == true;
+            await _settingsService.SaveAsync();
+        }
+
+        private void HotkeysDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (HotkeysDataGrid.SelectedItem is HotkeyDefinition selectedHotkey)
+            {
+                _editingHotkey = selectedHotkey;
+                HotkeyNameTextBox.Text = selectedHotkey.Name;
+                HotkeyDescriptionTextBox.Text = selectedHotkey.Description;
+                HotkeyRecordingTextBox.Text = selectedHotkey.Combination;
+                IsEmergencyCheckBox.IsChecked = selectedHotkey.IsEmergency;
+            }
+        }
+
+        private HotkeyProfile CloneProfile(HotkeyProfile original)
+        {
+            return new HotkeyProfile
+            {
+                Id = original.Id,
+                Name = original.Name,
+                Description = original.Description,
+                Hotkeys = new Dictionary<string, HotkeyDefinition>(original.Hotkeys),
+                IsDefault = original.IsDefault,
+                IsReadonly = original.IsReadonly,
+                CreatedAt = original.CreatedAt,
+                ModifiedAt = DateTime.Now,
+                Version = original.Version,
+                Tags = new List<string>(original.Tags),
+                Metadata = original.Metadata != null ? new ProfileMetadata
+                {
+                    Author = original.Metadata.Author,
+                    Category = original.Metadata.Category,
+                    Purpose = original.Metadata.Purpose,
+                    CompatibleApplications = new List<string>(original.Metadata.CompatibleApplications),
+                    CustomProperties = new Dictionary<string, object>(original.Metadata.CustomProperties)
+                } : new ProfileMetadata()
+            };
+        }
+
+        #endregion
+
         protected override void OnClosed(EventArgs e)
         {
             // Cleanup event handlers
             _audioDeviceService.DeviceConnected -= OnDeviceConnected;
             _audioDeviceService.DeviceDisconnected -= OnDeviceDisconnected;
             _audioDeviceService.DefaultDeviceChanged -= OnDefaultDeviceChanged;
+            
+            // Cleanup hotkey recording
+            this.KeyDown -= OnHotkeyRecordingKeyDown;
+            this.KeyUp -= OnHotkeyRecordingKeyUp;
             
             base.OnClosed(e);
         }
