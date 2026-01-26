@@ -181,23 +181,313 @@
 
             <!-- Transcription Settings Tab -->
             <TabItem Header="Transcription">
-                <!-- Transcription settings content would go here -->
-                <TextBlock Text="Transcription settings coming soon..." 
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Grid Margin="16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Provider Settings -->
+                    <GroupBox Grid.Row="0" Header="Provider Configuration" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Provider:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="ProviderComboBox" Grid.Row="0" Grid.Column="0" 
+                                      Width="200" HorizontalAlignment="Left" Margin="80,0,0,0" 
+                                      SelectionChanged="Provider_SelectionChanged"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Model:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <ComboBox x:Name="ModelComboBox" Grid.Row="1" Grid.Column="0" 
+                                      Width="200" HorizontalAlignment="Left" Margin="80,8,0,0" 
+                                      SelectionChanged="Model_SelectionChanged"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Language:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <ComboBox x:Name="LanguageComboBox" Grid.Row="2" Grid.Column="0" 
+                                      Width="200" HorizontalAlignment="Left" Margin="80,8,0,0" 
+                                      SelectionChanged="Language_SelectionChanged"/>
+                            
+                            <Label Grid.Row="0" Grid.Column="1" Content="API Key:" VerticalAlignment="Center" Margin="20,0,8,0"/>
+                            <PasswordBox x:Name="ApiKeyPasswordBox" Grid.Row="0" Grid.Column="1" 
+                                         Width="250" HorizontalAlignment="Left" Margin="70,0,0,0" 
+                                         PasswordChanged="ApiKey_PasswordChanged"/>
+                            
+                            <Button x:Name="TestApiKeyButton" Grid.Row="1" Grid.Column="1" 
+                                    Content="Test API Key" Width="120" HorizontalAlignment="Left" 
+                                    Margin="70,8,0,0" Click="TestApiKey_Click"/>
+                            
+                            <TextBlock x:Name="ApiStatusText" Grid.Row="2" Grid.Column="1" 
+                                       Text="API status: Not tested" VerticalAlignment="Center" 
+                                       Margin="70,8,0,0" Foreground="Gray"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Advanced Transcription Settings -->
+                    <GroupBox Grid.Row="1" Header="Advanced Settings" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                <CheckBox x:Name="EnableAutoPunctuationCheckBox" Content="Auto-punctuation" 
+                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableAutoPunctuation_Checked"/>
+                                <CheckBox x:Name="EnableRealTimeTranscriptionCheckBox" Content="Real-time transcription" 
+                                          VerticalAlignment="Center" Checked="EnableRealTimeTranscription_Checked"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,8">
+                                <CheckBox x:Name="EnableProfanityFilterCheckBox" Content="Profanity filter" 
+                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableProfanityFilter_Checked"/>
+                                <CheckBox x:Name="EnableTimestampsCheckBox" Content="Include timestamps" 
+                                          VerticalAlignment="Center" Checked="EnableTimestamps_Checked"/>
+                            </StackPanel>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Confidence Threshold:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <Slider x:Name="ConfidenceThresholdSlider" Grid.Row="1" Grid.Column="0" 
+                                     Minimum="0" Maximum="100" Value="80" Width="200" 
+                                     HorizontalAlignment="Left" Margin="140,8,0,0" 
+                                     ValueChanged="ConfidenceThreshold_ValueChanged"/>
+                            <TextBlock x:Name="ConfidenceThresholdText" Grid.Row="1" Grid.Column="0" 
+                                       Text="80%" VerticalAlignment="Center" Margin="350,8,0,0"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Max Recording Duration:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="170,8,0,0">
+                                <TextBox x:Name="MaxDurationTextBox" Text="30" Width="60" 
+                                         TextChanged="MaxDuration_TextChanged"/>
+                                <TextBlock Text="seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Usage Statistics -->
+                    <GroupBox Grid.Row="2" Header="Usage Statistics" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Total Requests:"/>
+                            <TextBlock x:Name="TotalRequestsText" Grid.Row="0" Grid.Column="1" 
+                                       Text="0" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Total Minutes:"/>
+                            <TextBlock x:Name="TotalMinutesText" Grid.Row="1" Grid.Column="1" 
+                                       Text="0.0" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Current Month Usage:"/>
+                            <TextBlock x:Name="CurrentMonthUsageText" Grid.Row="2" Grid.Column="1" 
+                                       Text="0.0 minutes" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Button x:Name="ResetUsageButton" Grid.Row="3" Grid.Column="0" 
+                                    Content="Reset Usage Statistics" Width="150" HorizontalAlignment="Left" 
+                                    Margin="0,12,0,0" Click="ResetUsage_Click"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
             </TabItem>
 
             <!-- Hotkey Settings Tab -->
             <TabItem Header="Hotkeys">
-                <!-- Hotkey settings content would go here -->
-                <TextBlock Text="Hotkey settings coming soon..." 
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Grid Margin="16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Global Hotkeys -->
+                    <GroupBox Grid.Row="0" Header="Global Hotkeys" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Toggle Recording:" VerticalAlignment="Center"/>
+                            <TextBox x:Name="ToggleRecordingHotkeyTextBox" Grid.Row="0" Grid.Column="1" 
+                                     IsReadOnly="True" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <Button x:Name="ToggleRecordingHotkeyButton" Grid.Row="0" Grid.Column="2" 
+                                    Content="Set" Width="60" Margin="0,0,8,0" Click="SetToggleRecordingHotkey_Click"/>
+                            <Button x:Name="ToggleRecordingResetButton" Grid.Row="0" Grid.Column="3" 
+                                    Content="Reset" Width="60" Click="ResetToggleRecordingHotkey_Click"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Show Settings:" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                            <TextBox x:Name="ShowSettingsHotkeyTextBox" Grid.Row="1" Grid.Column="1" 
+                                     IsReadOnly="True" VerticalAlignment="Center" Margin="0,8,0,8,0"/>
+                            <Button x:Name="ShowSettingsHotkeyButton" Grid.Row="1" Grid.Column="2" 
+                                    Content="Set" Width="60" Margin="0,8,0,8,0" Click="SetShowSettingsHotkey_Click"/>
+                            <Button x:Name="ShowSettingsResetButton" Grid.Row="1" Grid.Column="3" 
+                                    Content="Reset" Width="60" Margin="0,8,0,0" Click="ResetShowSettingsHotkey_Click"/>
+                            
+                            <TextBlock x:Name="HotkeyStatusText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="4" 
+                                       Text="Click 'Set' button, then press desired key combination" 
+                                       VerticalAlignment="Center" Margin="0,12,0,0" Foreground="Gray"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Hotkey Conflicts -->
+                    <GroupBox Grid.Row="1" Header="Conflict Detection" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Button x:Name="CheckConflictsButton" Grid.Row="0" 
+                                    Content="Check for Conflicts" Width="150" HorizontalAlignment="Left" 
+                                    Margin="0,0,0,8" Click="CheckConflicts_Click"/>
+                            
+                            <DataGrid x:Name="ConflictsDataGrid" Grid.Row="1" AutoGenerateColumns="False" 
+                                      CanUserAddRows="False" CanUserDeleteRows="False"
+                                      SelectionMode="Single" Height="120">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Hotkey" Binding="{Binding Hotkey}" Width="150"/>
+                                    <DataGridTextColumn Header="Application" Binding="{Binding Application}" Width="200"/>
+                                    <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
             </TabItem>
 
             <!-- UI Settings Tab -->
             <TabItem Header="Interface">
-                <!-- UI settings content would go here -->
-                <TextBlock Text="Interface settings coming soon..." 
-                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                <Grid Margin="16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Visual Feedback -->
+                    <GroupBox Grid.Row="0" Header="Visual Feedback" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="ShowVisualFeedbackCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Show visual feedback" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="ShowVisualFeedback_Checked"/>
+                            
+                            <CheckBox x:Name="ShowTranscriptionWindowCheckBox" Grid.Row="0" Grid.Column="1" 
+                                      Content="Show transcription window" VerticalAlignment="Center" 
+                                      Margin="20,0,0,8" Checked="ShowTranscriptionWindow_Checked"/>
+                            
+                            <CheckBox x:Name="MinimizeToTrayCheckBox" Grid.Row="1" Grid.Column="0" 
+                                      Content="Minimize to system tray" VerticalAlignment="Center" 
+                                      Margin="0,8,0,0" Checked="MinimizeToTray_Checked"/>
+                            
+                            <CheckBox x:Name="StartWithWindowsCheckBox" Grid.Row="1" Grid.Column="1" 
+                                      Content="Start with Windows" VerticalAlignment="Center" 
+                                      Margin="20,8,0,0" Checked="StartWithWindows_Checked"/>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
+                                <Label Content="Window opacity:" VerticalAlignment="Center"/>
+                                <Slider x:Name="WindowOpacitySlider" Minimum="20" Maximum="100" Value="80" 
+                                         Width="120" ValueChanged="WindowOpacity_ValueChanged"/>
+                                <TextBlock x:Name="WindowOpacityText" Text="80%" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Audio Feedback -->
+                    <GroupBox Grid.Row="1" Header="Audio Feedback" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="EnableAudioFeedbackCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Enable audio feedback" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="EnableAudioFeedback_Checked"/>
+                            
+                            <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,8">
+                                <Label Content="Volume:" VerticalAlignment="Center"/>
+                                <Slider x:Name="FeedbackVolumeSlider" Minimum="0" Maximum="100" Value="50" 
+                                         Width="100" ValueChanged="FeedbackVolume_ValueChanged"/>
+                                <TextBlock x:Name="FeedbackVolumeText" Text="50%" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            
+                            <Button x:Name="TestStartSoundButton" Grid.Row="1" Grid.Column="0" 
+                                    Content="Test Start Sound" Width="120" HorizontalAlignment="Left" 
+                                    Margin="0,8,0,0" Click="TestStartSound_Click"/>
+                            
+                            <Button x:Name="TestStopSoundButton" Grid.Row="1" Grid.Column="1" 
+                                    Content="Test Stop Sound" Width="120" HorizontalAlignment="Left" 
+                                    Margin="20,8,0,0" Click="TestStopSound_Click"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Advanced UI Settings -->
+                    <GroupBox Grid.Row="2" Header="Advanced" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Button x:Name="ResetUISettingsButton" Grid.Row="0" Grid.Column="0" 
+                                    Content="Reset UI Settings" Width="140" HorizontalAlignment="Left" 
+                                    Margin="0,0,8,0" Click="ResetUISettings_Click"/>
+                            
+                            <Button x:Name="ResetAllSettingsButton" Grid.Row="0" Grid.Column="1" 
+                                    Content="Reset All Settings" Width="140" HorizontalAlignment="Left" 
+                                    Margin="20,0,0,0" Click="ResetAllSettings_Click"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
             </TabItem>
         </TabControl>
 
