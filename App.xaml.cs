@@ -29,7 +29,7 @@ namespace ScottWisper
         private void OnHotkeyPressed(object? sender, EventArgs e)
         {
             // Handle hotkey press - this will trigger dictation mode
-            MessageBox.Show("Hotkey pressed! Voice dictation activated.", "ScottWisper");
+            MessageBox.Show("Global hotkey (Ctrl+Win+Shift+V) pressed! Voice dictation activated.", "ScottWisper");
         }
 
         protected override void OnExit(ExitEventArgs e)
