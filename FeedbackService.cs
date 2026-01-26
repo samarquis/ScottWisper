@@ -46,6 +46,7 @@ namespace ScottWisper
     {
         private IFeedbackService.DictationStatus _currentStatus = IFeedbackService.DictationStatus.Idle;
         private StatusIndicatorWindow? _statusIndicatorWindow;
+        private AudioVisualizer? _audioVisualizer;
         private bool _isDisposed = false;
         private readonly object _lockObject = new object();
 
@@ -63,6 +64,7 @@ namespace ScottWisper
         private readonly SoundPlayer? _errorSound;
 
         public event EventHandler<IFeedbackService.DictationStatus>? StatusChanged;
+        public event EventHandler<byte[]>? AudioDataForVisualization;
 
         public IFeedbackService.DictationStatus CurrentStatus 
         { 
@@ -130,6 +132,9 @@ namespace ScottWisper
 
             // Update system tray if available
             UpdateSystemTrayStatus(status);
+
+            // Handle visualization
+            await HandleVisualizationAsync(status);
 
             await Task.CompletedTask;
         }
@@ -257,6 +262,11 @@ namespace ScottWisper
             _isMuted = muted;
         }
 
+        public void SetAudioVisualizer(AudioVisualizer visualizer)
+        {
+            _audioVisualizer = visualizer;
+        }
+
         public float GetVolume() => _volume;
         public bool IsMuted() => _isMuted;
 
@@ -350,6 +360,41 @@ namespace ScottWisper
             }
         }
 
+        private async Task HandleVisualizationAsync(IFeedbackService.DictationStatus status)
+        {
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                try
+                {
+                    switch (status)
+                    {
+                        case IFeedbackService.DictationStatus.Recording:
+                            // Start visualization when recording begins
+                            if (_audioVisualizer != null)
+                            {
+                                _audioVisualizer.StartVisualization();
+                            }
+                            break;
+
+                        case IFeedbackService.DictationStatus.Processing:
+                        case IFeedbackService.DictationStatus.Complete:
+                        case IFeedbackService.DictationStatus.Error:
+                        case IFeedbackService.DictationStatus.Idle:
+                            // Stop visualization when recording ends
+                            if (_audioVisualizer != null)
+                            {
+                                _audioVisualizer.StopVisualization();
+                            }
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Visualization error: {ex.Message}");
+                }
+            });
+        }
+
         private string GetStatusTitle(IFeedbackService.DictationStatus status)
         {
             return status switch
@@ -433,6 +478,24 @@ namespace ScottWisper
         public void Dispose()
         {
             DisposeAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Forward audio data to visualization component
+        /// </summary>
+        /// <param name="audioData">Raw audio bytes</param>
+        public void UpdateAudioVisualization(byte[] audioData)
+        {
+            AudioDataForVisualization?.Invoke(this, audioData);
+            
+            // Also update local audio visualizer if available
+            if (_audioVisualizer != null)
+            {
+                Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    _audioVisualizer.UpdateAudioData(audioData);
+                });
+            }
         }
     }
 }
