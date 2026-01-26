@@ -66,7 +66,7 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 - [ ] 02-02-PLAN.md — Core system tray integration 
 - [ ] 02-03-PLAN.md — Universal text injection integration
 - [ ] 02-04-PLAN.md — System tray icon enhancement
-- [ ] 02-05-PLAN.md — Core feedback service creation
+- [x] 02-05-PLAN.md — Core feedback service creation ✓
 - [ ] 02-06-PLAN.md — Audio and visual feedback implementation
 - [ ] 02-07-PLAN.md — Window configuration for system tray
 - [ ] 02-08-PLAN.md — System tray integration and lifecycle
