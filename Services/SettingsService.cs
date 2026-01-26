@@ -20,6 +20,20 @@ namespace ScottWisper.Services
         Task SetValueAsync<T>(string key, T value);
         Task<string> GetEncryptedValueAsync(string key);
         Task SetEncryptedValueAsync(string key, string value);
+        
+        // Audio device management methods
+        Task SetSelectedInputDeviceAsync(string deviceId);
+        Task SetSelectedOutputDeviceAsync(string deviceId);
+        Task SetFallbackInputDeviceAsync(string deviceId);
+        Task SetFallbackOutputDeviceAsync(string deviceId);
+        Task<DeviceSpecificSettings> GetDeviceSettingsAsync(string deviceId);
+        Task SetDeviceSettingsAsync(string deviceId, DeviceSpecificSettings settings);
+        Task AddDeviceTestResultAsync(DeviceTestingResult result);
+        Task<List<DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId);
+        Task RefreshDeviceListAsync();
+        Task<bool> IsDeviceEnabledAsync(string deviceId);
+        Task SetDeviceEnabledAsync(string deviceId, bool enabled);
+        Task<string> GetRecommendedDeviceAsync(DeviceType type);
     }
 
     public class SettingsService : ISettingsService
@@ -173,6 +187,132 @@ namespace ScottWisper.Services
             }
         }
 
+        public async Task SetSelectedInputDeviceAsync(string deviceId)
+        {
+            _currentSettings.Audio.InputDeviceId = deviceId ?? "default";
+            await SaveAsync();
+        }
+
+        public async Task SetSelectedOutputDeviceAsync(string deviceId)
+        {
+            _currentSettings.Audio.OutputDeviceId = deviceId ?? "default";
+            await SaveAsync();
+        }
+
+        public async Task SetFallbackInputDeviceAsync(string deviceId)
+        {
+            _currentSettings.Audio.FallbackInputDeviceId = deviceId ?? "default";
+            await SaveAsync();
+        }
+
+        public async Task SetFallbackOutputDeviceAsync(string deviceId)
+        {
+            _currentSettings.Audio.FallbackOutputDeviceId = deviceId ?? "default";
+            await SaveAsync();
+        }
+
+        public async Task<DeviceSpecificSettings> GetDeviceSettingsAsync(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+                return new DeviceSpecificSettings();
+
+            return _currentSettings.Audio.DeviceSettings.TryGetValue(deviceId, out var settings)
+                ? settings
+                : new DeviceSpecificSettings { Name = deviceId };
+        }
+
+        public async Task SetDeviceSettingsAsync(string deviceId, DeviceSpecificSettings settings)
+        {
+            if (string.IsNullOrEmpty(deviceId) || settings == null)
+                return;
+
+            _currentSettings.Audio.DeviceSettings[deviceId] = settings;
+            await SaveAsync();
+        }
+
+        public async Task AddDeviceTestResultAsync(DeviceTestingResult result)
+        {
+            if (result == null || string.IsNullOrEmpty(result.DeviceId))
+                return;
+
+            // Add to test history
+            _currentSettings.DeviceTestHistory.Insert(0, result);
+
+            // Limit history size
+            if (_currentSettings.DeviceTestHistory.Count > _currentSettings.MaxTestHistory)
+            {
+                _currentSettings.DeviceTestHistory = _currentSettings.DeviceTestHistory
+                    .Take(_currentSettings.MaxTestHistory)
+                    .ToList();
+            }
+
+            // Update device settings based on test result
+            var deviceSettings = await GetDeviceSettingsAsync(result.DeviceId);
+            deviceSettings.LastTested = result.TestTime;
+            deviceSettings.LastTestPassed = result.TestPassed;
+            deviceSettings.IsCompatible = result.TestPassed;
+            
+            if (!string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                deviceSettings.Notes = result.ErrorMessage;
+            }
+
+            await SetDeviceSettingsAsync(result.DeviceId, deviceSettings);
+            await SaveAsync();
+        }
+
+        public async Task<List<DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+                return new List<DeviceTestingResult>();
+
+            return _currentSettings.DeviceTestHistory
+                .Where(r => r.DeviceId == deviceId)
+                .ToList();
+        }
+
+        public async Task RefreshDeviceListAsync()
+        {
+            _currentSettings.LastDeviceRefresh = DateTime.Now;
+            await SaveAsync();
+        }
+
+        public async Task<bool> IsDeviceEnabledAsync(string deviceId)
+        {
+            var settings = await GetDeviceSettingsAsync(deviceId);
+            return settings.IsEnabled;
+        }
+
+        public async Task SetDeviceEnabledAsync(string deviceId, bool enabled)
+        {
+            var settings = await GetDeviceSettingsAsync(deviceId);
+            settings.IsEnabled = enabled;
+            await SetDeviceSettingsAsync(deviceId, settings);
+        }
+
+        public async Task<string> GetRecommendedDeviceAsync(DeviceType type)
+        {
+            // Implementation would use AudioDeviceService to get device list
+            // For now, return based on preferences or fallback
+            if (type == DeviceType.Input)
+            {
+                // Try preferred devices first, then fallback
+                foreach (var preferredDevice in _currentSettings.Audio.PreferredDevices)
+                {
+                    var settings = await GetDeviceSettingsAsync(preferredDevice);
+                    if (settings.IsEnabled && settings.IsCompatible)
+                    {
+                        return preferredDevice;
+                    }
+                }
+                return _currentSettings.Audio.InputDeviceId;
+            }
+            else // Output
+            {
+                return _currentSettings.Audio.OutputDeviceId;
+            }
+        }
+
         private void ValidateSettings(AppSettings settings)
         {
             // Audio settings validation
@@ -201,6 +341,25 @@ namespace ScottWisper.Services
             if (string.IsNullOrWhiteSpace(settings.Hotkeys.ToggleRecording))
             {
                 throw new ValidationException("Toggle recording hotkey is required");
+            }
+
+            // Validate device settings
+            foreach (var deviceSettings in settings.Audio.DeviceSettings.Values)
+            {
+                if (deviceSettings.SampleRate <= 0)
+                {
+                    throw new ValidationException($"Device {deviceSettings.Name} has invalid sample rate");
+                }
+
+                if (deviceSettings.Channels < 1 || deviceSettings.Channels > 2)
+                {
+                    throw new ValidationException($"Device {deviceSettings.Name} has invalid channel count");
+                }
+
+                if (deviceSettings.BufferSize <= 0)
+                {
+                    throw new ValidationException($"Device {deviceSettings.Name} has invalid buffer size");
+                }
             }
         }
 
