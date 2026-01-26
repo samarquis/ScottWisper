@@ -196,6 +196,19 @@ namespace ScottWisper
             }
         }
 
+        public void ShowNotification(string message, string title = "ScottWisper")
+        {
+            if (_notifyIcon != null)
+            {
+                // Determine icon based on title content
+                var icon = title.Contains("Error") ? ToolTipIcon.Error : 
+                           title.Contains("Warning") ? ToolTipIcon.Warning : 
+                           ToolTipIcon.Info;
+                
+                _notifyIcon.ShowBalloonTip(5000, title, message, icon);
+            }
+        }
+
         public void Dispose()
         {
             if (_isDisposed)

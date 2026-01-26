@@ -19,13 +19,15 @@ namespace ScottWisper
         private SystemTrayService? _systemTrayService;
         private bool _isDictating = false;
         private readonly object _dictationLock = new object();
+        private TextInjectionService? _textInjectionService;
+        private bool _textInjectionEnabled = true;
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
             // Initialize services
-            InitializeServices();
+            await InitializeServices();
 
             _mainWindow = new MainWindow();
             
@@ -47,7 +49,7 @@ namespace ScottWisper
             _mainWindow.Hide();
         }
 
-        private void InitializeServices()
+        private async Task InitializeServices()
         {
             try
             {
@@ -55,10 +57,14 @@ namespace ScottWisper
                 _whisperService = new WhisperService();
                 _costTrackingService = new CostTrackingService();
                 _audioCaptureService = new AudioCaptureService();
+                _textInjectionService = new TextInjectionService();
 
                 // Initialize transcription window
                 _transcriptionWindow = new TranscriptionWindow();
                 _transcriptionWindow.InitializeServices(_whisperService, _costTrackingService);
+
+                // Initialize text injection service
+                await InitializeTextInjectionService();
 
                 // Wire up service events
                 _whisperService.TranscriptionError += OnTranscriptionError;
@@ -190,10 +196,72 @@ namespace ScottWisper
             }
         }
 
-        private void OnTranscriptionCompleted(object? sender, string transcription)
+        private async Task InitializeTextInjectionService()
         {
-            // This event is already handled by TranscriptionWindow through direct subscription
-            // This method can be used for additional processing if needed
+            if (_textInjectionService == null) return;
+
+            try
+            {
+                var initialized = await _textInjectionService.InitializeAsync();
+                if (!initialized)
+                {
+                    System.Diagnostics.Debug.WriteLine("Warning: TextInjectionService failed to initialize");
+                    _textInjectionEnabled = false;
+                }
+                else
+                {
+                    _textInjectionEnabled = true;
+                    System.Diagnostics.Debug.WriteLine("TextInjectionService initialized successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing TextInjectionService: {ex.Message}");
+                _textInjectionEnabled = false;
+            }
+        }
+
+        private async void OnTranscriptionCompleted(object? sender, string transcription)
+        {
+            // Handle text injection if enabled and we have valid transcription text
+            if (_textInjectionEnabled && !string.IsNullOrWhiteSpace(transcription) && _textInjectionService != null)
+            {
+                try
+                {
+                    // Inject the transcribed text at cursor position
+                    var injectionOptions = new InjectionOptions
+                    {
+                        UseClipboardFallback = true,
+                        RetryCount = 3,
+                        DelayBetweenRetriesMs = 100,
+                        DelayBetweenCharsMs = 5
+                    };
+
+                    var success = await _textInjectionService.InjectTextAsync(transcription, injectionOptions);
+                    
+                    if (success)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Text injected successfully: {transcription}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Text injection failed: {transcription}");
+                        // Show fallback notification to user
+                        Dispatcher.Invoke(() =>
+                        {
+                            _systemTrayService?.ShowNotification("Text injection failed. Text was only shown in the preview window.", "Injection Issue");
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error during text injection: {ex.Message}");
+                    Dispatcher.Invoke(() =>
+                    {
+                        _systemTrayService?.ShowNotification($"Text injection error: {ex.Message}", "Injection Error");
+                    });
+                }
+            }
         }
 
         private void OnTranscriptionError(object? sender, Exception error)
@@ -264,6 +332,7 @@ namespace ScottWisper
             _audioCaptureService?.Dispose();
             _whisperService?.Dispose();
             _costTrackingService?.Dispose();
+            _textInjectionService?.Dispose();
             _hotkeyService?.Dispose();
             _systemTrayService?.Dispose();
             _transcriptionWindow?.Close();
