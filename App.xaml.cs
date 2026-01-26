@@ -26,26 +26,47 @@ namespace ScottWisper
         {
             base.OnStartup(e);
 
-            // Initialize services
-            await InitializeServices();
+            try
+            {
+                // Initialize services
+                await InitializeServices();
 
-            _mainWindow = new MainWindow();
-            
-            // Initialize hotkey service
-            _hotkeyService = new HotkeyService();
-            _hotkeyService.HotkeyPressed += OnHotkeyPressed;
-            
-            // Initialize system tray service
-            _systemTrayService = new SystemTrayService();
-            _systemTrayService.StartDictationRequested += OnSystemTrayStartDictation;
-            _systemTrayService.StopDictationRequested += OnSystemTrayStopDictation;
-            _systemTrayService.SettingsRequested += OnSystemTraySettings;
-            _systemTrayService.WindowToggleRequested += OnSystemTrayToggleWindow;
-            _systemTrayService.ExitRequested += OnSystemTrayExit;
-            _systemTrayService.Initialize();
-            
-            // Initialize MainWindow (it will handle its own visibility)
-            _mainWindow.Show();
+                _mainWindow = new MainWindow();
+                
+                // Initialize hotkey service
+                _hotkeyService = new HotkeyService();
+                _hotkeyService.HotkeyPressed += OnHotkeyPressed;
+                
+                // Initialize system tray service with error handling
+                _systemTrayService = new SystemTrayService();
+                _systemTrayService.StartDictationRequested += OnSystemTrayStartDictation;
+                _systemTrayService.StopDictationRequested += OnSystemTrayStopDictation;
+                _systemTrayService.SettingsRequested += OnSystemTraySettings;
+                _systemTrayService.WindowToggleRequested += OnSystemTrayToggleWindow;
+                _systemTrayService.ExitRequested += OnSystemTrayExit;
+                
+                try
+                {
+                    _systemTrayService.Initialize();
+                    System.Diagnostics.Debug.WriteLine("SystemTrayService initialized successfully");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to initialize SystemTrayService: {ex.Message}");
+                    MessageBox.Show($"Failed to initialize system tray: {ex.Message}", "ScottWisper Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                
+                // Initialize MainWindow (it will handle its own visibility)
+                _mainWindow.Show();
+                
+                // Show startup notification
+                _systemTrayService?.ShowNotification("ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", "Application Started");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to start application: {ex.Message}", "ScottWisper Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Current.Shutdown();
+            }
         }
 
         private async Task InitializeServices()
@@ -109,6 +130,12 @@ namespace ScottWisper
         {
             try
             {
+                // Update system tray to recording state
+                Dispatcher.Invoke(() =>
+                {
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Recording);
+                });
+
                 // Show transcription window
                 Dispatcher.Invoke(() =>
                 {
@@ -120,19 +147,24 @@ namespace ScottWisper
                 
                 _isDictating = true;
                 
-                // Update transcription window status
+                // Update transcription window and system tray status
                 Dispatcher.Invoke(() =>
                 {
                     _transcriptionWindow?.SetRecordingStatus();
                     _systemTrayService?.UpdateDictationStatus(true);
+                    _systemTrayService?.ShowNotification("Recording started. Speak now.", "Dictation Started");
                 });
             }
             catch (Exception ex)
             {
+                _isDictating = false;
                 Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show($"Failed to start dictation: {ex.Message}", "Dictation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Error);
                     _systemTrayService?.UpdateDictationStatus(false);
+                    MessageBox.Show($"Failed to start dictation: {ex.Message}", "Dictation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    // Reset to ready state after error
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
                 });
             }
         }
@@ -141,10 +173,16 @@ namespace ScottWisper
         {
             try
             {
+                // Update system tray to processing state
+                Dispatcher.Invoke(() =>
+                {
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Processing);
+                });
+
                 // Stop audio capture
                 await _audioCaptureService?.StopCaptureAsync()!;
                 
-                // Update transcription window status
+                // Update transcription window and system tray status
                 Dispatcher.Invoke(() =>
                 {
                     _transcriptionWindow?.SetProcessingStatus();
@@ -162,10 +200,14 @@ namespace ScottWisper
             }
             catch (Exception ex)
             {
+                _isDictating = false;
                 System.Diagnostics.Debug.WriteLine($"Error stopping dictation: {ex.Message}");
                 Dispatcher.Invoke(() =>
                 {
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Error);
                     _systemTrayService?.UpdateDictationStatus(false);
+                    // Reset to ready state after error
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
                 });
             }
         }
@@ -222,12 +264,28 @@ namespace ScottWisper
 
         private async void OnTranscriptionCompleted(object? sender, string transcription)
         {
+            // Update system tray status to processing complete
+            Dispatcher.Invoke(() =>
+            {
+                _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+                if (!string.IsNullOrWhiteSpace(transcription))
+                {
+                    _systemTrayService?.ShowNotification("Transcription completed successfully", "Dictation Complete");
+                }
+            });
+
             // Handle text injection if enabled and we have valid transcription text
             if (_textInjectionEnabled && !string.IsNullOrWhiteSpace(transcription) && _textInjectionService != null)
             {
                 try
                 {
-                    // Inject the transcribed text at cursor position
+                    // Update system tray to processing state
+                    Dispatcher.Invoke(() =>
+                    {
+                        _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Processing);
+                    });
+
+                    // Inject transcribed text at cursor position
                     var injectionOptions = new InjectionOptions
                     {
                         UseClipboardFallback = true,
@@ -241,7 +299,37 @@ namespace ScottWisper
                     if (success)
                     {
                         System.Diagnostics.Debug.WriteLine($"Text injected successfully: {transcription}");
+                        Dispatcher.Invoke(() =>
+                        {
+                            _systemTrayService?.ShowNotification("Text inserted at cursor position", "Injection Success");
+                        });
                     }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Text injection failed: {transcription}");
+                        // Show fallback notification to user
+                        Dispatcher.Invoke(() =>
+                        {
+                            _systemTrayService?.ShowNotification("Text injection failed. Text was only shown in preview window.", "Injection Issue");
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error during text injection: {ex.Message}");
+                    Dispatcher.Invoke(() =>
+                    {
+                        _systemTrayService?.ShowNotification($"Text injection error: {ex.Message}", "Injection Error");
+                    });
+                }
+            }
+
+            // Reset to ready state
+            Dispatcher.Invoke(() =>
+            {
+                _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+            });
+        }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine($"Text injection failed: {transcription}");
@@ -342,21 +430,40 @@ namespace ScottWisper
 
         protected override void OnExit(ExitEventArgs e)
         {
-            // Clean up resources
-            if (_isDictating)
+            try
             {
-                Task.Run(async () => await StopDictationInternal()).Wait();
-            }
+                // Clean up resources
+                if (_isDictating)
+                {
+                    try
+                    {
+                        Task.Run(async () => await StopDictationInternal()).Wait(5000); // Wait max 5 seconds
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error stopping dictation during shutdown: {ex.Message}");
+                    }
+                }
 
-            _audioCaptureService?.Dispose();
-            _whisperService?.Dispose();
-            _costTrackingService?.Dispose();
-            _textInjectionService?.Dispose();
-            _hotkeyService?.Dispose();
-            _systemTrayService?.Dispose();
-            _transcriptionWindow?.Close();
-            
-            base.OnExit(e);
+                // Dispose services in order
+                _audioCaptureService?.Dispose();
+                _whisperService?.Dispose();
+                _costTrackingService?.Dispose();
+                _textInjectionService?.Dispose();
+                _hotkeyService?.Dispose();
+                _systemTrayService?.Dispose();
+                _transcriptionWindow?.Close();
+                
+                System.Diagnostics.Debug.WriteLine("Application shutdown completed successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during application shutdown: {ex.Message}");
+            }
+            finally
+            {
+                base.OnExit(e);
+            }
         }
     }
 }
