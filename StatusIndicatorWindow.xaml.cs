@@ -1,7 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using System.ComponentModel;
 
@@ -13,10 +12,7 @@ namespace ScottWisper
     public partial class StatusIndicatorWindow : Window, INotifyPropertyChanged
     {
         private readonly DispatcherTimer _autoHideTimer;
-        private Storyboard? _currentAnimation;
         private IFeedbackService.DictationStatus _currentStatus = IFeedbackService.DictationStatus.Idle;
-        
-        public event EventHandler? StatusUpdateRequested;
 
         #region Properties
         
@@ -154,58 +150,20 @@ namespace ScottWisper
 
         private void UpdateVisuals()
         {
-            // Stop any current animation
-            _currentAnimation?.Stop();
-
-            // Hide all indicators
-            IdleIndicator.Visibility = Visibility.Collapsed;
-            RecordingIndicator.Visibility = Visibility.Collapsed;
-            ProcessingIndicator.Visibility = Visibility.Collapsed;
-            CompleteIndicator.Visibility = Visibility.Collapsed;
-            ErrorIndicator.Visibility = Visibility.Collapsed;
-
-            // Show appropriate indicator and animation
-            switch (CurrentStatus)
+            // Update circle color based on status
+            var color = CurrentStatus switch
             {
-                case IFeedbackService.DictationStatus.Idle:
-                    IdleIndicator.Visibility = Visibility.Visible;
-                    MainGrid.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 128, 128, 128));
-                    break;
+                IFeedbackService.DictationStatus.Idle => System.Windows.Media.Color.FromArgb(200, 128, 128, 128),
+                IFeedbackService.DictationStatus.Ready => System.Windows.Media.Color.FromArgb(200, 68, 255, 68),
+                IFeedbackService.DictationStatus.Recording => System.Windows.Media.Color.FromArgb(200, 255, 68, 68),
+                IFeedbackService.DictationStatus.Processing => System.Windows.Media.Color.FromArgb(200, 68, 68, 255),
+                IFeedbackService.DictationStatus.Complete => System.Windows.Media.Color.FromArgb(200, 68, 255, 68),
+                IFeedbackService.DictationStatus.Error => System.Windows.Media.Color.FromArgb(200, 255, 68, 68),
+                _ => System.Windows.Media.Color.FromArgb(200, 128, 128, 128)
+            };
 
-                case IFeedbackService.DictationStatus.Ready:
-                    IdleIndicator.Visibility = Visibility.Visible;
-                    MainGrid.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 68, 255, 68));
-                    break;
-
-                case IFeedbackService.DictationStatus.Recording:
-                    RecordingIndicator.Visibility = Visibility.Visible;
-                    MainGrid.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 255, 68, 68));
-                    _currentAnimation = (Storyboard)FindResource("PulseAnimation");
-                    _currentAnimation.Begin(RecordingIndicator, true);
-                    break;
-
-                case IFeedbackService.DictationStatus.Processing:
-                    ProcessingIndicator.Visibility = Visibility.Visible;
-                    MainGrid.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 68, 68, 255));
-                    _currentAnimation = (Storyboard)FindResource("SpinAnimation");
-                    _currentAnimation.Begin(ProcessingIcon, true);
-                    break;
-
-                case IFeedbackService.DictationStatus.Complete:
-                    CompleteIndicator.Visibility = Visibility.Visible;
-                    MainGrid.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 68, 255, 68));
-                    _currentAnimation = (Storyboard)FindResource("FadeAnimation");
-                    _currentAnimation.Completed += (s, e) => HideStatus();
-                    _currentAnimation.Begin(MainGrid, false);
-                    break;
-
-                case IFeedbackService.DictationStatus.Error:
-                    ErrorIndicator.Visibility = Visibility.Visible;
-                    MainGrid.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(128, 255, 68, 68));
-                    _currentAnimation = (Storyboard)FindResource("ShakeAnimation");
-                    _currentAnimation.Begin(ErrorIcon, true);
-                    break;
-            }
+            StatusCircle.Fill = new System.Windows.Media.SolidColorBrush(color);
+            MainBorder.Background = new System.Windows.Media.SolidColorBrush(color);
 
             UpdateTooltip();
         }
@@ -244,15 +202,6 @@ namespace ScottWisper
             var desiredLeft = workingArea.Right - desiredWidth - margin;
             var desiredTop = workingArea.Bottom - desiredHeight - margin;
 
-            // Check if this would overlap with cursor (simplified check)
-            var cursorPos = System.Windows.Input.Mouse.GetPosition(this);
-            // For now, use default positioning - cursor detection would need Win32 API calls
-            {
-                // Move to top-left corner to avoid cursor
-                desiredLeft = workingArea.Left + margin;
-                desiredTop = workingArea.Top + margin;
-            }
-
             Left = desiredLeft;
             Top = desiredTop;
         }
@@ -287,13 +236,6 @@ namespace ScottWisper
             HideStatus();
         }
 
-        protected override void OnLocationChanged(EventArgs e)
-        {
-            base.OnLocationChanged(e);
-            // Position memory could be implemented with settings file
-            // For now, we'll use default auto-positioning
-        }
-
         #endregion
 
         #region INotifyPropertyChanged Implementation
@@ -303,18 +245,6 @@ namespace ScottWisper
         protected virtual void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
-
-        #region Accessibility Support
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            base.OnSourceInitialized(e);
-            
-            // Set window to be click-through when needed for non-intrusive behavior
-            // This requires Windows API calls for full click-through functionality
         }
 
         #endregion
