@@ -1,4 +1,6 @@
+using System;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 
 namespace ScottWisper.Configuration
 {
@@ -29,6 +31,10 @@ namespace ScottWisper.Configuration
         public DateTime LastTested { get; set; } = DateTime.MinValue;
         public bool LastTestPassed { get; set; } = false;
         public string Notes { get; set; } = string.Empty;
+        public bool RealTimeMonitoringEnabled { get; set; } = false;
+        public float QualityScore { get; set; } = 0f;
+        public int LatencyMs { get; set; } = 0;
+        public float NoiseFloorDb { get; set; } = -120f;
     }
 
     public class TranscriptionSettings
@@ -65,6 +71,55 @@ namespace ScottWisper.Configuration
         public Dictionary<string, object> TestMetrics { get; set; } = new Dictionary<string, object>();
     }
 
+    // Enhanced device testing classes
+    public class AudioDeviceTestResult
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public DateTime TestTime { get; set; }
+        public bool Success { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public bool BasicFunctionality { get; set; }
+        public List<string> SupportedFormats { get; set; } = new List<string>();
+        public float QualityScore { get; set; }
+        public int LatencyMs { get; set; }
+        public float NoiseFloorDb { get; set; }
+    }
+
+    public class AudioQualityMetrics
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public DateTime AnalysisTime { get; set; }
+        public float AverageLevel { get; set; }
+        public float RMSLevel { get; set; }
+        public float PeakLevel { get; set; }
+        public float PeakToRMSRatio { get; set; }
+        public float DynamicRange { get; set; }
+        public float SignalQuality { get; set; }
+    }
+
+    public class DeviceCompatibilityScore
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public DateTime ScoreTime { get; set; }
+        public float SampleRateScore { get; set; }
+        public float ChannelScore { get; set; }
+        public float BitDepthScore { get; set; }
+        public float DeviceTypeScore { get; set; }
+        public float OverallScore { get; set; }
+        public string Recommendation { get; set; } = string.Empty;
+    }
+
+    public class DeviceRecommendation
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public float Score { get; set; }
+        public string Recommendation { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public int Priority { get; set; }
+    }
+
     public class AppSettings
     {
         public AudioSettings Audio { get; set; } = new();
@@ -74,5 +129,13 @@ namespace ScottWisper.Configuration
         public List<DeviceTestingResult> DeviceTestHistory { get; set; } = new List<DeviceTestingResult>();
         public DateTime LastDeviceRefresh { get; set; } = DateTime.MinValue;
         public int MaxTestHistory { get; set; } = 50;
+        
+        // Enhanced device testing fields
+        public List<AudioDeviceTestResult> AudioDeviceTestHistory { get; set; } = new List<AudioDeviceTestResult>();
+        public List<AudioQualityMetrics> AudioQualityHistory { get; set; } = new List<AudioQualityMetrics>();
+        public Dictionary<string, DeviceCompatibilityScore> DeviceCompatibilityScores { get; set; } = new Dictionary<string, DeviceCompatibilityScore>();
+        public List<DeviceRecommendation> DeviceRecommendations { get; set; } = new List<DeviceRecommendation>();
+        public int MaxQualityHistory { get; set; } = 100;
+        public int MaxCompatibilityHistory { get; set; } = 20;
     }
 }

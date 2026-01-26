@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Generic;
 using ScottWisper.Configuration;
 
 namespace ScottWisper.Services
@@ -30,6 +31,15 @@ namespace ScottWisper.Services
         Task SetDeviceSettingsAsync(string deviceId, DeviceSpecificSettings settings);
         Task AddDeviceTestResultAsync(DeviceTestingResult result);
         Task<List<DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId);
+        
+        // Enhanced device testing methods
+        Task AddAudioDeviceTestResultAsync(AudioDeviceTestResult result);
+        Task<List<AudioDeviceTestResult>> GetAudioDeviceTestHistoryAsync(string deviceId);
+        Task SaveAudioQualityMetricsAsync(AudioQualityMetrics metrics);
+        Task<List<AudioQualityMetrics>> GetAudioQualityHistoryAsync(string deviceId);
+        Task SaveDeviceCompatibilityScoreAsync(DeviceCompatibilityScore score);
+        Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync();
+        Task SetRealTimeMonitoringEnabledAsync(string deviceId, bool enabled);
         Task RefreshDeviceListAsync();
         Task<bool> IsDeviceEnabledAsync(string deviceId);
         Task SetDeviceEnabledAsync(string deviceId, bool enabled);
@@ -261,14 +271,105 @@ namespace ScottWisper.Services
             await SaveAsync();
         }
 
+        public async Task AddAudioDeviceTestResultAsync(AudioDeviceTestResult result)
+        {
+            if (result == null || string.IsNullOrEmpty(result.DeviceId))
+                return;
+
+            // Convert to legacy format for backward compatibility
+            var legacyResult = new DeviceTestingResult
+            {
+                DeviceId = result.DeviceId,
+                DeviceName = result.DeviceName,
+                TestTime = result.TestTime,
+                TestPassed = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                Notes = result.SupportedFormats.Count > 0 ? null : "No supported formats"
+            };
+
+            await AddDeviceTestResultAsync(legacyResult);
+        }
+
         public async Task<List<DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId)
         {
             if (string.IsNullOrEmpty(deviceId))
                 return new List<DeviceTestingResult>();
 
+            await Task.CompletedTask; // Make method async
             return _currentSettings.DeviceTestHistory
                 .Where(r => r.DeviceId == deviceId)
                 .ToList();
+        }
+
+        public async Task<List<AudioDeviceTestResult>> GetAudioDeviceTestHistoryAsync(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+                return new List<AudioDeviceTestResult>();
+
+            await Task.CompletedTask; // Make method async
+            return _currentSettings.AudioDeviceTestHistory
+                .Where(r => r.DeviceId == deviceId)
+                .ToList();
+        }
+
+        public async Task SaveAudioQualityMetricsAsync(AudioQualityMetrics metrics)
+        {
+            if (metrics == null || string.IsNullOrEmpty(metrics.DeviceId))
+                return;
+
+            _currentSettings.AudioQualityHistory.Insert(0, metrics);
+
+            // Limit history size
+            if (_currentSettings.AudioQualityHistory.Count > _currentSettings.MaxQualityHistory)
+            {
+                _currentSettings.AudioQualityHistory = _currentSettings.AudioQualityHistory
+                    .Take(_currentSettings.MaxQualityHistory)
+                    .ToList();
+            }
+
+            await SaveAsync();
+        }
+
+        public async Task<List<AudioQualityMetrics>> GetAudioQualityHistoryAsync(string deviceId)
+        {
+            if (string.IsNullOrEmpty(deviceId))
+                return new List<AudioQualityMetrics>();
+
+            await Task.CompletedTask; // Make method async
+            return _currentSettings.AudioQualityHistory
+                .Where(m => m.DeviceId == deviceId)
+                .ToList();
+        }
+
+        public async Task SaveDeviceCompatibilityScoreAsync(DeviceCompatibilityScore score)
+        {
+            if (score == null || string.IsNullOrEmpty(score.DeviceId))
+                return;
+
+            _currentSettings.DeviceCompatibilityScores[score.DeviceId] = score;
+
+            // Limit history size
+            if (_currentSettings.DeviceCompatibilityScores.Count > _currentSettings.MaxCompatibilityHistory)
+            {
+                var oldest = _currentSettings.DeviceCompatibilityScores.Keys.First();
+                _currentSettings.DeviceCompatibilityScores.Remove(oldest);
+            }
+
+            await SaveAsync();
+        }
+
+        public async Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync()
+        {
+            await Task.CompletedTask; // Make method async
+            return _currentSettings.DeviceRecommendations;
+        }
+
+        public async Task SetRealTimeMonitoringEnabledAsync(string deviceId, bool enabled)
+        {
+            var deviceSettings = await GetDeviceSettingsAsync(deviceId);
+            deviceSettings.RealTimeMonitoringEnabled = enabled;
+            await SetDeviceSettingsAsync(deviceId, deviceSettings);
+            await SaveAsync();
         }
 
         public async Task RefreshDeviceListAsync()
