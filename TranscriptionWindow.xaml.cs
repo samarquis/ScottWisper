@@ -165,7 +165,7 @@ namespace ScottWisper
             ResetAutoHideTimer();
         }
 
-        private void SetStatus(Status status)
+        public void SetStatus(Status status)
         {
             Dispatcher.Invoke(() =>
             {

@@ -343,7 +343,7 @@ namespace ScottWisper
             }
 
             var actualStats = costTrackingService.GetUsageStats();
-            var trackingAccuracy = expectedCost > 0 ? (double)Math.Abs(expectedCost - actualStats.EstimatedCost) / expectedCost : 1.0;
+            var trackingAccuracy = expectedCost > 0 ? Math.Abs((double)(expectedCost - actualStats.EstimatedCost)) / (double)expectedCost : 1.0;
             trackingAccuracy = Math.Max(0, 1 - trackingAccuracy); // Convert to percentage
 
             return new CostValidationResult

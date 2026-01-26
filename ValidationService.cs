@@ -224,16 +224,15 @@ namespace ScottWisper
                 }
 
                 // Test usage tracking
-                var currentUsage = _costTrackingService.GetTodayUsage();
-                result.Details = $"Current usage: {currentUsage.Requests} requests (${currentUsage.Cost:F4})";
+                var currentUsage = _costTrackingService.GetUsageStats();
+                result.Details = $"Current usage: {currentUsage.RequestCount} requests (${currentUsage.EstimatedCost:F4})";
                 
                 // Test free tier limits
                 var freeTierLimit = 5.00m; // $5.00 monthly free tier
-                var monthlyUsage = _costTrackingService.GetMonthlyUsage();
-                var withinFreeTier = monthlyUsage.Cost <= freeTierLimit;
+                var monthlyUsage = _costTrackingService.GetUsageStats();
+                var withinFreeTier = monthlyUsage.EstimatedCost <= freeTierLimit;
                 
-                result.Passed = true; // Always pass if service is working
-                result.Details += $" | Monthly: ${monthlyUsage.Cost:F4} of ${freeTierLimit:F2}";
+                result.Details += $" | Monthly: ${monthlyUsage.EstimatedCost:F4} of ${freeTierLimit:F2}";
                 result.Details += withinFreeTier ? " (within limits)" : " (exceeds limits)";
                 
                 // Test warning system

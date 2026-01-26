@@ -19,6 +19,8 @@ namespace ScottWisper
 
         public event EventHandler? HotkeyPressed;
 
+        public bool IsHotkeyRegistered => _isRegistered;
+
         public HotkeyService()
         {
             // Get the main window handle
