@@ -2,7 +2,9 @@
 
 ## Overview
 
-ScottWisper is a Windows desktop voice dictation application that provides universal voice-to-text conversion with system-wide hotkey activation and cloud-based speech recognition. This roadmap delivers a production-ready application in 3 phases, starting with core technology validation and progressing through Windows integration to competitive features.
+ScottWisper is a **privacy-focused professional voice dictation application** that provides secure voice-to-text conversion with offline-first architecture and enterprise compliance capabilities. Unlike cloud-only solutions, ScottWisper prioritizes data privacy, professional workflows, and air-gapped operation for medical, legal, and enterprise environments.
+
+This roadmap delivers a professional dictation platform in 3 phases, starting with core technology validation and progressing through enterprise integration to compliance features.
 
 ## Phases
 
@@ -61,9 +63,9 @@ ScottWisper is a Windows desktop voice dictation application that provides unive
 
 ---
 
-### Phase 3: Competitive Features & Polish
+### Phase 3: Professional Features & Compliance
 
-**Goal:** Differentiate from basic Windows Voice Typing with intelligent dictation features and production-ready polish.
+**Goal:** Deliver enterprise-ready privacy features and professional workflow integrations that differentiate from consumer-focused alternatives.
 
 **Dependencies:** Phase 2 completion - Requires universal integration working reliably
 
@@ -71,14 +73,19 @@ ScottWisper is a Windows desktop voice dictation application that provides unive
 - UX-03: Basic punctuation commands
 - UX-05: Error correction commands  
 - UX-06: Automatic punctuation
+- PRIV-01: Local-first processing with cloud fallback
+- PRIV-02: Enterprise deployment options
+- PRIV-03: Industry-specific vocabulary packs
+- PRIV-04: Compliance reporting (HIPAA/GDPR)
 
 **Success Criteria:**
-1. User can insert punctuation using voice commands ("period", "comma", "question mark", "new paragraph")
-2. User can correct transcription errors using voice commands ("delete last word", "undo", "replace [word] with [word]")
-3. Application automatically inserts appropriate punctuation based on speech patterns and pauses
-4. Dictation workflow feels natural and efficient compared to typing, reducing cognitive overhead
-5. Error correction commands work reliably and improve overall transcription accuracy
-6. Features demonstrate clear advantages over built-in Windows Voice Typing justifying adoption
+1. **Offline capability**: Full functionality without internet connection using local Whisper models
+2. **Professional compliance**: HIPAA/GDPR-ready features for medical/legal enterprises
+3. **Industry vocabulary**: Specialized terminology for medical, legal, and technical fields
+4. **Enterprise deployment**: Silent install, group policy, and network configurations
+5. **Privacy controls**: User controls over data processing and retention
+6. **Workflow integration**: EHR, case management, and professional software hooks
+7. **Audit logging**: Professional audit trails for compliance requirements
 
 ---
 

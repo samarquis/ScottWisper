@@ -1,17 +1,18 @@
-# ScottWisper Voice Dictation
+# ScottWisper - Professional Voice Dictation
 
-A Windows desktop application providing universal voice dictation with system-wide hotkey activation and cloud-based speech recognition.
+A **privacy-focused professional voice dictation** application with offline-first architecture and enterprise compliance capabilities.
 
 ## Overview
 
-ScottWisper enables accurate, instantaneous voice-to-text conversion that seamlessly integrates with any Windows application, making typing completely optional. Simply press a global hotkey and start speaking - your words appear exactly where you need them.
+ScottWisper enables secure, accurate voice-to-text conversion for professionals who require privacy, compliance, and offline capability. Unlike cloud-only solutions, ScottWisper works without internet connection and provides industry-specific accuracy for medical, legal, and enterprise environments.
 
 **Core Features:**
 - 🎯 **System-wide hotkey activation** - Works from any application
 - ⚡ **Real-time transcription** - See text appear as you speak
-- 🎤 **High accuracy speech recognition** - Powered by OpenAI Whisper API
-- 💰 **Sustainable free tier** - Cost tracking with usage limits
-- 🔒 **Privacy-focused** - Your audio is processed securely in the cloud
+- 🎤 **Industry-leading accuracy** - Local and cloud processing options
+- 🏥 **Professional vocabulary** - Medical, legal, and technical terminology
+- 🔒 **Privacy-first design** - Offline processing, no data collection
+- 🏢 **Enterprise ready** - HIPAA/GDPR compliance and deployment options
 
 ## Installation
 
