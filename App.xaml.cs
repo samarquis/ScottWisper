@@ -1,7 +1,13 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using ScottWisper.Configuration;
+using ScottWisper.Services;
 
 namespace ScottWisper
 {
@@ -21,6 +27,8 @@ namespace ScottWisper
         private readonly object _dictationLock = new object();
         private TextInjectionService? _textInjectionService;
         private bool _textInjectionEnabled = true;
+        private IServiceProvider? _serviceProvider;
+        private ISettingsService? _settingsService;
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -73,7 +81,15 @@ namespace ScottWisper
         {
             try
             {
-                // Initialize core services
+                // Setup configuration
+                var services = new ServiceCollection();
+                ConfigureConfiguration(services);
+                
+                _serviceProvider = services.BuildServiceProvider();
+                _settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
+
+                // Initialize core services using settings
+                var settings = _settingsService.Settings;
                 _whisperService = new WhisperService();
                 _costTrackingService = new CostTrackingService();
                 _audioCaptureService = new AudioCaptureService();
@@ -92,7 +108,7 @@ namespace ScottWisper
                 _costTrackingService.FreeTierWarning += OnFreeTierWarning;
                 _costTrackingService.FreeTierExceeded += OnFreeTierExceeded;
 
-                // Configure audio capture service
+                // Configure audio capture service with settings
                 _audioCaptureService.AudioDataCaptured += OnAudioDataAvailable;
             }
             catch (Exception ex)
@@ -100,6 +116,29 @@ namespace ScottWisper
                 MessageBox.Show($"Failed to initialize services: {ex.Message}", "ScottWisper Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Current.Shutdown();
             }
+        }
+
+        private void ConfigureConfiguration(IServiceCollection services)
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+                    "ScottWisper", 
+                    "usersettings.json"), optional: true, reloadOnChange: true);
+
+            var configuration = builder.Build();
+
+            services.Configure<AudioSettings>(options => configuration.GetSection("Audio").Bind(options));
+            services.Configure<TranscriptionSettings>(options => configuration.GetSection("Transcription").Bind(options));
+            services.Configure<HotkeySettings>(options => configuration.GetSection("Hotkeys").Bind(options));
+            services.Configure<UISettings>(options => configuration.GetSection("UI").Bind(options));
+            services.Configure<AppSettings>(options => configuration.Bind(options));
+            services.AddSingleton<ISettingsService, SettingsService>();
+            
+            // Also make configuration available for legacy use
+            services.AddSingleton<IConfiguration>(configuration);
         }
 
         private async void OnHotkeyPressed(object? sender, EventArgs e)
@@ -329,26 +368,6 @@ namespace ScottWisper
             {
                 _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
             });
-        }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Text injection failed: {transcription}");
-                        // Show fallback notification to user
-                        Dispatcher.Invoke(() =>
-                        {
-                            _systemTrayService?.ShowNotification("Text injection failed. Text was only shown in the preview window.", "Injection Issue");
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error during text injection: {ex.Message}");
-                    Dispatcher.Invoke(() =>
-                    {
-                        _systemTrayService?.ShowNotification($"Text injection error: {ex.Message}", "Injection Error");
-                    });
-                }
-            }
         }
 
         private void OnTranscriptionError(object? sender, Exception error)
