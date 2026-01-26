@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
+using ScottWisper.Services;
 
 namespace ScottWisper
 {
@@ -52,6 +53,7 @@ namespace ScottWisper
         private readonly object _lockObject = new object();
         private bool _isInitialized;
         private bool _disposed;
+        private readonly ISettingsService? _settingsService;
         
         // Windows API imports for text injection
         [DllImport("user32.dll", SetLastError = true)]
@@ -147,6 +149,27 @@ namespace ScottWisper
 
         public TextInjectionService()
         {
+        }
+
+        public TextInjectionService(ISettingsService settingsService)
+        {
+            _settingsService = settingsService;
+            
+            // Subscribe to settings changes
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged += OnSettingsChanged;
+            }
+        }
+
+        private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+        {
+            // Handle text injection settings changes
+            if (e.Category == "TextInjection" || e.Category == "UI")
+            {
+                // Settings like injection method, retry count, etc. would be applied here
+                await Task.CompletedTask;
+            }
         }
 
         /// <summary>

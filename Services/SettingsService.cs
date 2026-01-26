@@ -13,6 +13,32 @@ using ScottWisper.Configuration;
 
 namespace ScottWisper.Services
 {
+    public class SettingsChangedEventArgs : EventArgs
+    {
+        public string Key { get; set; } = string.Empty;
+        public object? OldValue { get; set; }
+        public object? NewValue { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public bool RequiresRestart { get; set; }
+    }
+
+    public class SettingsBackup
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string Description { get; set; } = string.Empty;
+        public AppSettings Settings { get; set; } = new AppSettings();
+        public string Version { get; set; } = "1.0";
+        public string Application { get; set; } = "ScottWisper";
+    }
+
+    public class SettingsValidationResult
+    {
+        public bool IsValid { get; set; } = true;
+        public List<string> Errors { get; set; } = new List<string>();
+        public List<string> Warnings { get; set; } = new List<string>();
+        public List<string> Info { get; set; } = new List<string>();
+    }
     public interface ISettingsService
     {
         AppSettings Settings { get; }
@@ -21,6 +47,27 @@ namespace ScottWisper.Services
         Task SetValueAsync<T>(string key, T value);
         Task<string> GetEncryptedValueAsync(string key);
         Task SetEncryptedValueAsync(string key, string value);
+        
+        // Settings change notifications
+        event EventHandler<SettingsChangedEventArgs> SettingsChanged;
+        
+        // Backup and restore functionality
+        Task<bool> CreateBackupAsync(string filePath);
+        Task<bool> RestoreFromBackupAsync(string filePath);
+        Task<List<string>> GetAvailableBackupsAsync();
+        Task<bool> ExportSettingsAsync(string filePath);
+        Task<bool> ImportSettingsAsync(string filePath);
+        
+        // Settings validation and migration
+        Task<bool> ValidateSettingsAsync(AppSettings settings);
+        Task<bool> MigrateSettingsAsync(int fromVersion, int toVersion);
+        Task ResetToDefaultsAsync();
+        Task<bool> NeedsMigrationAsync();
+        
+        // Real-time settings application
+        Task ApplySettingsAsync();
+        Task ReloadSettingsAsync();
+        bool HasUnsavedChanges { get; }
         
         // Audio device management methods
         Task SetSelectedInputDeviceAsync(string deviceId);
@@ -63,9 +110,15 @@ namespace ScottWisper.Services
         private readonly IOptionsMonitor<AppSettings> _options;
         private readonly string _userSettingsPath;
         private readonly string _encryptionKey;
+        private readonly string _backupDirectory;
         private AppSettings _currentSettings;
+        private AppSettings _originalSettings;
+        private bool _hasUnsavedChanges = false;
 
         public AppSettings Settings => _currentSettings;
+        public bool HasUnsavedChanges => _hasUnsavedChanges;
+        
+        public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
 
         public SettingsService(IConfiguration configuration, IOptionsMonitor<AppSettings> options)
         {
@@ -79,6 +132,10 @@ namespace ScottWisper.Services
             Directory.CreateDirectory(appFolder);
             _userSettingsPath = Path.Combine(appFolder, "usersettings.json");
             
+            // Initialize backup directory
+            _backupDirectory = Path.Combine(appFolder, "Backups");
+            Directory.CreateDirectory(_backupDirectory);
+            
             // Initialize encryption key based on machine info
             _encryptionKey = GenerateMachineSpecificKey();
             
@@ -91,7 +148,11 @@ namespace ScottWisper.Services
             try
             {
                 // Validate settings before saving
-                ValidateSettings(_currentSettings);
+                var validationResult = await ValidateSettingsAsync(_currentSettings);
+                if (!validationResult.IsValid)
+                {
+                    throw new InvalidOperationException($"Invalid settings: {string.Join(", ", validationResult.Errors)}");
+                }
                 
                 var json = JsonSerializer.Serialize(_currentSettings, new JsonSerializerOptions
                 {
@@ -99,6 +160,15 @@ namespace ScottWisper.Services
                 });
 
                 await File.WriteAllTextAsync(_userSettingsPath, json);
+                _hasUnsavedChanges = false;
+                
+                // Notify about save completion
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = "SettingsSaved",
+                    Category = "System",
+                    RequiresRestart = false
+                });
             }
             catch (Exception ex)
             {
@@ -445,49 +515,52 @@ namespace ScottWisper.Services
         private void ValidateSettings(AppSettings settings)
         {
             // Audio settings validation
-            if (settings.Audio.SampleRate <= 0)
+            if (settings.Audio?.SampleRate <= 0)
             {
                 throw new ValidationException("Sample rate must be greater than 0");
             }
             
-            if (settings.Audio.Channels < 1 || settings.Audio.Channels > 2)
+            if (settings.Audio?.Channels < 1 || settings.Audio?.Channels > 2)
             {
                 throw new ValidationException("Channels must be 1 or 2");
             }
 
             // Transcription settings validation
-            if (string.IsNullOrWhiteSpace(settings.Transcription.Provider))
+            if (string.IsNullOrWhiteSpace(settings.Transcription?.Provider))
             {
                 throw new ValidationException("Transcription provider is required");
             }
 
-            if (string.IsNullOrWhiteSpace(settings.Transcription.Model))
+            if (string.IsNullOrWhiteSpace(settings.Transcription?.Model))
             {
                 throw new ValidationException("Transcription model is required");
             }
 
             // Hotkey settings validation
-            if (string.IsNullOrWhiteSpace(settings.Hotkeys.ToggleRecording))
+            if (string.IsNullOrWhiteSpace(settings.Hotkeys?.ToggleRecording))
             {
                 throw new ValidationException("Toggle recording hotkey is required");
             }
 
             // Validate device settings
-            foreach (var deviceSettings in settings.Audio.DeviceSettings.Values)
+            if (settings.Audio?.DeviceSettings != null)
             {
-                if (deviceSettings.SampleRate <= 0)
+                foreach (var deviceSettings in settings.Audio.DeviceSettings.Values)
                 {
-                    throw new ValidationException($"Device {deviceSettings.Name} has invalid sample rate");
-                }
+                    if (deviceSettings.SampleRate <= 0)
+                    {
+                        throw new ValidationException($"Device {deviceSettings.Name} has invalid sample rate");
+                    }
 
-                if (deviceSettings.Channels < 1 || deviceSettings.Channels > 2)
-                {
-                    throw new ValidationException($"Device {deviceSettings.Name} has invalid channel count");
-                }
+                    if (deviceSettings.Channels < 1 || deviceSettings.Channels > 2)
+                    {
+                        throw new ValidationException($"Device {deviceSettings.Name} has invalid channel count");
+                    }
 
-                if (deviceSettings.BufferSize <= 0)
-                {
-                    throw new ValidationException($"Device {deviceSettings.Name} has invalid buffer size");
+                    if (deviceSettings.BufferSize <= 0)
+                    {
+                        throw new ValidationException($"Device {deviceSettings.Name} has invalid buffer size");
+                    }
                 }
             }
         }
@@ -706,8 +779,402 @@ namespace ScottWisper.Services
 
         public async Task<HotkeyValidationResult> ValidateHotkeyAsync(string combination)
         {
-            // This is a basic validation - the comprehensive validation is in HotkeyService
+            // This is a basic validation - comprehensive validation is in HotkeyService
             var result = new HotkeyValidationResult { IsValid = true };
+            
+            if (string.IsNullOrWhiteSpace(combination))
+            {
+                result.IsValid = false;
+                result.ErrorMessage = "Hotkey combination cannot be empty";
+                return result;
+            }
+
+            // Check against existing hotkeys in current profile
+            var currentProfile = await GetCurrentHotkeyProfileAsync();
+            var conflictingHotkey = currentProfile.Hotkeys.Values
+                .FirstOrDefault(h => string.Equals(h.Combination, combination, StringComparison.OrdinalIgnoreCase));
+
+            if (conflictingHotkey != null)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = $"This hotkey is already used by: {conflictingHotkey.Name}";
+                result.Conflicts.Add(new HotkeyConflict
+                {
+                    ConflictingHotkey = conflictingHotkey.Combination,
+                    ConflictingApplication = "ScottWisper",
+                    ConflictType = "profile"
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<bool> CreateBackupAsync(string filePath)
+        {
+            try
+            {
+                var backup = new SettingsBackup
+                {
+                    Settings = _currentSettings,
+                    Description = $"Manual backup created on {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                    Version = GetCurrentSettingsVersion()
+                };
+
+                var json = JsonSerializer.Serialize(backup, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(filePath, json);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to create backup: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> RestoreFromBackupAsync(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                    return false;
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var backup = JsonSerializer.Deserialize<SettingsBackup>(json);
+                
+                if (backup?.Settings == null)
+                    return false;
+
+                // Validate backup settings
+                var validationResult = await ValidateSettingsAsync(backup.Settings);
+                if (!validationResult.IsValid)
+                {
+                    throw new InvalidOperationException($"Invalid backup settings: {string.Join(", ", validationResult.Errors)}");
+                }
+
+                // Create a backup of current settings before restore
+                var currentBackupPath = Path.Combine(_backupDirectory, $"auto_backup_before_restore_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                await CreateBackupAsync(currentBackupPath);
+
+                // Apply restored settings
+                _originalSettings = _currentSettings;
+                _currentSettings = backup.Settings;
+                _hasUnsavedChanges = true;
+
+                // Notify about major settings change
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = "RestoreBackup",
+                    Category = "System",
+                    RequiresRestart = true
+                });
+
+                await SaveAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to restore from backup: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<List<string>> GetAvailableBackupsAsync()
+        {
+            try
+            {
+                if (!Directory.Exists(_backupDirectory))
+                    return new List<string>();
+
+                var files = Directory.GetFiles(_backupDirectory, "*.json")
+                    .OrderByDescending(f => File.GetLastWriteTime(f))
+                    .ToList();
+
+                return files;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to get available backups: {ex.Message}");
+                return new List<string>();
+            }
+        }
+
+        public async Task<bool> ExportSettingsAsync(string filePath)
+        {
+            try
+            {
+                var exportData = new
+                {
+                    Settings = _currentSettings,
+                    ExportedAt = DateTime.Now,
+                    Version = GetCurrentSettingsVersion(),
+                    Application = "ScottWisper",
+                    Description = "Settings export for sharing or backup"
+                };
+
+                var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+
+                await File.WriteAllTextAsync(filePath, json);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to export settings: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ImportSettingsAsync(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                    return false;
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var importData = JsonSerializer.Deserialize<JsonElement>(json);
+                
+                var importedSettings = JsonSerializer.Deserialize<AppSettings>(
+                    importData.GetProperty("Settings").GetRawText());
+
+                if (importedSettings == null)
+                    return false;
+
+                // Validate imported settings
+                var validationResult = await ValidateSettingsAsync(importedSettings);
+                if (!validationResult.IsValid)
+                {
+                    throw new InvalidOperationException($"Invalid imported settings: {string.Join(", ", validationResult.Errors)}");
+                }
+
+                // Create backup before import
+                var backupPath = Path.Combine(_backupDirectory, $"auto_backup_before_import_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                await CreateBackupAsync(backupPath);
+
+                // Apply imported settings
+                _originalSettings = _currentSettings;
+                _currentSettings = importedSettings;
+                _hasUnsavedChanges = true;
+
+                // Notify about settings change
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = "ImportSettings",
+                    Category = "System",
+                    RequiresRestart = true
+                });
+
+                await SaveAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to import settings: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> ValidateSettingsAsync(AppSettings settings)
+        {
+            var result = new SettingsValidationResult { IsValid = true };
+
+            try
+            {
+                // Audio settings validation
+                if (settings.Audio?.SampleRate <= 0)
+                {
+                    result.Errors.Add("Sample rate must be greater than 0");
+                    result.IsValid = false;
+                }
+                
+                if (settings.Audio?.Channels < 1 || settings.Audio?.Channels > 2)
+                {
+                    result.Errors.Add("Channels must be 1 or 2");
+                    result.IsValid = false;
+                }
+
+                // Transcription settings validation
+                if (string.IsNullOrWhiteSpace(settings.Transcription?.Provider))
+                {
+                    result.Errors.Add("Transcription provider is required");
+                    result.IsValid = false;
+                }
+
+                if (string.IsNullOrWhiteSpace(settings.Transcription?.Model))
+                {
+                    result.Errors.Add("Transcription model is required");
+                    result.IsValid = false;
+                }
+
+                // Hotkey settings validation
+                if (string.IsNullOrWhiteSpace(settings.Hotkeys?.ToggleRecording))
+                {
+                    result.Errors.Add("Toggle recording hotkey is required");
+                    result.IsValid = false;
+                }
+
+                // Device settings validation
+                if (settings.Audio?.DeviceSettings != null)
+                {
+                    foreach (var deviceSettings in settings.Audio.DeviceSettings.Values)
+                    {
+                        if (deviceSettings.SampleRate <= 0)
+                        {
+                            result.Errors.Add($"Device {deviceSettings.Name} has invalid sample rate");
+                            result.IsValid = false;
+                        }
+
+                        if (deviceSettings.Channels < 1 || deviceSettings.Channels > 2)
+                        {
+                            result.Errors.Add($"Device {deviceSettings.Name} has invalid channel count");
+                            result.IsValid = false;
+                        }
+
+                        if (deviceSettings.BufferSize <= 0)
+                        {
+                            result.Errors.Add($"Device {deviceSettings.Name} has invalid buffer size");
+                            result.IsValid = false;
+                        }
+                    }
+                }
+
+                // Add informational messages
+                result.Info.Add($"Audio provider: {settings.Transcription?.Provider ?? "Not set"}");
+                result.Info.Add($"Sample rate: {settings.Audio?.SampleRate ?? 0} Hz");
+                result.Info.Add($"Channels: {settings.Audio?.Channels ?? 0}");
+
+                if (settings.Audio?.DeviceSettings?.Count > 0)
+                {
+                    result.Info.Add($"Configured devices: {settings.Audio.DeviceSettings.Count}");
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Validation error: {ex.Message}");
+                result.IsValid = false;
+            }
+
+            return result.IsValid;
+        }
+
+        public async Task<bool> MigrateSettingsAsync(int fromVersion, int toVersion)
+        {
+            try
+            {
+                // Migration logic for future version upgrades
+                if (fromVersion == toVersion)
+                    return true;
+
+                // Example migration for version 1.0 to 1.1
+                if (fromVersion == 1 && toVersion == 2)
+                {
+                    // Add new default settings for version 2
+                    if (_currentSettings.Audio == null)
+                        _currentSettings.Audio = new AudioSettings();
+                        
+                    if (_currentSettings.Audio.DeviceSettings == null)
+                        _currentSettings.Audio.DeviceSettings = new Dictionary<string, DeviceSpecificSettings>();
+                }
+
+                await SaveAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Migration failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task ResetToDefaultsAsync()
+        {
+            try
+            {
+                // Create backup before reset
+                var backupPath = Path.Combine(_backupDirectory, $"auto_backup_before_reset_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                await CreateBackupAsync(backupPath);
+
+                // Reset to default settings
+                _originalSettings = _currentSettings;
+                _currentSettings = new AppSettings();
+                _hasUnsavedChanges = true;
+
+                // Notify about reset
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = "ResetToDefaults",
+                    Category = "System",
+                    RequiresRestart = true
+                });
+
+                await SaveAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to reset settings: {ex.Message}");
+                throw;
+            }
+        }
+
+        public async Task<bool> NeedsMigrationAsync()
+        {
+            try
+            {
+                var currentVersion = GetCurrentSettingsVersion();
+                // For now, assume no migration needed
+                // In future, compare with app version and return true if needed
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task ApplySettingsAsync()
+        {
+            try
+            {
+                // This method will be called to apply settings to all services
+                // Services will subscribe to SettingsChanged event
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = "ApplyAll",
+                    Category = "System",
+                    RequiresRestart = false
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to apply settings: {ex.Message}");
+            }
+        }
+
+        public async Task ReloadSettingsAsync()
+        {
+            try
+            {
+                await LoadUserSettingsAsync();
+                _hasUnsavedChanges = false;
+                
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = "ReloadSettings",
+                    Category = "System",
+                    RequiresRestart = false
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to reload settings: {ex.Message}");
+            }
+        }
             
             if (string.IsNullOrWhiteSpace(combination))
             {
@@ -742,6 +1209,33 @@ namespace ScottWisper.Services
             var appFolder = Path.Combine(appDataPath, "ScottWisper");
             Directory.CreateDirectory(appFolder);
             return Path.Combine(appFolder, $"{key}.encrypted");
+        }
+
+        private int GetCurrentSettingsVersion()
+        {
+            // Return current settings schema version
+            return 1;
+        }
+
+        protected virtual void OnSettingsChanged(SettingsChangedEventArgs e)
+        {
+            SettingsChanged?.Invoke(this, e);
+        }
+
+        private void TrackSettingChange<T>(string key, T oldValue, T newValue, string category = "General", bool requiresRestart = false)
+        {
+            if (!EqualityComparer<T>.Default.Equals(oldValue, newValue))
+            {
+                _hasUnsavedChanges = true;
+                OnSettingsChanged(new SettingsChangedEventArgs
+                {
+                    Key = key,
+                    OldValue = oldValue,
+                    NewValue = newValue,
+                    Category = category,
+                    RequiresRestart = requiresRestart
+                });
+            }
         }
     }
 }

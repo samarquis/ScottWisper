@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
+using ScottWisper.Services;
 
 namespace ScottWisper
 {
@@ -13,6 +14,7 @@ namespace ScottWisper
         private UsageData _usageData = null!;
         private readonly object _lockObject = new object();
         private readonly Timer _saveTimer;
+        private readonly ISettingsService? _settingsService;
         
         // Pricing configuration
         private const decimal CostPerMinute = 0.006m; // $0.006 per minute for Whisper API
@@ -38,6 +40,38 @@ namespace ScottWisper
             
             // Auto-save timer - saves every minute
             _saveTimer = new Timer(SaveUsageData, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+        
+        public CostTrackingService(ISettingsService settingsService)
+        {
+            _settingsService = settingsService;
+            
+            _usageDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ScottWisper",
+                "usage.json"
+            );
+            
+            LoadUsageData();
+            
+            // Subscribe to settings changes
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged += OnSettingsChanged;
+            }
+            
+            // Auto-save timer - saves every minute
+            _saveTimer = new Timer(SaveUsageData, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+
+        private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+        {
+            // Handle cost tracking settings changes
+            if (e.Category == "CostTracking" || e.Category == "Transcription")
+            {
+                // Settings like cost thresholds, free tier limits, etc. would be applied here
+                await Task.CompletedTask;
+            }
         }
 
         public void TrackUsage(int audioDataLength, bool isSuccessful = true)

@@ -77,6 +77,7 @@ namespace ScottWisper
     public partial class MainWindow : Window
     {
         private IFeedbackService? _feedbackService;
+        private ScottWisper.Services.ISettingsService? _settingsService;
         private bool _isHidden = false;
         private readonly List<StatusHistoryItem> _displayHistory = new();
         private DateTime _sessionStartTime = DateTime.Now;
@@ -107,9 +108,21 @@ namespace ScottWisper
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Initialize feedback service
-            _feedbackService = new FeedbackService();
-            await _feedbackService.InitializeAsync();
+            // Get services from application
+            _feedbackService = Application.Current.Properties["FeedbackService"] as FeedbackService;
+            
+            // Get settings service from application properties or create new one
+            if (Application.Current.Properties["SettingsService"] is ScottWisper.Services.ISettingsService settingsService)
+            {
+                _settingsService = settingsService;
+            }
+            
+            // Initialize feedback service if needed
+            if (_feedbackService == null)
+            {
+                _feedbackService = new FeedbackService();
+                await _feedbackService.InitializeAsync();
+            }
 
             // Subscribe to enhanced feedback events
             _feedbackService.StatusChanged += OnFeedbackStatusChanged;
@@ -117,6 +130,14 @@ namespace ScottWisper
             {
                 enhancedFeedback.StatusHistoryUpdated += OnStatusHistoryUpdated;
                 enhancedFeedback.ProgressUpdated += OnProgressUpdated;
+            }
+
+            // Subscribe to settings changes
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged += OnSettingsChanged;
+                // Apply current settings
+                await ApplyCurrentSettingsAsync();
             }
 
             // Set initial status
@@ -422,12 +443,101 @@ namespace ScottWisper
 
         public IFeedbackService? FeedbackService => _feedbackService;
 
+        private async void OnSettingsChanged(object? sender, ScottWisper.Services.SettingsChangedEventArgs e)
+        {
+            try
+            {
+                // Handle settings changes that affect the MainWindow
+                switch (e.Category)
+                {
+                    case "UI":
+                        await ApplyUISettingsAsync();
+                        break;
+                    case "System":
+                        if (e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+                        {
+                            await ApplyCurrentSettingsAsync();
+                        }
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to apply settings change in MainWindow: {ex.Message}");
+            }
+        }
+
+        private async Task ApplyCurrentSettingsAsync()
+        {
+            try
+            {
+                if (_settingsService == null)
+                    return;
+
+                var settings = _settingsService.Settings;
+                
+                // Apply UI settings
+                await ApplyUISettingsAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to apply current settings: {ex.Message}");
+            }
+        }
+
+        private async Task ApplyUISettingsAsync()
+        {
+            try
+            {
+                if (_settingsService?.Settings?.UI == null)
+                    return;
+
+                var uiSettings = _settingsService.Settings.UI;
+                
+                // Apply window behavior settings
+                if (uiSettings.MinimizeToTray && !_isHidden)
+                {
+                    HideWindowFromAltTab();
+                    Hide();
+                    _isHidden = true;
+                }
+                else if (!uiSettings.MinimizeToTray && _isHidden)
+                {
+                    Show();
+                    _isHidden = false;
+                }
+
+                // Apply visual feedback settings
+                if (uiSettings.ShowVisualFeedback)
+                {
+                    // Enable visual indicators
+                }
+                else
+                {
+                    // Disable visual indicators
+                }
+
+                // Apply other UI settings as needed
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to apply UI settings: {ex.Message}");
+            }
+        }
+
         protected override async void OnClosed(EventArgs e)
         {
             // Cleanup feedback service
             if (_feedbackService != null)
             {
                 await _feedbackService.DisposeAsync();
+            }
+
+            // Unsubscribe from settings changes
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged -= OnSettingsChanged;
             }
 
             base.OnClosed(e);

@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using ScottWisper.Services;
 
 namespace ScottWisper
 {
@@ -13,6 +14,7 @@ namespace ScottWisper
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
         private readonly string _baseUrl = "https://api.openai.com/v1/audio/transcriptions";
+        private readonly ISettingsService? _settingsService;
         
         // API usage tracking
         private int _requestCount = 0;
@@ -30,6 +32,20 @@ namespace ScottWisper
             _apiKey = GetApiKey();
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+        }
+        
+        public WhisperService(ISettingsService settingsService)
+        {
+            _settingsService = settingsService;
+            _apiKey = GetApiKeyFromSettings();
+            _httpClient = new HttpClient();
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            
+            // Subscribe to settings changes
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged += OnSettingsChanged;
+            }
         }
         
         public async Task<string> TranscribeAudioAsync(byte[] audioData, string? language = null)
@@ -135,14 +151,66 @@ namespace ScottWisper
         
         private string GetApiKey()
         {
-            var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            
-            if (string.IsNullOrEmpty(apiKey))
+            // Try environment variable first
+            var envKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            if (!string.IsNullOrEmpty(envKey))
             {
-                throw new InvalidOperationException("OPENAI_API_KEY environment variable is not set. Please set it to use the Whisper API.");
+                return envKey;
+            }
+
+            // Try to read from encrypted settings file
+            try
+            {
+                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var keyPath = Path.Combine(appDataPath, "ScottWisper", "api_key.encrypted");
+                if (File.Exists(keyPath))
+                {
+                    var encryptedKey = File.ReadAllText(keyPath);
+                    // This would use the same encryption/decryption as SettingsService
+                    // For now, return empty to force user to set the key
+                }
+            }
+            catch
+            {
+                // Fall through to return empty
+            }
+
+            return string.Empty;
+        }
+
+        private string GetApiKeyFromSettings()
+        {
+            if (_settingsService != null)
+            {
+                try
+                {
+                    return _settingsService.GetEncryptedValueAsync("OpenAI_ApiKey").Result;
+                }
+                catch
+                {
+                    // Fall back to default method
+                }
             }
             
-            return apiKey;
+            return GetApiKey();
+        }
+
+        private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+        {
+            // Handle transcription settings changes
+            if (e.Category == "Transcription")
+            {
+                // Update API key if it changed
+                if (e.Key.Contains("Api") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+                {
+                    var newApiKey = GetApiKeyFromSettings();
+                    if (!string.IsNullOrEmpty(newApiKey) && newApiKey != _apiKey)
+                    {
+                        _apiKey = newApiKey;
+                        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                    }
+                }
+            }
         }
         
         private void UpdateUsageStats(int audioDataLength)

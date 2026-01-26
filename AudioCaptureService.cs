@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
+using ScottWisper.Services;
 
 namespace ScottWisper
 {
@@ -13,18 +14,64 @@ namespace ScottWisper
         private MemoryStream? _audioStream;
         private bool _isCapturing;
         private readonly object _lockObject = new object();
+        private readonly ISettingsService? _settingsService;
         
-        // Audio format specifications for Whisper API
-        private const int SampleRate = 16000; // 16kHz
-        private const int Channels = 1; // Mono
-        private const int BitDepth = 16; // 16-bit
-        private const int BufferSize = 1024; // Low latency buffer
+        // Audio format specifications (will be loaded from settings)
+        private int _sampleRate = 16000; // 16kHz default
+        private int _channels = 1; // Mono default
+        private int _bitDepth = 16; // 16-bit default
+        private int _bufferSize = 1024; // Low latency buffer default
         
         public event EventHandler<byte[]>? AudioDataCaptured;
         public event EventHandler<Exception>? CaptureError;
         
         public bool IsCapturing => _isCapturing;
         
+        public AudioCaptureService()
+        {
+            // Use default values
+        }
+        
+        public AudioCaptureService(ISettingsService settingsService)
+        {
+            _settingsService = settingsService;
+            LoadAudioSettingsFromSettings();
+            
+            // Subscribe to settings changes
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged += OnSettingsChanged;
+            }
+        }
+
+        private void LoadAudioSettingsFromSettings()
+        {
+            if (_settingsService?.Settings?.Audio != null)
+            {
+                var audioSettings = _settingsService.Settings.Audio;
+                _sampleRate = audioSettings.SampleRate > 0 ? audioSettings.SampleRate : 16000;
+                _channels = audioSettings.Channels >= 1 && audioSettings.Channels <= 2 ? audioSettings.Channels : 1;
+                _bitDepth = audioSettings.BitDepth > 0 ? audioSettings.BitDepth : 16;
+                _bufferSize = audioSettings.BufferSize > 0 ? audioSettings.BufferSize : 1024;
+            }
+        }
+
+        private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+        {
+            // Handle audio settings changes
+            if (e.Category == "Audio")
+            {
+                LoadAudioSettingsFromSettings();
+                // If currently capturing, restart with new settings
+                if (_isCapturing)
+                {
+                    await StopCaptureAsync();
+                    await Task.Delay(100); // Brief pause
+                    await StartCaptureAsync();
+                }
+            }
+        }
+
         public Task<bool> StartCaptureAsync()
         {
             try
@@ -40,11 +87,11 @@ namespace ScottWisper
                     throw new InvalidOperationException("No audio input devices found");
                 }
                 
-                // Initialize audio capture
+                // Initialize audio capture with settings-based values
                 _waveIn = new WaveInEvent
                 {
-                    WaveFormat = new WaveFormat(SampleRate, BitDepth, Channels),
-                    BufferMilliseconds = (int)((BufferSize * 1000.0) / SampleRate)
+                    WaveFormat = new WaveFormat(_sampleRate, _bitDepth, _channels),
+                    BufferMilliseconds = (int)((_bufferSize * 1000.0) / _sampleRate)
                 };
                 
                 // Set up event handlers
