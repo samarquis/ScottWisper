@@ -6,47 +6,201 @@
          xmlns:local="clr-namespace:ScottWisper"
          mc:Ignorable="d"
          Title="ScottWisper Settings" 
-         Height="350" 
-         Width="400"
+         Height="500" 
+         Width="500"
          WindowStyle="None"
          ShowInTaskbar="False"
-         WindowState="Minimized">
+         WindowState="Minimized"
+         Background="#FFF8F9FA">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- Status Bar -->
-        <StatusBar Grid.Row="0" Height="30" Background="#FF2D2D30" Foreground="White">
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Status: " FontWeight="Bold"/>
-                    <TextBlock x:Name="StatusText" Text="Idle"/>
+        <!-- Enhanced Status Bar -->
+        <Border Grid.Row="0" Background="#FF2D2D30" Padding="10,5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Status Text and Indicator -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusIndicator" Width="14" Height="14" 
+                             Fill="Gray" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Status: " FontWeight="Bold" Foreground="White"/>
+                    <TextBlock x:Name="StatusText" Text="Idle" Foreground="White"/>
                 </StackPanel>
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
-                <StackPanel Orientation="Horizontal">
-                    <Ellipse x:Name="StatusIndicator" Width="12" Height="12" 
-                             Fill="Gray" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="StatusTime" Text=""/>
+                
+                <!-- Current Time -->
+                <TextBlock Grid.Column="1" x:Name="StatusTime" Text="" 
+                          Foreground="White" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                
+                <!-- Quick Actions -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="SettingsButton" Content="⚙️" Background="Transparent" Foreground="White"
+                           BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
+                           ToolTip="Settings" Click="SettingsButton_Click"/>
+                    <Button x:Name="HelpButton" Content="❓" Background="Transparent" Foreground="White"
+                           BorderThickness="0" FontSize="14" Width="25" Height="25"
+                           ToolTip="Help" Click="HelpButton_Click"/>
                 </StackPanel>
-            </StatusBarItem>
-        </StatusBar>
+            </Grid>
+        </Border>
         
-        <!-- Main Content -->
-        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Text="ScottWisper Voice Dictation" HorizontalAlignment="Center" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
-            <TextBlock Text="Settings and configuration will appear here" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-            <TextBlock Text="Press Ctrl+Win+Shift+V to activate voice dictation" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center"/>
-        </StackPanel>
+        <!-- Progress Indicator Section -->
+        <Border Grid.Row="1" x:Name="ProgressSection" Background="#FFE8F4FD" 
+                Padding="15,10" BorderBrush="#FFB6D7A8" BorderThickness="0,0,0,1" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock x:Name="ProgressOperation" Text="Processing..." FontWeight="SemiBold" FontSize="12"/>
+                    <TextBlock x:Name="ProgressDetails" Text="" FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ProgressBar x:Name="ProgressBar" Width="150" Height="6" Margin="0,0,10,0" 
+                                   Minimum="0" Maximum="100" Value="0"/>
+                    <TextBlock x:Name="ProgressPercentage" Text="0%" FontSize="10" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Main Content Area -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Application Title and Status -->
+            <Border Grid.Row="0" Background="White" Padding="20,15" Margin="10,10,10,5" 
+                   CornerRadius="5" BorderBrush="#FFE1E4E8" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="ScottWisper Voice Dictation" HorizontalAlignment="Center" 
+                              FontSize="20" FontWeight="Bold" Foreground="#FF2D2D30"/>
+                    <TextBlock x:Name="MainStatusMessage" Text="Ready for dictation" HorizontalAlignment="Center" 
+                              FontSize="12" Foreground="#FF6C757D" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Status History Panel -->
+            <Border Grid.Row="1" Background="White" Padding="15" Margin="10,5" 
+                   CornerRadius="5" BorderBrush="#FFE1E4E8" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- History Header -->
+                    <Border Grid.Row="0" BorderBrush="#FFE1E4E8" BorderThickness="0,0,0,1" Padding="0,0,0,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Grid.Column="0" Text="Recent Status Changes" FontWeight="SemiBold" FontSize="11"/>
+                            <Button Grid.Column="1" x:Name="ClearHistoryButton" Content="Clear" Background="Transparent" 
+                                   BorderThickness="0" FontSize="10" Foreground="#FF6C757D" Padding="5,0"
+                                   Click="ClearHistoryButton_Click"/>
+                            <TextBlock Grid.Column="2" x:Name="HistoryCount" Text="0 items" 
+                                      FontSize="10" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    
+                    <!-- History List -->
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  Margin="0,8,0,0">
+                        <ItemsControl x:Name="HistoryList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#FFF8F9FA" Padding="10,8" Margin="0,0,0,5" CornerRadius="3">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- Status Indicator -->
+                                            <Ellipse Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Width="8" Height="8" 
+                                                     Fill="{Binding StatusColor}" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                            
+                                            <!-- Status Text -->
+                                            <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding StatusText}" 
+                                                      FontWeight="SemiBold" FontSize="11"/>
+                                            
+                                            <!-- Time and Duration -->
+                                            <TextBlock Grid.Column="2" Grid.Row="0" Text="{Binding TimeString}" 
+                                                      FontSize="10" Foreground="Gray"/>
+                                            
+                                            <!-- Message (if any) -->
+                                            <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Message}" 
+                                                      FontSize="10" Foreground="#FF6C757D" TextWrapping="Wrap"
+                                                      Visibility="{Binding HasMessage, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <!-- Quick Stats Section -->
+        <Border Grid.Row="3" Background="#FFF0F0F0" Padding="15,10" BorderBrush="#FFCCCCCC" BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                    <TextBlock Text="Today's Recordings" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="TodayRecordings" Text="0" FontSize="16" FontWeight="Bold" 
+                              HorizontalAlignment="Center" Foreground="#FF007ACC"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                    <TextBlock Text="Usage Time" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="UsageTime" Text="0m" FontSize="16" FontWeight="Bold" 
+                              HorizontalAlignment="Center" Foreground="#FF28A745"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                    <TextBlock Text="API Usage" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="ApiUsage" Text="$0.00" FontSize="16" FontWeight="Bold" 
+                              HorizontalAlignment="Center" Foreground="#FF6F42C1"/>
+                </StackPanel>
+            </Grid>
+        </Border>
         
         <!-- Footer Status -->
-        <Border Grid.Row="2" Background="#FFF0F0F0" Padding="10" BorderBrush="#FFCCCCCC" BorderThickness="0,1,0,0">
+        <Border Grid.Row="4" Background="#FF2D2D30" Padding="15,8">
             <StackPanel>
-                <TextBlock x:Name="FooterStatus" Text="Ready" HorizontalAlignment="Center" FontWeight="SemiBold"/>
-                <TextBlock x:Name="FooterMessage" Text="System initialized" HorizontalAlignment="Center" FontSize="11" Foreground="Gray"/>
+                <TextBlock x:Name="FooterStatus" Text="Ready" HorizontalAlignment="Center" 
+                          FontWeight="SemiBold" Foreground="White"/>
+                <TextBlock x:Name="FooterMessage" Text="System initialized" HorizontalAlignment="Center" 
+                          FontSize="10" Foreground="#FFADB5BD"/>
             </StackPanel>
         </Border>
     </Grid>
