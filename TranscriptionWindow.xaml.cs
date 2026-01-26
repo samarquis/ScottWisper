@@ -144,7 +144,7 @@ namespace ScottWisper
             Dispatcher.Invoke(UpdateUsageDisplay);
         }
 
-        private void AppendTranscriptionText(string text)
+        public void AppendTranscriptionText(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
 

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -11,10 +12,19 @@ namespace ScottWisper
     {
         private MainWindow? _mainWindow;
         private HotkeyService? _hotkeyService;
+        private WhisperService? _whisperService;
+        private AudioCaptureService? _audioCaptureService;
+        private CostTrackingService? _costTrackingService;
+        private TranscriptionWindow? _transcriptionWindow;
+        private bool _isDictating = false;
+        private readonly object _dictationLock = new object();
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            // Initialize services
+            InitializeServices();
 
             _mainWindow = new MainWindow();
             
@@ -26,15 +36,198 @@ namespace ScottWisper
             _mainWindow.Show();
         }
 
-        private void OnHotkeyPressed(object? sender, EventArgs e)
+        private void InitializeServices()
         {
-            // Handle hotkey press - this will trigger dictation mode
-            MessageBox.Show("Global hotkey (Ctrl+Win+Shift+V) pressed! Voice dictation activated.", "ScottWisper");
+            try
+            {
+                // Initialize core services
+                _whisperService = new WhisperService();
+                _costTrackingService = new CostTrackingService();
+                _audioCaptureService = new AudioCaptureService();
+
+                // Initialize transcription window
+                _transcriptionWindow = new TranscriptionWindow();
+                _transcriptionWindow.InitializeServices(_whisperService, _costTrackingService);
+
+                // Wire up service events
+                _whisperService.TranscriptionError += OnTranscriptionError;
+                _whisperService.TranscriptionCompleted += OnTranscriptionCompleted;
+                _costTrackingService.FreeTierWarning += OnFreeTierWarning;
+                _costTrackingService.FreeTierExceeded += OnFreeTierExceeded;
+
+                // Configure audio capture service
+                _audioCaptureService.AudioDataCaptured += OnAudioDataAvailable;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to initialize services: {ex.Message}", "ScottWisper Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Current.Shutdown();
+            }
+        }
+
+        private async void OnHotkeyPressed(object? sender, EventArgs e)
+        {
+            await HandleDictationToggle();
+        }
+
+        private async Task HandleDictationToggle()
+        {
+            Task dictationTask;
+            lock (_dictationLock)
+            {
+                if (_isDictating)
+                {
+                    // Stop dictation
+                    dictationTask = StopDictationInternal();
+                }
+                else
+                {
+                    // Start dictation
+                    dictationTask = StartDictationInternal();
+                }
+            }
+            await dictationTask;
+        }
+
+        private async Task StartDictationInternal()
+        {
+            try
+            {
+                // Show transcription window
+                Dispatcher.Invoke(() =>
+                {
+                    _transcriptionWindow?.ShowForDictation();
+                });
+
+                // Start audio capture
+                await _audioCaptureService?.StartCaptureAsync()!;
+                
+                _isDictating = true;
+                
+                // Update transcription window status
+                Dispatcher.Invoke(() =>
+                {
+                    _transcriptionWindow?.SetRecordingStatus();
+                });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show($"Failed to start dictation: {ex.Message}", "Dictation Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                });
+            }
+        }
+
+        private async Task StopDictationInternal()
+        {
+            try
+            {
+                // Stop audio capture
+                await _audioCaptureService?.StopCaptureAsync()!;
+                
+                // Update transcription window status
+                Dispatcher.Invoke(() =>
+                {
+                    _transcriptionWindow?.SetProcessingStatus();
+                });
+                
+                _isDictating = false;
+                
+                // Hide transcription window after a delay
+                await Task.Delay(2000);
+                Dispatcher.Invoke(() =>
+                {
+                    _transcriptionWindow?.Hide();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping dictation: {ex.Message}");
+            }
+        }
+
+        private async void OnAudioDataAvailable(object? sender, byte[] audioData)
+        {
+            if (!_isDictating || _whisperService == null || _costTrackingService == null) 
+                return;
+
+            try
+            {
+                // Process audio through Whisper API
+                var transcription = await _whisperService.TranscribeAudioAsync(audioData);
+                
+                // Track usage
+                _costTrackingService.TrackUsage(audioData.Length, true);
+            }
+            catch (Exception ex)
+            {
+                // Track failed usage
+                _costTrackingService.TrackUsage(audioData.Length, false);
+                
+                Dispatcher.Invoke(() =>
+                {
+                    _transcriptionWindow?.AppendTranscriptionText($"[Error: {ex.Message}]");
+                });
+            }
+        }
+
+        private void OnTranscriptionCompleted(object? sender, string transcription)
+        {
+            // This event is already handled by TranscriptionWindow through direct subscription
+            // This method can be used for additional processing if needed
+        }
+
+        private void OnTranscriptionError(object? sender, Exception error)
+        {
+            // This event is already handled by TranscriptionWindow through direct subscription
+            // This method can be used for additional error handling if needed
+            System.Diagnostics.Debug.WriteLine($"Transcription error: {error.Message}");
+        }
+
+        private void OnFreeTierWarning(object? sender, FreeTierWarning warning)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var message = $"You've used {warning.UsagePercentage:F1}% of your free tier (${warning.MonthlyUsage.Cost:F2} of ${warning.Limit:F2}).\n\n" +
+                             "Consider upgrading to continue using ScottWisper beyond the free tier.";
+                
+                MessageBox.Show(message, "Free Tier Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            });
+        }
+
+        private void OnFreeTierExceeded(object? sender, FreeTierExceeded exceeded)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var message = $"You've exceeded your free tier limit (${exceeded.MonthlyUsage.Cost:F2} of ${exceeded.Limit:F2}).\n\n" +
+                             "Please upgrade your plan to continue using ScottWisper.\n\n" +
+                             "Current dictation will be paused until you upgrade.";
+                
+                MessageBox.Show(message, "Free Tier Exceeded", MessageBoxButton.OK, MessageBoxImage.Stop);
+                
+                // Stop active dictation if free tier exceeded
+                if (_isDictating)
+                {
+                    Task.Run(async () => await StopDictationInternal());
+                }
+            });
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
+            // Clean up resources
+            if (_isDictating)
+            {
+                Task.Run(async () => await StopDictationInternal()).Wait();
+            }
+
+            _audioCaptureService?.Dispose();
+            _whisperService?.Dispose();
+            _costTrackingService?.Dispose();
             _hotkeyService?.Dispose();
+            _transcriptionWindow?.Close();
+            
             base.OnExit(e);
         }
     }
