@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.IO;
+using System.Collections.Generic;
 
 namespace ScottWisper
 {
@@ -12,25 +13,49 @@ namespace ScottWisper
     /// </summary>
     public class SystemTrayService : IDisposable
     {
+        public enum TrayStatus
+        {
+            Idle,       // Gray - Application ready but not in use
+            Ready,      // Green - Ready to start dictation
+            Recording,   // Red - Currently recording
+            Processing,  // Yellow - Processing transcription
+            Error,       // Gray/Red - Error state
+            Offline      // Gray - Disconnected or unavailable
+        }
+
         private System.Windows.Forms.NotifyIcon? _notifyIcon;
         private bool _isDisposed = false;
         private bool _isDictating = false;
+        private TrayStatus _currentStatus = TrayStatus.Idle;
+        private readonly Dictionary<TrayStatus, Icon> _statusIcons;
+        private DateTime _lastStatusChange;
+        private string _statusMessage = "ScottWisper - Ready";
 
         public event EventHandler? StartDictationRequested;
         public event EventHandler? StopDictationRequested;
         public event EventHandler? SettingsRequested;
         public event EventHandler? WindowToggleRequested;
         public event EventHandler? ExitRequested;
+        public event EventHandler<TrayStatus>? StatusChanged;
+
+        public SystemTrayService()
+        {
+            _statusIcons = new Dictionary<TrayStatus, Icon>();
+            _lastStatusChange = DateTime.Now;
+        }
 
         public void Initialize()
         {
             if (_notifyIcon != null)
                 return;
 
+            // Create status icons
+            CreateStatusIcons();
+
             // Create notify icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon
             {
-                Icon = CreateApplicationIcon(),
+                Icon = _statusIcons[TrayStatus.Ready],
                 Text = "ScottWisper - Ready"
             };
 
@@ -42,11 +67,25 @@ namespace ScottWisper
 
             // Handle mouse events
             _notifyIcon.MouseClick += OnNotifyIconClick;
+            _notifyIcon.MouseDoubleClick += OnNotifyIconDoubleClick;
+
+            // Set initial status
+            UpdateStatus(TrayStatus.Ready);
         }
 
-        private Icon CreateApplicationIcon()
+        private void CreateStatusIcons()
         {
-            // Create a professional 16x16 microphone icon
+            // Create different colored icons for each status
+            _statusIcons[TrayStatus.Idle] = CreateStatusIcon(Color.Gray, "Idle");
+            _statusIcons[TrayStatus.Ready] = CreateStatusIcon(Color.Green, "Ready");
+            _statusIcons[TrayStatus.Recording] = CreateStatusIcon(Color.Red, "Recording");
+            _statusIcons[TrayStatus.Processing] = CreateStatusIcon(Color.FromArgb(255, 165, 0), "Processing"); // Orange
+            _statusIcons[TrayStatus.Error] = CreateStatusIcon(Color.FromArgb(220, 53, 69), "Error"); // Red
+            _statusIcons[TrayStatus.Offline] = CreateStatusIcon(Color.DarkGray, "Offline");
+        }
+
+        private Icon CreateStatusIcon(Color statusColor, string status)
+        {
             var bitmap = new Bitmap(16, 16);
             using (var graphics = Graphics.FromImage(bitmap))
             {
@@ -54,8 +93,8 @@ namespace ScottWisper
                 graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 graphics.Clear(Color.Transparent);
                 
-                // Professional microphone design
-                using (var brush = new SolidBrush(Color.FromArgb(51, 51, 51)))
+                // Professional microphone design with status color
+                using (var brush = new SolidBrush(statusColor))
                 using (var pen = new Pen(brush, 1))
                 {
                     // Microphone head (rounded top)
@@ -71,10 +110,35 @@ namespace ScottWisper
                     graphics.FillRectangle(brush, 4, 11, 8, 1);
                 }
 
-                // Add subtle highlight for depth
-                using (var highlightBrush = new SolidBrush(Color.FromArgb(100, 100, 100)))
+                // Add status-specific details
+                switch (status)
                 {
-                    graphics.FillEllipse(highlightBrush, 7, 4, 2, 1);
+                    case "Recording":
+                        // Add recording indicator (pulsing red dot)
+                        using (var recordingBrush = new SolidBrush(Color.White))
+                        {
+                            graphics.FillEllipse(recordingBrush, 12, 2, 2, 2);
+                        }
+                        break;
+                    
+                    case "Processing":
+                        // Add processing indicator (small gear)
+                        using (var processingBrush = new SolidBrush(Color.White))
+                        {
+                            graphics.FillRectangle(processingBrush, 11, 1, 3, 3);
+                            graphics.FillRectangle(processingBrush, 13, 3, 3, 3);
+                            graphics.FillRectangle(processingBrush, 11, 5, 3, 3);
+                        }
+                        break;
+                    
+                    case "Error":
+                        // Add error indicator (X)
+                        using (var errorBrush = new SolidBrush(Color.White))
+                        {
+                            graphics.DrawLine(new Pen(errorBrush, 1), 11, 1, 14, 4);
+                            graphics.DrawLine(new Pen(errorBrush, 1), 14, 1, 11, 4);
+                        }
+                        break;
                 }
             }
 
@@ -88,10 +152,21 @@ namespace ScottWisper
 
             var contextMenu = new ContextMenuStrip();
 
+            // Status item (disabled, shows current status)
+            var statusItem = new ToolStripMenuItem
+            {
+                Text = $"Status: {_currentStatus}",
+                Enabled = false
+            };
+            contextMenu.Items.Add(statusItem);
+
+            // Separator
+            contextMenu.Items.Add(new ToolStripSeparator());
+
             // Start/Stop Dictation item
             var dictationItem = new ToolStripMenuItem
             {
-                Text = "Start Dictation"
+                Text = _isDictating ? "Stop Dictation" : "Start Dictation"
             };
             dictationItem.Click += OnDictationClick;
             contextMenu.Items.Add(dictationItem);
@@ -115,13 +190,21 @@ namespace ScottWisper
             settingsItem.Click += OnSettingsClick;
             contextMenu.Items.Add(settingsItem);
 
+            // Help item
+            var helpItem = new ToolStripMenuItem
+            {
+                Text = "Help & Documentation"
+            };
+            helpItem.Click += OnHelpClick;
+            contextMenu.Items.Add(helpItem);
+
             // Separator
             contextMenu.Items.Add(new ToolStripSeparator());
 
             // Exit item
             var exitItem = new ToolStripMenuItem
             {
-                Text = "Exit"
+                Text = "Exit Application"
             };
             exitItem.Click += OnExitClick;
             contextMenu.Items.Add(exitItem);
@@ -138,6 +221,15 @@ namespace ScottWisper
             }
         }
 
+        private void OnNotifyIconDoubleClick(object? sender, MouseEventArgs e)
+        {
+            // Handle double-click - show settings
+            if (e.Button == MouseButtons.Left)
+            {
+                SettingsRequested?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
         private void OnDictationClick(object? sender, EventArgs e)
         {
             ToggleDictation();
@@ -151,6 +243,12 @@ namespace ScottWisper
         private void OnSettingsClick(object? sender, EventArgs e)
         {
             SettingsRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnHelpClick(object? sender, EventArgs e)
+        {
+            // Open help documentation or show about dialog
+            ShowNotification("Help documentation coming soon!", "Help");
         }
 
         private void OnExitClick(object? sender, EventArgs e)
@@ -174,16 +272,54 @@ namespace ScottWisper
         {
             _isDictating = isDictating;
 
+            // Update status based on dictation state
+            var newStatus = isDictating ? TrayStatus.Recording : TrayStatus.Ready;
+            UpdateStatus(newStatus);
+        }
+
+        public void UpdateStatus(TrayStatus status)
+        {
+            if (_currentStatus == status)
+                return; // No change needed
+
+            var oldStatus = _currentStatus;
+            _currentStatus = status;
+            _lastStatusChange = DateTime.Now;
+
+            // Update status message
+            _statusMessage = status switch
+            {
+                TrayStatus.Idle => "ScottWisper - Idle",
+                TrayStatus.Ready => "ScottWisper - Ready",
+                TrayStatus.Recording => "ScottWisper - Recording",
+                TrayStatus.Processing => "ScottWisper - Processing",
+                TrayStatus.Error => "ScottWisper - Error",
+                TrayStatus.Offline => "ScottWisper - Offline",
+                _ => "ScottWisper - Unknown"
+            };
+
             if (_notifyIcon != null)
             {
-                // Update tooltip
-                _notifyIcon.Text = isDictating 
-                    ? "ScottWisper - Recording" 
-                    : "ScottWisper - Ready";
+                // Update icon
+                if (_statusIcons.ContainsKey(status))
+                {
+                    _notifyIcon.Icon = _statusIcons[status];
+                }
 
-                // Update context menu
-                UpdateContextMenu();
+                // Update tooltip with status and timing info
+                var timeSinceChange = DateTime.Now - _lastStatusChange;
+                var tooltip = $"{_statusMessage}\nStatus for: {timeSinceChange:mm\\:ss}";
+                _notifyIcon.Text = tooltip.Trim();
             }
+
+            // Update context menu
+            UpdateContextMenu();
+
+            // Show notification for important status changes
+            ShowStatusChangeNotification(oldStatus, status);
+
+            // Trigger status changed event
+            StatusChanged?.Invoke(this, status);
         }
 
         private void UpdateContextMenu()
@@ -191,37 +327,93 @@ namespace ScottWisper
             if (_notifyIcon?.ContextMenuStrip == null)
                 return;
 
-            // Find and update dictation menu item
+            // Find and update status menu item
             foreach (ToolStripItem item in _notifyIcon.ContextMenuStrip.Items)
             {
-                if (item is ToolStripMenuItem menuItem && 
-                    (menuItem.Text == "Start Dictation" || 
-                     menuItem.Text == "Stop Dictation"))
+                if (item is ToolStripMenuItem menuItem)
                 {
-                    menuItem.Text = _isDictating ? "Stop Dictation" : "Start Dictation";
-                    break;
+                    if (menuItem.Text.StartsWith("Status:"))
+                    {
+                        menuItem.Text = $"Status: {_currentStatus}";
+                    }
+                    else if (menuItem.Text == "Start Dictation" || menuItem.Text == "Stop Dictation")
+                    {
+                        menuItem.Text = _isDictating ? "Stop Dictation" : "Start Dictation";
+                    }
+                    else if (menuItem.Text == "Show Window")
+                    {
+                        // This will be handled by MainWindow state tracking
+                        // Could be enhanced to show current visibility state
+                    }
                 }
             }
         }
 
-        public void ShowBalloonTip(string title, string message)
+        private void ShowStatusChangeNotification(TrayStatus oldStatus, TrayStatus newStatus)
         {
-            if (_notifyIcon != null)
+            // Only show notifications for important status changes
+            switch (oldStatus, newStatus)
             {
-                _notifyIcon.ShowBalloonTip(3000, title, message, ToolTipIcon.Info);
+                case (TrayStatus.Idle, TrayStatus.Ready):
+                    ShowNotification("ScottWisper is ready to use", "Ready");
+                    break;
+                
+                case (TrayStatus.Ready, TrayStatus.Recording):
+                    ShowNotification("Recording started", "Dictation");
+                    break;
+                
+                case (TrayStatus.Recording, TrayStatus.Processing):
+                    ShowNotification("Processing transcription...", "Processing");
+                    break;
+                
+                case (TrayStatus.Processing, TrayStatus.Ready):
+                    ShowNotification("Transcription completed", "Complete");
+                    break;
+                
+                case (_, TrayStatus.Error):
+                    ShowNotification("An error occurred. Check the application.", "Error");
+                    break;
+                
+                case (TrayStatus.Error, TrayStatus.Ready):
+                    ShowNotification("Error resolved. Ready to continue.", "Recovered");
+                    break;
             }
         }
 
-        public void ShowNotification(string message, string title = "ScottWisper")
+        public void ShowBalloonTip(string title, string message, ToolTipIcon icon = ToolTipIcon.Info)
         {
-            if (_notifyIcon != null)
+            if (_notifyIcon != null && !_isDisposed)
             {
-                // Determine icon based on title content
-                var icon = title.Contains("Error") ? ToolTipIcon.Error : 
-                           title.Contains("Warning") ? ToolTipIcon.Warning : 
-                           ToolTipIcon.Info;
-                
-                _notifyIcon.ShowBalloonTip(5000, title, message, icon);
+                try
+                {
+                    _notifyIcon.ShowBalloonTip(3000, title, message, icon);
+                    System.Diagnostics.Debug.WriteLine($"Balloon tip shown: {title} - {message}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to show balloon tip: {ex.Message}");
+                }
+            }
+        }
+
+        public void ShowNotification(string message, string title = "ScottWisper", int durationMs = 5000)
+        {
+            if (_notifyIcon != null && !_isDisposed)
+            {
+                try
+                {
+                    // Determine icon based on title content
+                    var icon = title.Contains("Error") ? ToolTipIcon.Error : 
+                               title.Contains("Warning") ? ToolTipIcon.Warning : 
+                               ToolTipIcon.Info;
+                    
+                    _notifyIcon.ShowBalloonTip(durationMs, title, message, icon);
+                    System.Diagnostics.Debug.WriteLine($"Notification shown: {title} - {message}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to show notification: {ex.Message}");
+                }
             }
         }
 
@@ -232,12 +424,27 @@ namespace ScottWisper
 
             _isDisposed = true;
 
+            // Hide icon before disposal
             if (_notifyIcon != null)
             {
                 _notifyIcon.Visible = false;
+                
+                // Dispose context menu first
+                _notifyIcon.ContextMenuStrip?.Dispose();
+                
+                // Dispose all status icons
+                foreach (var icon in _statusIcons.Values)
+                {
+                    icon?.Dispose();
+                }
+                _statusIcons.Clear();
+
+                // Dispose notify icon
                 _notifyIcon.Dispose();
                 _notifyIcon = null;
             }
+
+            System.Diagnostics.Debug.WriteLine("SystemTrayService disposed successfully");
         }
     }
 }
