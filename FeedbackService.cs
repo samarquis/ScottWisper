@@ -8,9 +8,37 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
+using NAudio.Wave;
+using NAudio.CoreAudioApi;
 
 namespace ScottWisper
 {
+    /// <summary>
+    /// Simple wave provider for raw audio data
+    /// </summary>
+    public class RawWaveProvider : IWaveProvider
+    {
+        private readonly Stream _stream;
+        private WaveFormat _waveFormat;
+
+        public RawWaveProvider(Stream stream)
+        {
+            _stream = stream;
+            _waveFormat = new WaveFormat(44100, 1); // Default to 44.1kHz mono
+        }
+
+        public WaveFormat WaveFormat 
+        { 
+            get => _waveFormat; 
+            set => _waveFormat = value; 
+        }
+
+        public int Read(byte[] buffer, int offset, int count)
+        {
+            return _stream.Read(buffer, offset, count);
+        }
+    }
+
     /// <summary>
     /// Centralized feedback service for managing audio and visual notifications
     /// </summary>
@@ -21,7 +49,13 @@ namespace ScottWisper
         private bool _isDisposed = false;
         private readonly object _lockObject = new object();
 
-        // Cache sound players for performance
+        // Advanced audio feedback
+        private readonly WaveOut? _waveOut;
+        private float _volume = 0.7f;
+        private bool _isMuted = false;
+        private MMDeviceEnumerator? _deviceEnumerator;
+        
+        // Cache simple tone players for fallback
         private readonly SoundPlayer? _readySound;
         private readonly SoundPlayer? _recordingSound;
         private readonly SoundPlayer? _processingSound;
@@ -54,7 +88,17 @@ namespace ScottWisper
 
         public FeedbackService()
         {
-            // Initialize sound players
+            try
+            {
+                _waveOut = new WaveOut();
+                _deviceEnumerator = new MMDeviceEnumerator();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"NAudio initialization failed: {ex.Message}");
+            }
+            
+            // Initialize fallback sound players
             _readySound = CreateToneSound(800, 100);   // High beep
             _recordingSound = CreateToneSound(600, 150);  // Lower beep
             _processingSound = CreateToneSound(400, 200);  // Low beep
@@ -112,21 +156,33 @@ namespace ScottWisper
 
         public async Task PlayAudioFeedbackAsync(IFeedbackService.DictationStatus status)
         {
+            if (_isMuted)
+                return;
+
             await Task.Run(() =>
             {
                 try
                 {
-                    var soundPlayer = status switch
+                    // Try advanced tone generation first
+                    if (_waveOut != null)
                     {
-                        IFeedbackService.DictationStatus.Ready => _readySound,
-                        IFeedbackService.DictationStatus.Recording => _recordingSound,
-                        IFeedbackService.DictationStatus.Processing => _processingSound,
-                        IFeedbackService.DictationStatus.Complete => _successSound,
-                        IFeedbackService.DictationStatus.Error => _errorSound,
-                        _ => null
-                    };
+                        PlayAdvancedToneSequence(status);
+                    }
+                    else
+                    {
+                        // Fallback to simple sound players
+                        var soundPlayer = status switch
+                        {
+                            IFeedbackService.DictationStatus.Ready => _readySound,
+                            IFeedbackService.DictationStatus.Recording => _recordingSound,
+                            IFeedbackService.DictationStatus.Processing => _processingSound,
+                            IFeedbackService.DictationStatus.Complete => _successSound,
+                            IFeedbackService.DictationStatus.Error => _errorSound,
+                            _ => null
+                        };
 
-                    soundPlayer?.Play();
+                        soundPlayer?.Play();
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -135,6 +191,74 @@ namespace ScottWisper
                 }
             });
         }
+
+        private void PlayAdvancedToneSequence(IFeedbackService.DictationStatus status)
+        {
+            var toneSequence = status switch
+            {
+                IFeedbackService.DictationStatus.Ready => new[] { (523.25f, 150), (659.25f, 150), (783.99f, 150) }, // C4→E4→G4
+                IFeedbackService.DictationStatus.Recording => new[] { (261.63f, 200), (329.63f, 200), (392.00f, 200) }, // C4→E4→G4 (lower)
+                IFeedbackService.DictationStatus.Complete => new[] { (523.25f, 150), (659.25f, 150), (783.99f, 150), (1046.50f, 300) }, // C5→E5→G5→C6
+                IFeedbackService.DictationStatus.Error => new[] { (100.0f, 200), (100.0f, 200) }, // Low buzzer × 2
+                IFeedbackService.DictationStatus.Processing => new[] { (440.0f, 100) }, // Attention chime
+                _ => new[] { (440.0f, 100) } // Default tone
+            };
+
+            foreach (var (frequency, duration) in toneSequence)
+            {
+                PlayTone(frequency, duration, _volume);
+                Thread.Sleep(duration + 50); // Small gap between tones
+            }
+        }
+
+        private void PlayTone(float frequency, int durationMs, float volume)
+        {
+            try
+            {
+                var sampleRate = 44100;
+                var samples = durationMs * sampleRate / 1000;
+                var buffer = new byte[samples * 2];
+                
+                for (int i = 0; i < samples; i++)
+                {
+                    var sample = (short)(Math.Sin(2 * Math.PI * frequency * i / sampleRate) * short.MaxValue * volume);
+                    buffer[i * 2] = (byte)(sample & 0xFF);
+                    buffer[i * 2 + 1] = (byte)((sample >> 8) & 0xFF);
+                }
+
+                var waveProvider = new RawWaveProvider(new MemoryStream(buffer))
+                {
+                    WaveFormat = new WaveFormat(sampleRate, 1)
+                };
+
+                using (var player = new WaveOut())
+                {
+                    player.Init(waveProvider);
+                    player.Play();
+                    while (player.PlaybackState == PlaybackState.Playing)
+                    {
+                        Thread.Sleep(10);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Tone playback error: {ex.Message}");
+            }
+        }
+
+        public void SetVolume(float volume)
+        {
+            _volume = Math.Max(0, Math.Min(1, volume));
+        }
+
+        public void SetMuted(bool muted)
+        {
+            _isMuted = muted;
+        }
+
+        public float GetVolume() => _volume;
+        public bool IsMuted() => _isMuted;
 
         public async Task ShowStatusIndicatorAsync(IFeedbackService.DictationStatus status, int duration = 2000)
         {
@@ -345,7 +469,11 @@ namespace ScottWisper
                 _statusIndicatorWindow = null;
             });
 
-            // Dispose sound players
+            // Dispose audio resources
+            _waveOut?.Dispose();
+            _deviceEnumerator?.Dispose();
+
+            // Dispose fallback sound players
             _readySound?.Dispose();
             _recordingSound?.Dispose();
             _processingSound?.Dispose();
