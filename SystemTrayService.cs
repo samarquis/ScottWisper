@@ -45,26 +45,35 @@ namespace ScottWisper
 
         private Icon CreateApplicationIcon()
         {
-            // For now, create a simple icon programmatically
-            // In a future task, we'll create a proper icon file
+            // Create a professional 16x16 microphone icon
             var bitmap = new Bitmap(16, 16);
             using (var graphics = Graphics.FromImage(bitmap))
             {
-                // Draw a simple microphone icon
+                // Set high quality rendering
+                graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 graphics.Clear(Color.Transparent);
                 
-                // Microphone body
+                // Professional microphone design
                 using (var brush = new SolidBrush(Color.FromArgb(51, 51, 51)))
                 using (var pen = new Pen(brush, 1))
                 {
-                    // Main microphone body
-                    graphics.FillRectangle(brush, 6, 2, 4, 8);
-                    // Top rounded part
-                    graphics.FillEllipse(brush, 5, 1, 6, 4);
-                    // Base
-                    graphics.FillRectangle(brush, 7, 10, 2, 2);
-                    // Stand
-                    graphics.FillRectangle(brush, 4, 12, 8, 1);
+                    // Microphone head (rounded top)
+                    graphics.FillEllipse(brush, 6, 3, 4, 3);
+                    
+                    // Microphone body
+                    graphics.FillRectangle(brush, 7, 5, 2, 4);
+                    
+                    // Microphone base
+                    graphics.FillRectangle(brush, 7, 9, 2, 2);
+                    
+                    // Microphone stand
+                    graphics.FillRectangle(brush, 4, 11, 8, 1);
+                }
+
+                // Add subtle highlight for depth
+                using (var highlightBrush = new SolidBrush(Color.FromArgb(100, 100, 100)))
+                {
+                    graphics.FillEllipse(highlightBrush, 7, 4, 2, 1);
                 }
             }
 
