@@ -170,15 +170,5 @@ namespace ScottWisper
         }
     }
     
-    public class UsageStats
-    {
-        public int RequestCount { get; set; }
-        public decimal EstimatedCost { get; set; }
-        public double EstimatedMinutes { get; set; }
-        
-        public override string ToString()
-        {
-            return $"Requests: {RequestCount}, Cost: ${EstimatedCost:F4}, Minutes: {EstimatedMinutes:F2}";
-        }
-    }
+
 }
