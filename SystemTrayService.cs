@@ -26,7 +26,7 @@ namespace ScottWisper
             if (_notifyIcon != null)
                 return;
 
-            // Create the notify icon
+            // Create notify icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon
             {
                 Icon = CreateApplicationIcon(),
@@ -36,7 +36,7 @@ namespace ScottWisper
             // Create context menu
             CreateContextMenu();
 
-            // Show the icon
+            // Show icon
             _notifyIcon.Visible = true;
 
             // Handle mouse events
@@ -175,7 +175,7 @@ namespace ScottWisper
             if (_notifyIcon?.ContextMenuStrip == null)
                 return;
 
-            // Find and update the dictation menu item
+            // Find and update dictation menu item
             foreach (ToolStripItem item in _notifyIcon.ContextMenuStrip.Items)
             {
                 if (item is ToolStripMenuItem menuItem && 
