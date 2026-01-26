@@ -277,6 +277,31 @@ namespace ScottWisper
             UpdateStatus(newStatus);
         }
 
+        public void UpdateFromFeedbackService(IFeedbackService.DictationStatus status)
+        {
+            var newStatus = status switch
+            {
+                IFeedbackService.DictationStatus.Idle => TrayStatus.Idle,
+                IFeedbackService.DictationStatus.Ready => TrayStatus.Ready,
+                IFeedbackService.DictationStatus.Recording => TrayStatus.Recording,
+                IFeedbackService.DictationStatus.Processing => TrayStatus.Processing,
+                IFeedbackService.DictationStatus.Complete => TrayStatus.Ready, // Complete transitions back to Ready
+                IFeedbackService.DictationStatus.Error => TrayStatus.Error,
+                _ => TrayStatus.Idle
+            };
+
+            // Update dictation state for internal tracking
+            _isDictating = (status == IFeedbackService.DictationStatus.Recording);
+            
+            UpdateStatus(newStatus);
+        }
+
+        public void ShowEnhancedNotification(string title, string message, string? iconEmoji = null)
+        {
+            var enhancedMessage = iconEmoji != null ? $"{iconEmoji} {message}" : message;
+            ShowNotification(enhancedMessage, title);
+        }
+
         public void UpdateStatus(TrayStatus status)
         {
             if (_currentStatus == status)

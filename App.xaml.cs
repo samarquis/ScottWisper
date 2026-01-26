@@ -44,14 +44,17 @@ namespace ScottWisper
                 // Initialize hotkey service
                 _hotkeyService = new HotkeyService();
                 _hotkeyService.HotkeyPressed += OnHotkeyPressed;
-                
-                // Initialize system tray service with error handling
+
+                // Initialize system tray service with enhanced feedback integration
                 _systemTrayService = new SystemTrayService();
                 _systemTrayService.StartDictationRequested += OnSystemTrayStartDictation;
                 _systemTrayService.StopDictationRequested += OnSystemTrayStopDictation;
                 _systemTrayService.SettingsRequested += OnSystemTraySettings;
                 _systemTrayService.WindowToggleRequested += OnSystemTrayToggleWindow;
                 _systemTrayService.ExitRequested += OnSystemTrayExit;
+
+                // Store system tray service for global access
+                Current.Properties["SystemTray"] = _systemTrayService;
                 
                 try
                 {
@@ -67,8 +70,19 @@ namespace ScottWisper
                 // Initialize MainWindow (it will handle its own visibility)
                 _mainWindow.Show();
                 
-                // Show startup notification
-                _systemTrayService?.ShowNotification("ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", "Application Started");
+                // Show enhanced startup notification
+                if (Current.Properties["FeedbackService"] is FeedbackService feedbackService)
+                {
+                    await feedbackService.ShowToastNotificationAsync(
+                        "Application Started", 
+                        "ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", 
+                        FeedbackService.NotificationType.Completion
+                    );
+                }
+                else
+                {
+                    _systemTrayService?.ShowNotification("ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", "Application Started");
+                }
             }
             catch (Exception ex)
             {
@@ -88,6 +102,13 @@ namespace ScottWisper
                 _serviceProvider = services.BuildServiceProvider();
                 _settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
 
+                // Initialize enhanced feedback service first
+                var feedbackService = new FeedbackService();
+                await feedbackService.InitializeAsync();
+
+                // Store feedback service in application properties for global access
+                Current.Properties["FeedbackService"] = feedbackService;
+
                 // Initialize core services using settings
                 var settings = _settingsService.Settings;
                 _whisperService = new WhisperService();
@@ -102,13 +123,16 @@ namespace ScottWisper
                 // Initialize text injection service
                 await InitializeTextInjectionService();
 
+                // Connect enhanced feedback to all services
+                await ConnectFeedbackToServices(feedbackService);
+
                 // Wire up service events
                 _whisperService.TranscriptionError += OnTranscriptionError;
                 _whisperService.TranscriptionCompleted += OnTranscriptionCompleted;
                 _costTrackingService.FreeTierWarning += OnFreeTierWarning;
                 _costTrackingService.FreeTierExceeded += OnFreeTierExceeded;
 
-                // Configure audio capture service with settings
+                // Configure audio capture service with settings and enhanced feedback
                 _audioCaptureService.AudioDataCaptured += OnAudioDataAvailable;
             }
             catch (Exception ex)
@@ -169,11 +193,22 @@ namespace ScottWisper
         {
             try
             {
-                // Update system tray to recording state
-                Dispatcher.Invoke(() =>
+                // Get enhanced feedback service
+                var feedbackService = Current.Properties["FeedbackService"] as FeedbackService;
+                
+                // Update enhanced feedback to recording state
+                if (feedbackService != null)
                 {
-                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Recording);
-                });
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Recording, "Recording started - Speak clearly");
+                }
+                else
+                {
+                    // Fallback to direct system tray update
+                    Dispatcher.Invoke(() =>
+                    {
+                        _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Recording);
+                    });
+                }
 
                 // Show transcription window
                 Dispatcher.Invoke(() =>
@@ -181,7 +216,12 @@ namespace ScottWisper
                     _transcriptionWindow?.ShowForDictation();
                 });
 
-                // Start audio capture
+                // Start audio capture with progress feedback
+                if (feedbackService != null)
+                {
+                    await feedbackService.StartProgressAsync("Recording", TimeSpan.FromMinutes(30));
+                }
+
                 await _audioCaptureService?.StartCaptureAsync()!;
                 
                 _isDictating = true;
@@ -191,12 +231,28 @@ namespace ScottWisper
                 {
                     _transcriptionWindow?.SetRecordingStatus();
                     _systemTrayService?.UpdateDictationStatus(true);
-                    _systemTrayService?.ShowNotification("Recording started. Speak now.", "Dictation Started");
+                    
+                    // Show enhanced notification if feedback service available
+                    if (feedbackService != null)
+                    {
+                        _systemTrayService?.ShowEnhancedNotification("Recording", "🎤 Recording started. Speak now.", "🎤");
+                    }
+                    else
+                    {
+                        _systemTrayService?.ShowNotification("Recording started. Speak now.", "Dictation Started");
+                    }
                 });
             }
             catch (Exception ex)
             {
                 _isDictating = false;
+                var feedbackService = Current.Properties["FeedbackService"] as FeedbackService;
+                
+                if (feedbackService != null)
+                {
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Error, $"Failed to start recording: {ex.Message}");
+                }
+                
                 Dispatcher.Invoke(() =>
                 {
                     _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Error);
@@ -212,13 +268,29 @@ namespace ScottWisper
         {
             try
             {
-                // Update system tray to processing state
-                Dispatcher.Invoke(() =>
+                var feedbackService = Current.Properties["FeedbackService"] as FeedbackService;
+                
+                // Update enhanced feedback to processing state
+                if (feedbackService != null)
                 {
-                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Processing);
-                });
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Processing, "Stopping recording and processing speech");
+                    await feedbackService.StartProgressAsync("Stopping", TimeSpan.FromSeconds(5));
+                }
+                else
+                {
+                    // Fallback to direct system tray update
+                    Dispatcher.Invoke(() =>
+                    {
+                        _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Processing);
+                    });
+                }
 
-                // Stop audio capture
+                // Stop audio capture with final progress update
+                if (feedbackService != null)
+                {
+                    await feedbackService.UpdateProgressAsync(80, "Finalizing audio capture...");
+                }
+
                 await _audioCaptureService?.StopCaptureAsync()!;
                 
                 // Update transcription window and system tray status
@@ -229,6 +301,13 @@ namespace ScottWisper
                 });
                 
                 _isDictating = false;
+
+                // Final progress update
+                if (feedbackService != null)
+                {
+                    await feedbackService.UpdateProgressAsync(100, "Recording stopped");
+                    await feedbackService.CompleteProgressAsync("Recording completed successfully");
+                }
                 
                 // Hide transcription window after a delay
                 await Task.Delay(2000);
@@ -240,6 +319,13 @@ namespace ScottWisper
             catch (Exception ex)
             {
                 _isDictating = false;
+                var feedbackService = Current.Properties["FeedbackService"] as FeedbackService;
+                
+                if (feedbackService != null)
+                {
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Error, $"Failed to stop recording: {ex.Message}");
+                }
+                
                 System.Diagnostics.Debug.WriteLine($"Error stopping dictation: {ex.Message}");
                 Dispatcher.Invoke(() =>
                 {
@@ -303,26 +389,38 @@ namespace ScottWisper
 
         private async void OnTranscriptionCompleted(object? sender, string transcription)
         {
-            // Update system tray status to processing complete
-            Dispatcher.Invoke(() =>
+            var feedbackService = Current.Properties["FeedbackService"] as FeedbackService;
+            
+            // Update enhanced feedback to completion state
+            if (feedbackService != null)
             {
-                _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
-                if (!string.IsNullOrWhiteSpace(transcription))
+                await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Complete, 
+                    !string.IsNullOrWhiteSpace(transcription) ? "Transcription completed successfully" : "No speech detected");
+            }
+            else
+            {
+                // Fallback to direct system tray update
+                Dispatcher.Invoke(() =>
                 {
-                    _systemTrayService?.ShowNotification("Transcription completed successfully", "Dictation Complete");
-                }
-            });
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+                    if (!string.IsNullOrWhiteSpace(transcription))
+                    {
+                        _systemTrayService?.ShowNotification("Transcription completed successfully", "Dictation Complete");
+                    }
+                });
+            }
 
             // Handle text injection if enabled and we have valid transcription text
             if (_textInjectionEnabled && !string.IsNullOrWhiteSpace(transcription) && _textInjectionService != null)
             {
                 try
                 {
-                    // Update system tray to processing state
-                    Dispatcher.Invoke(() =>
+                    // Show injection progress
+                    if (feedbackService != null)
                     {
-                        _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Processing);
-                    });
+                        await feedbackService.StartProgressAsync("Injecting Text", TimeSpan.FromSeconds(10));
+                        await feedbackService.UpdateProgressAsync(20, "Preparing text for injection");
+                    }
 
                     // Inject transcribed text at cursor position
                     var injectionOptions = new InjectionOptions
@@ -333,19 +431,46 @@ namespace ScottWisper
                         DelayBetweenCharsMs = 5
                     };
 
+                    if (feedbackService != null)
+                    {
+                        await feedbackService.UpdateProgressAsync(60, "Injecting text at cursor position");
+                    }
+
                     var success = await _textInjectionService.InjectTextAsync(transcription, injectionOptions);
                     
                     if (success)
                     {
                         System.Diagnostics.Debug.WriteLine($"Text injected successfully: {transcription}");
+                        
+                        if (feedbackService != null)
+                        {
+                            await feedbackService.UpdateProgressAsync(100, "Text injection completed");
+                            await feedbackService.CompleteProgressAsync("Text successfully inserted");
+                            await feedbackService.ShowToastNotificationAsync(
+                                "Injection Success", 
+                                "Text inserted at cursor position", 
+                                FeedbackService.NotificationType.Completion
+                            );
+                        }
+                        
                         Dispatcher.Invoke(() =>
                         {
-                            _systemTrayService?.ShowNotification("Text inserted at cursor position", "Injection Success");
+                            _systemTrayService?.ShowEnhancedNotification("Injection Success", "Text inserted at cursor position", "✅");
                         });
                     }
                     else
                     {
                         System.Diagnostics.Debug.WriteLine($"Text injection failed: {transcription}");
+                        
+                        if (feedbackService != null)
+                        {
+                            await feedbackService.ShowToastNotificationAsync(
+                                "Injection Issue", 
+                                "Text injection failed. Text was only shown in preview window.", 
+                                FeedbackService.NotificationType.Warning
+                            );
+                        }
+                        
                         // Show fallback notification to user
                         Dispatcher.Invoke(() =>
                         {
@@ -356,6 +481,16 @@ namespace ScottWisper
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error during text injection: {ex.Message}");
+                    
+                    if (feedbackService != null)
+                    {
+                        await feedbackService.ShowToastNotificationAsync(
+                            "Injection Error", 
+                            $"Text injection error: {ex.Message}", 
+                            FeedbackService.NotificationType.Error
+                        );
+                    }
+                    
                     Dispatcher.Invoke(() =>
                     {
                         _systemTrayService?.ShowNotification($"Text injection error: {ex.Message}", "Injection Error");
@@ -364,10 +499,18 @@ namespace ScottWisper
             }
 
             // Reset to ready state
-            Dispatcher.Invoke(() =>
+            if (feedbackService != null)
             {
-                _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
-            });
+                await Task.Delay(2000); // Brief delay to show completion state
+                await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Ready, "Ready for next dictation");
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+                });
+            }
         }
 
         private void OnTranscriptionError(object? sender, Exception error)
@@ -440,6 +583,77 @@ namespace ScottWisper
                     _mainWindow.Focus();
                 }
             }
+        }
+
+        private async Task ConnectFeedbackToServices(FeedbackService feedbackService)
+        {
+            // Connect system tray service for status synchronization
+            if (_systemTrayService != null)
+            {
+                feedbackService.StatusChanged += async (sender, status) =>
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        var trayStatus = ConvertToTrayStatus(status);
+                        _systemTrayService.UpdateStatus(trayStatus);
+                    });
+                };
+            }
+
+            // Connect audio capture service for real-time visualization
+            if (_audioCaptureService != null)
+            {
+                _audioCaptureService.AudioLevelChanged += async (sender, level) =>
+                {
+                    await feedbackService.UpdateProgressAsync(level, $"Audio level: {level:P1}");
+                };
+
+                _audioCaptureService.DeviceConnected += async (sender, deviceInfo) =>
+                {
+                    await feedbackService.ShowToastNotificationAsync("Audio Device", $"Connected: {deviceInfo}", FeedbackService.NotificationType.Info);
+                };
+
+                _audioCaptureService.DeviceDisconnected += async (sender, deviceInfo) =>
+                {
+                    await feedbackService.ShowToastNotificationAsync("Audio Device", $"Disconnected: {deviceInfo}", FeedbackService.NotificationType.Warning);
+                };
+            }
+
+            // Connect transcription service for detailed feedback
+            if (_whisperService != null)
+            {
+                _whisperService.TranscriptionStarted += async (sender, args) =>
+                {
+                    await feedbackService.StartProgressAsync("Transcribing", TimeSpan.FromSeconds(10));
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Processing, "Processing speech with AI");
+                };
+
+                _whisperService.TranscriptionProgress += async (sender, progress) =>
+                {
+                    await feedbackService.UpdateProgressAsync(progress * 100, $"AI processing: {progress:P1}");
+                };
+            }
+
+            // Connect text injection service for operation feedback
+            if (_textInjectionService != null)
+            {
+                // Text injection feedback would be handled in the injection events
+                System.Diagnostics.Debug.WriteLine("Enhanced feedback connected to text injection service");
+            }
+        }
+
+        private SystemTrayService.TrayStatus ConvertToTrayStatus(IFeedbackService.DictationStatus status)
+        {
+            return status switch
+            {
+                IFeedbackService.DictationStatus.Idle => SystemTrayService.TrayStatus.Idle,
+                IFeedbackService.DictationStatus.Ready => SystemTrayService.TrayStatus.Ready,
+                IFeedbackService.DictationStatus.Recording => SystemTrayService.TrayStatus.Recording,
+                IFeedbackService.DictationStatus.Processing => SystemTrayService.TrayStatus.Processing,
+                IFeedbackService.DictationStatus.Complete => SystemTrayService.TrayStatus.Ready,
+                IFeedbackService.DictationStatus.Error => SystemTrayService.TrayStatus.Error,
+                _ => SystemTrayService.TrayStatus.Idle
+            };
         }
 
         private void OnSystemTrayExit(object? sender, EventArgs e)
