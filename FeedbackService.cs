@@ -45,7 +45,7 @@ namespace ScottWisper
     public class FeedbackService : IFeedbackService, IDisposable
     {
         private IFeedbackService.DictationStatus _currentStatus = IFeedbackService.DictationStatus.Idle;
-        private Window? _statusIndicatorWindow;
+        private StatusIndicatorWindow? _statusIndicatorWindow;
         private bool _isDisposed = false;
         private readonly object _lockObject = new object();
 
@@ -305,66 +305,15 @@ namespace ScottWisper
             });
         }
 
-        private Window CreateStatusIndicatorWindow()
+        private StatusIndicatorWindow CreateStatusIndicatorWindow()
         {
-            var window = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                ResizeMode = ResizeMode.NoResize,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                ShowInTaskbar = false,
-                Topmost = true,
-                Width = 120,
-                Height = 40,
-                Left = SystemParameters.WorkArea.Width - 140,
-                Top = SystemParameters.WorkArea.Height - 60
-            };
-
-            var border = new Border
-            {
-                CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(10),
-                Background = Brushes.Black,
-                Opacity = 0.8
-            };
-
-            var textBlock = new TextBlock
-            {
-                Name = "StatusText",
-                Text = "Ready",
-                Foreground = Brushes.White,
-                FontSize = 12,
-                FontWeight = FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            border.Child = textBlock;
-            window.Content = border;
-
+            var window = new StatusIndicatorWindow();
             return window;
         }
 
         private void UpdateStatusIndicatorAppearance(IFeedbackService.DictationStatus status)
         {
-            if (_statusIndicatorWindow?.Content is Border border && border.Child is TextBlock textBlock)
-            {
-                var (color, text) = status switch
-                {
-                    IFeedbackService.DictationStatus.Idle => (Brushes.Gray, "Idle"),
-                    IFeedbackService.DictationStatus.Ready => (Brushes.Green, "Ready"),
-                    IFeedbackService.DictationStatus.Recording => (Brushes.Red, "Recording"),
-                    IFeedbackService.DictationStatus.Processing => (Brushes.Yellow, "Processing"),
-                    IFeedbackService.DictationStatus.Complete => (Brushes.Green, "Complete"),
-                    IFeedbackService.DictationStatus.Error => (Brushes.Red, "Error"),
-                    _ => (Brushes.Gray, "Unknown")
-                };
-
-                textBlock.Text = text;
-                var baseColor = ((SolidColorBrush)color).Color;
-                border.Background = new SolidColorBrush(Color.FromArgb(200, baseColor.R, baseColor.G, baseColor.B));
-            }
+            _statusIndicatorWindow?.UpdateStatus(status);
         }
 
         private void HideStatusIndicator()
