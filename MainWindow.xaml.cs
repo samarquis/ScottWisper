@@ -78,6 +78,7 @@ namespace ScottWisper
     {
         private IFeedbackService? _feedbackService;
         private ScottWisper.Services.ISettingsService? _settingsService;
+        private ITextInjection? _textInjectionService;
         private bool _isHidden = false;
         private readonly List<StatusHistoryItem> _displayHistory = new();
         private DateTime _sessionStartTime = DateTime.Now;
@@ -409,8 +410,52 @@ namespace ScottWisper
         // Button event handlers
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
-            // Settings functionality would be implemented here
-            ShowNotification("Settings panel coming soon!", "Settings");
+            ShowTextInjectionSettings();
+        }
+
+        private void ShowTextInjectionSettings()
+        {
+            if (_textInjectionService == null || _settingsService == null)
+            {
+                ShowNotification("Text injection service not available", "Settings Error");
+                return;
+            }
+
+            try
+            {
+                var settings = _settingsService.Settings;
+                var textSettings = settings.TextInjection;
+                
+                // Create simple settings dialog
+                var message = $"Text Injection Settings:\n\n" +
+                              $"Enabled: {textSettings.Enabled}\n" +
+                              $"Method: {textSettings.PreferredMethod}\n" +
+                              $"Clipboard Fallback: {textSettings.UseClipboardFallback}\n" +
+                              $"Retry Count: {textSettings.RetryCount}\n" +
+                              $"Char Delay: {textSettings.DelayBetweenCharsMs}ms\n" +
+                              $"Debug Mode: {textSettings.EnableDebugMode}\n" +
+                              $"Performance Monitoring: {textSettings.EnablePerformanceMonitoring}\n" +
+                              $"Latency Threshold: {textSettings.InjectionLatencyThresholdMs}ms\n\n" +
+                              $"Compatibility Mapping: {textSettings.EnableCompatibilityMapping}\n\n" +
+                              $"Application Settings: {string.Join(", ", textSettings.ApplicationSpecificSettings.Where(kv => kv.Value).Select(kv => $"{kv.Key}={kv.Value}"))}\n\n" +
+                              "Click OK to toggle debug mode, Cancel to close";
+                
+                var result = MessageBox.Show(message + "\n\nClick OK to toggle debug mode, Cancel to close", "Text Injection Settings", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+                
+                if (result == MessageBoxResult.OK)
+                {
+                    // Toggle debug mode
+                    var newDebugMode = !textSettings.EnableDebugMode;
+                    _settingsService.Settings.TextInjection.EnableDebugMode = newDebugMode;
+                    _settingsService.SaveAsync();
+                    
+                    ShowNotification($"Debug mode {(newDebugMode ? "enabled" : "disabled")}", "Settings Updated");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Error showing settings: {ex.Message}", "Settings Error");
+            }
         }
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
@@ -423,6 +468,297 @@ namespace ScottWisper
             _displayHistory.Clear();
             UpdateHistoryDisplay();
             ShowNotification("Status history cleared", "History");
+        }
+
+        private void TestInjectionButton_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () => await TestTextInjectionAsync());
+        }
+
+        private void InjectionIssuesButton_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () => await ShowInjectionIssuesReportAsync());
+        }
+
+        private async Task ShowInjectionIssuesReportAsync()
+        {
+            try
+            {
+                if (_textInjectionService == null || _settingsService == null)
+                {
+                    ShowNotification("Services not available", "Error");
+                    return;
+                }
+
+                // Get comprehensive injection issues report
+                var issuesReport = _textInjectionService.GetInjectionIssuesReport();
+                
+                // Build detailed message
+                var message = $"=== Text Injection Issues Report ===\n\n" +
+                              $"Overall Health: {issuesReport.OverallHealth}\n" +
+                              $"Issues Found: {issuesReport.IssueCount}\n\n" +
+                              $"Success Rate: {((1 - issuesReport.IssueCount) * 100):F1}%\n\n" +
+                              "Recommendations:\n";
+                
+                foreach (var recommendation in issuesReport.Recommendations.Take(5))
+                {
+                    message += $"• {recommendation}\n";
+                }
+                
+                if (issuesReport.Recommendations.Count > 5)
+                {
+                    message += $"... and {issuesReport.Recommendations.Count - 5} more recommendations";
+                }
+                
+                message += $"\n\nRecent Issues ({issuesReport.Issues.Count}):\n";
+                foreach (var issue in issuesReport.Issues.Take(3))
+                {
+                    message += $"• {issue}\n";
+                }
+                
+                if (issuesReport.Issues.Count > 3)
+                {
+                    message += $"... and {issuesReport.Issues.Count - 3} more issues";
+                }
+
+                // Show notification with full report
+                if (_feedbackService != null)
+                {
+                    await _feedbackService.ShowToastNotificationAsync(
+                        "Injection Issues Report", 
+                        message, 
+                        FeedbackService.NotificationType.Warning
+                    );
+                }
+                
+                ShowNotification(message, "Injection Issues Report", true); // true = show detailed dialog
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Error generating issues report: {ex.Message}", "Error");
+            }
+        }
+
+        private void CompatibilityCheckButton_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () => await CheckApplicationCompatibilityAsync());
+        }
+
+        private void DebugModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () => await ToggleDebugModeAsync());
+        }
+
+        private async Task ToggleDebugModeAsync()
+        {
+            try
+            {
+                if (_textInjectionService == null)
+                {
+                    ShowNotification("Text injection service not available", "Error");
+                    return;
+                }
+
+                // Toggle debug mode using settings
+                var settings = _settingsService?.Settings?.TextInjection ?? new TextInjectionSettings();
+                var newDebugMode = !settings.EnableDebugMode;
+                
+                // Update settings
+                _settingsService.Settings.TextInjection.EnableDebugMode = newDebugMode;
+                await _settingsService.SaveAsync();
+                
+                // Apply to service
+                _textInjectionService.SetDebugMode(newDebugMode);
+                
+                ShowNotification($"Debug mode {(newDebugMode ? "enabled" : "disabled")}", "Debug Mode");
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Debug mode toggle failed: {ex.Message}", "Error");
+            }
+        }
+
+        private async Task CheckApplicationCompatibilityAsync()
+        {
+            try
+            {
+                if (_textInjectionService == null)
+                {
+                    ShowNotification("Text injection service not available", "Error");
+                    return;
+                }
+
+                // Get current application compatibility
+                var windowInfo = _textInjectionService.GetCurrentWindowInfo();
+                var compatibility = _textInjectionService.GetApplicationCompatibility();
+                
+                // Build comprehensive compatibility report
+                var report = $"=== Application Compatibility Report ===\n\n" +
+                              $"Active Window: {windowInfo.ProcessName ?? "Unknown"} (PID: {windowInfo.ProcessId})\n" +
+                              $"Window Handle: 0x{windowInfo.Handle.ToInt64():X8}\n" +
+                              $"Category: {compatibility.Category}\n" +
+                              $"Compatible: {(compatibility.IsCompatible ? "✅ Yes" : "❌ No")}\n" +
+                              $"Preferred Method: {compatibility.PreferredMethod}\n" +
+                              $"Special Handling: {(compatibility.RequiresSpecialHandling.Length > 0 ? string.Join(", ", compatibility.RequiresSpecialHandling) : "None")}\n" +
+                              $"Application Settings: {(compatibility.ApplicationSettings?.Count > 0 ? string.Join(", ", compatibility.ApplicationSettings.Select(kv => $"{kv.Key}={kv.Value}")) : "None")}\n\n" +
+                              $"Performance Metrics:\n";
+                
+                // Get performance metrics
+                var metrics = _textInjectionService.GetPerformanceMetrics();
+                report += $"Recent Success Rate: {metrics.SuccessRate:P1} ({metrics.SuccessRate * 100:F1}%)\n" +
+                          $"Average Latency: {metrics.AverageLatency.TotalMilliseconds}ms\n" +
+                          $"Total Attempts (5min): {metrics.TotalAttempts}\n" +
+                          $"Recent Failures: {metrics.RecentFailures.Count}\n";
+                
+                if (metrics.RecentFailures.Count > 0)
+                {
+                    report += "\nRecent Failure Details:\n";
+                    foreach (var failure in metrics.RecentFailures.Take(3))
+                    {
+                        report += $"  - {failure.ApplicationInfo.ProcessName}: {failure.Method.Method} ({failure.Duration.TotalMilliseconds}ms)\n";
+                    }
+                }
+                
+                // Show in a scrollable text box for better readability
+                ShowNotification(report, "Compatibility Report", true);
+                
+                // Add to history
+                var historyItem = new StatusHistoryItem
+                {
+                    Status = IFeedbackService.DictationStatus.Ready,
+                    Timestamp = DateTime.Now,
+                    Message = $"Compatibility: {compatibility.Category} - {(compatibility.IsCompatible ? "Compatible" : "Incompatible")}",
+                    Duration = TimeSpan.Zero
+                };
+                
+                _displayHistory.Insert(0, historyItem);
+                UpdateHistoryDisplay();
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Compatibility check error: {ex.Message}", "Error");
+            }
+        }
+
+        private async Task TestTextInjectionAsync()
+        {
+            try
+            {
+                if (_textInjectionService == null)
+                {
+                    ShowNotification("Text injection service not available", "Error");
+                    return;
+                }
+
+                // Show test starting notification
+                if (_feedbackService != null)
+                {
+                    await _feedbackService.StartProgressAsync("Testing Injection", TimeSpan.FromSeconds(10));
+                    await _feedbackService.UpdateProgressAsync(20, "Preparing test injection...");
+                }
+
+                // Perform injection test
+                var testResult = await _textInjectionService.TestInjectionAsync();
+
+                // Update progress
+                if (_feedbackService != null)
+                {
+                    await _feedbackService.UpdateProgressAsync(80, "Analyzing test result...");
+                }
+
+                // Display result
+                var resultMessage = testResult.Success 
+                    ? $"✅ Injection test successful in {testResult.Duration.TotalMilliseconds}ms using {testResult.MethodUsed}"
+                    : $"❌ Injection test failed: {string.Join(", ", testResult.Issues)}";
+
+                ShowNotification(resultMessage, testResult.Success ? "Test Success" : "Test Failed");
+
+                if (_feedbackService != null)
+                {
+                    await _feedbackService.CompleteProgressAsync(testResult.Success ? "Injection test completed" : "Injection test failed");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Injection test error: {ex.Message}", "Test Error");
+                if (_feedbackService != null)
+                {
+                    await _feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Error, $"Test failed: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task CheckApplicationCompatibilityAsync()
+        {
+            try
+            {
+                if (_textInjectionService == null)
+                {
+                    ShowNotification("Text injection service not available", "Error");
+                    return;
+                }
+
+                // Get current application compatibility
+                var windowInfo = _textInjectionService.GetCurrentWindowInfo();
+                var compatibility = _textInjectionService.GetApplicationCompatibility();
+
+                // Build compatibility report
+                var report = $"Application: {windowInfo.ProcessName ?? "Unknown"}\n" +
+                              $"Category: {compatibility.Category}\n" +
+                              $"Compatible: {(compatibility.IsCompatible ? "✅ Yes" : "❌ No")}\n" +
+                              $"Preferred Method: {compatibility.PreferredMethod}\n" +
+                              $"Special Handling: {(compatibility.RequiresSpecialHandling.Length > 0 ? string.Join(", ", compatibility.RequiresSpecialHandling) : "None")}";
+
+                ShowNotification(report, "Compatibility Check");
+
+                // Add to history
+                var historyItem = new StatusHistoryItem
+                {
+                    Status = IFeedbackService.DictationStatus.Ready,
+                    Timestamp = DateTime.Now,
+                    Message = $"Compatibility: {compatibility.Category} - {(compatibility.IsCompatible ? "Compatible" : "Incompatible")}",
+                    Duration = TimeSpan.Zero
+                };
+
+                _displayHistory.Insert(0, historyItem);
+                UpdateHistoryDisplay();
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Compatibility check error: {ex.Message}", "Error");
+            }
+        }
+
+        private void ToggleDebugMode()
+        {
+            try
+            {
+                if (_textInjectionService != null)
+                {
+                    // Toggle debug mode (would need to track current state)
+                    var isCurrentlyDebug = false; // Would track this in a field
+                    _textInjectionService.SetDebugMode(!isCurrentlyDebug);
+                    
+                    ShowNotification($"Debug mode {(isCurrentlyDebug ? "disabled" : "enabled")}", "Debug Mode");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Debug mode toggle failed: {ex.Message}", "Error");
+            }
+        }
+
+        public ITextInjection? TextInjectionService => _textInjectionService;
+
+        public async Task SetTextInjectionServiceAsync(ITextInjection textInjectionService)
+        {
+            _textInjectionService = textInjectionService;
+            
+            if (_textInjectionService != null)
+            {
+                await _textInjectionService.InitializeAsync();
+                ShowNotification("Text injection service connected", "Service Ready");
+            }
         }
 
         private void ShowNotification(string message, string title = "ScottWisper")

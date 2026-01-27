@@ -155,10 +155,22 @@ namespace ScottWisper.Testing
                 }
 
                 // Generate performance insights
-                summary.PerformanceMetrics.Add($"Average test execution time: {passedResults.Average(r => r.ExecutionTime.TotalMilliseconds):F2}ms");
-                summary.PerformanceMetrics.Add($"Slowest test: {passedResults.OrderByDescending(r => r.ExecutionTime).FirstOrDefault()?.TestName} ({passedResults.Max(r => r.ExecutionTime.TotalMilliseconds:F2}ms)");
-                summary.PerformanceMetrics.Add($"Fastest test: {passedResults.OrderBy(r => r.ExecutionTime).FirstOrDefault()?.TestName} ({passedResults.Min(r => r.ExecutionTime.TotalMilliseconds:F2}ms)");
-                summary.PerformanceMetrics.Add($"Memory efficiency: Average {(finalMemory - initialMemory) / passedResults.Count:F2}MB per test");
+                var avgExecTime = passedResults.Average(r => r.ExecutionTime.TotalMilliseconds);
+                summary.PerformanceMetrics.Add($"Average test execution time: {avgExecTime:F2}ms");
+                
+                var slowestTest = passedResults.OrderByDescending(r => r.ExecutionTime).FirstOrDefault();
+                var slowestName = slowestTest?.TestName ?? "Unknown";
+                var slowestTime = passedResults.Max(r => r.ExecutionTime.TotalMilliseconds);
+                summary.PerformanceMetrics.Add($"Slowest test: {slowestName} ({slowestTime:F2}ms)");
+                
+                var fastestTest = passedResults.OrderBy(r => r.ExecutionTime).FirstOrDefault();
+                var fastestName = fastestTest?.TestName ?? "Unknown";
+                var fastestTime = passedResults.Min(r => r.ExecutionTime.TotalMilliseconds);
+                summary.PerformanceMetrics.Add($"Fastest test: {fastestName} ({fastestTime:F2}ms)");
+                
+                var memoryEfficiency = (finalMemory - initialMemory) / passedResults.Count;
+                summary.PerformanceMetrics.Add($"Memory efficiency: Average {memoryEfficiency:F2}MB per test");
+                
                 summary.PerformanceMetrics.Add($"Total CPU usage: {cpuUsageMs:F2}ms ({summary.PerformanceMetrics.AverageCpuUsage:F1}%)");
             }
             catch (Exception ex)
@@ -585,22 +597,6 @@ namespace ScottWisper.Testing
             {
                 Directory.CreateDirectory(reportsDir);
             }
-
-            // Save HTML report
-            var htmlReport = Path.Combine(reportsDir, $"TestReport_{timestamp}.html");
-            await File.WriteAllTextAsync(htmlReport, GenerateHtmlReport(summary));
-
-            // Save console report
-            var consoleReport = Path.Combine(reportsDir, $"TestReport_{timestamp}.txt");
-            await File.WriteAllTextAsync(consoleReport, GenerateConsoleReport(summary));
-
-            // Save JSON summary for programmatic access
-            var jsonReport = Path.Combine(reportsDir, $"TestSummary_{timestamp}.json");
-            var jsonSummary = System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(jsonReport, jsonSummary);
-
-            return new string[] { htmlReport, consoleReport, jsonReport };
-        }
 
             // Save HTML report
             var htmlReport = Path.Combine(reportsDir, $"TestReport_{timestamp}.html");

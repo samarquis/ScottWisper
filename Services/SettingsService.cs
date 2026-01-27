@@ -13,6 +13,33 @@ using ScottWisper.Configuration;
 
 namespace ScottWisper.Services
 {
+    public class SettingsChangedEventArgs : EventArgs
+    {
+        public string Key { get; set; } = string.Empty;
+        public object? OldValue { get; set; }
+        public object? NewValue { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public bool RequiresRestart { get; set; }
+    }
+
+    public class SettingsBackup
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string Description { get; set; } = string.Empty;
+        public AppSettings Settings { get; set; } = new AppSettings();
+        public string Version { get; set; } = "1.0";
+        public string Application { get; set; } = "ScottWisper";
+    }
+
+    public class SettingsValidationResult
+    {
+        public bool IsValid { get; set; } = true;
+        public List<string> Errors { get; set; } = new List<string>();
+        public List<string> Warnings { get; set; } = new List<string>();
+        public List<string> Info { get; set; } = new List<string>();
+    }
+
     public interface ISettingsService
     {
         AppSettings Settings { get; }

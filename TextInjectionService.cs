@@ -221,6 +221,109 @@ namespace ScottWisper
         }
 
         /// <summary>
+        /// Get user-friendly injection issues report with recommendations
+        /// </summary>
+        public InjectionIssuesReport GetInjectionIssuesReport()
+        {
+            var recentAttempts = _injectionHistory
+                .Where(a => a.Timestamp > DateTime.Now.AddMinutes(-10))
+                .ToList();
+
+            if (recentAttempts.Count == 0)
+                return new InjectionIssuesReport 
+                { 
+                    IssueCount = 0,
+                    OverallHealth = "Excellent",
+                    Recommendations = new List<string> { "No recent injection issues detected" }
+                };
+
+            var failedAttempts = recentAttempts.Where(a => !a.Success).ToList();
+            var successRate = (double)(recentAttempts.Count - failedAttempts.Count) / recentAttempts.Count;
+
+            var recommendations = new List<string>();
+            var issues = new List<string>();
+
+            if (successRate < 0.5)
+            {
+                recommendations.Add("Consider switching to clipboard fallback mode for better compatibility");
+                issues.Add("Low success rate detected");
+            }
+
+            var recentLatency = recentAttempts.Where(a => a.Success)
+                .Select(a => a.Duration.TotalMilliseconds)
+                .DefaultIfEmpty(new double[] { 0 })
+                .Average();
+
+            if (recentLatency > 50)
+            {
+                recommendations.Add("High injection latency detected - check system performance or reduce character delay");
+                issues.Add("Performance below acceptable threshold");
+            }
+
+            // Application-specific issues
+            var applicationIssues = failedAttempts
+                .GroupBy(a => a.ApplicationInfo.ProcessName)
+                .Where(g => g.Count() >= 2)
+                .Select(g => new { Application = g.Key, FailureCount = g.Count() });
+
+            foreach (var appIssue in applicationIssues)
+            {
+                recommendations.Add($"Frequent issues with {appIssue.Application} - try different injection method or settings");
+                issues.Add($"{appIssue.FailureCount} failures in {appIssue.Application}");
+            }
+
+            // Determine overall health
+            var overallHealth = successRate switch
+            {
+                >= 0.9 => "Excellent",
+                >= 0.8 => "Good",
+                >= 0.6 => "Fair",
+                >= 0.4 => "Poor",
+                _ => "Critical"
+            };
+
+            return new InjectionIssuesReport
+            {
+                IssueCount = failedAttempts.Count,
+                OverallHealth = overallHealth,
+                Recommendations = recommendations,
+                Issues = issues
+            };
+        }
+
+        /// <summary>
+        /// User feedback report for injection issues
+        /// </summary>
+        public class InjectionIssuesReport
+        {
+            public int IssueCount { get; set; }
+            public string OverallHealth { get; set; }
+            public List<string> Recommendations { get; set; } = new List<string>();
+            public List<string> Issues { get; set; } = new List<string>();
+        }
+        {
+            var recentAttempts = _injectionHistory
+                .Where(a => a.Timestamp > DateTime.Now.AddMinutes(-5))
+                .ToList();
+
+            if (recentAttempts.Count == 0)
+                return new InjectionMetrics { AverageLatency = TimeSpan.Zero, SuccessRate = 0, TotalAttempts = 0 };
+
+            var successfulAttempts = recentAttempts.Where(a => a.Success).ToList();
+            var averageLatency = successfulAttempts.Any() 
+                ? TimeSpan.FromTicks((long)successfulAttempts.Average(a => a.Duration.Ticks))
+                : TimeSpan.Zero;
+
+            return new InjectionMetrics
+            {
+                AverageLatency = averageLatency,
+                SuccessRate = (double)successfulAttempts.Count / recentAttempts.Count,
+                TotalAttempts = recentAttempts.Count,
+                RecentFailures = recentAttempts.Where(a => !a.Success).Take(5).ToList()
+            };
+        }
+
+        /// <summary>
         /// Enable or disable debug mode for troubleshooting
         /// </summary>
         public void SetDebugMode(bool enabled)

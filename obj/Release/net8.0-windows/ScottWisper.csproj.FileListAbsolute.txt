@@ -45,3 +45,5 @@ C:\Programming\ScottWisper\obj\Release\net8.0-windows\AudioVisualizer.baml
 C:\Programming\ScottWisper\obj\Release\net8.0-windows\SettingsWindow.baml
 C:\Programming\ScottWisper\obj\Release\net8.0-windows\AudioVisualizer.g.cs
 C:\Programming\ScottWisper\obj\Release\net8.0-windows\SettingsWindow.g.cs
+C:\Programming\ScottWisper\obj\Release\net8.0-windows\ProfileDialog.baml
+C:\Programming\ScottWisper\obj\Release\net8.0-windows\ProfileDialog.g.cs
