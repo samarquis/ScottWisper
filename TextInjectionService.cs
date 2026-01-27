@@ -93,6 +93,16 @@ namespace ScottWisper
         /// Check if current environment is compatible
         /// </summary>
         bool IsInjectionCompatible();
+        
+        /// <summary>
+        /// Get current window information for injection targeting
+        /// </summary>
+        WindowInfo GetCurrentWindowInfo();
+        
+        /// <summary>
+        /// Get application compatibility information
+        /// </summary>
+        ApplicationCompatibility GetApplicationCompatibility();
     }
 
     /// <summary>
