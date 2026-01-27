@@ -688,46 +688,7 @@ namespace ScottWisper
             }
         }
 
-        private async Task CheckApplicationCompatibilityAsync()
-        {
-            try
-            {
-                if (_textInjectionService == null)
-                {
-                    ShowNotification("Text injection service not available", "Error");
-                    return;
-                }
 
-                // Get current application compatibility
-                var windowInfo = _textInjectionService.GetCurrentWindowInfo();
-                var compatibility = _textInjectionService.GetApplicationCompatibility();
-
-                // Build compatibility report
-                var report = $"Application: {windowInfo.ProcessName ?? "Unknown"}\n" +
-                              $"Category: {compatibility.Category}\n" +
-                              $"Compatible: {(compatibility.IsCompatible ? "✅ Yes" : "❌ No")}\n" +
-                              $"Preferred Method: {compatibility.PreferredMethod}\n" +
-                              $"Special Handling: {(compatibility.RequiresSpecialHandling.Length > 0 ? string.Join(", ", compatibility.RequiresSpecialHandling) : "None")}";
-
-                ShowNotification(report, "Compatibility Check");
-
-                // Add to history
-                var historyItem = new StatusHistoryItem
-                {
-                    Status = IFeedbackService.DictationStatus.Ready,
-                    Timestamp = DateTime.Now,
-                    Message = $"Compatibility: {compatibility.Category} - {(compatibility.IsCompatible ? "Compatible" : "Incompatible")}",
-                    Duration = TimeSpan.Zero
-                };
-
-                _displayHistory.Insert(0, historyItem);
-                UpdateHistoryDisplay();
-            }
-            catch (Exception ex)
-            {
-                ShowNotification($"Compatibility check error: {ex.Message}", "Error");
-            }
-        }
 
         private void ToggleDebugMode()
         {
