@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using NAudio.Wave;
@@ -15,6 +17,7 @@ namespace ScottWisper
         private bool _isCapturing;
         private readonly object _lockObject = new object();
         private readonly ISettingsService? _settingsService;
+        private readonly IAudioDeviceService? _audioDeviceService;
         
         // Audio format specifications (will be loaded from settings)
         private int _sampleRate = 16000; // 16kHz default
@@ -25,8 +28,22 @@ namespace ScottWisper
         public event EventHandler<byte[]>? AudioDataCaptured;
         public event EventHandler<Exception>? CaptureError;
         
-        public bool IsCapturing => _isCapturing;
+        // Permission events
+        public event EventHandler? PermissionRequired;
+        public event EventHandler? PermissionRetry;
         
+        public bool IsCapturing => _isCapturing;
+
+        // Windows API for opening settings
+        [DllImport("shell32.dll", SetLastError = true)]
+        private static extern IntPtr ShellExecute(
+            IntPtr hwnd,
+            string? lpOperation,
+            string? lpFile,
+            string? lpParameters,
+            string? lpDirectory,
+            int nShowCmd);
+
         public AudioCaptureService()
         {
             // Use default values
@@ -36,11 +53,20 @@ namespace ScottWisper
         {
             _settingsService = settingsService;
             LoadAudioSettingsFromSettings();
+        }
+        
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService)
+        {
+            _settingsService = settingsService;
+            _audioDeviceService = audioDeviceService;
+            LoadAudioSettingsFromSettings();
             
-            // Subscribe to settings changes
-            if (_settingsService != null)
+            // Subscribe to permission events from AudioDeviceService
+            if (_audioDeviceService != null)
             {
-                _settingsService.SettingsChanged += OnSettingsChanged;
+                _audioDeviceService.PermissionDenied += OnPermissionDenied;
+                _audioDeviceService.PermissionGranted += OnPermissionGranted;
+                _audioDeviceService.PermissionRequestFailed += OnPermissionRequestFailed;
             }
         }
 
@@ -51,34 +77,63 @@ namespace ScottWisper
                 var audioSettings = _settingsService.Settings.Audio;
                 _sampleRate = audioSettings.SampleRate > 0 ? audioSettings.SampleRate : 16000;
                 _channels = audioSettings.Channels >= 1 && audioSettings.Channels <= 2 ? audioSettings.Channels : 1;
-                _bitDepth = audioSettings.BitDepth > 0 ? audioSettings.BitDepth : 16;
-                _bufferSize = audioSettings.BufferSize > 0 ? audioSettings.BufferSize : 1024;
-            }
-        }
-
-        private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
-        {
-            // Handle audio settings changes
-            if (e.Category == "Audio")
-            {
-                LoadAudioSettingsFromSettings();
-                // If currently capturing, restart with new settings
-                if (_isCapturing)
+                
+                // Use device-specific settings if available, otherwise use defaults
+                if (!string.IsNullOrEmpty(audioSettings.InputDeviceId) && 
+                    audioSettings.DeviceSettings.TryGetValue(audioSettings.InputDeviceId, out var deviceSettings))
                 {
-                    await StopCaptureAsync();
-                    await Task.Delay(100); // Brief pause
-                    await StartCaptureAsync();
+                    _bitDepth = 16; // Default bit depth
+                    _bufferSize = deviceSettings.BufferSize > 0 ? deviceSettings.BufferSize : 1024;
+                }
+                else
+                {
+                    _bitDepth = 16; // Default bit depth
+                    _bufferSize = 1024; // Default buffer size
                 }
             }
         }
 
-        public Task<bool> StartCaptureAsync()
+        private void OnPermissionDenied(object? sender, EventArgs e)
+        {
+            var message = "Microphone access is denied. Please check Windows Privacy Settings to enable microphone access for ScottWisper.";
+            PermissionRequired?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnPermissionGranted(object? sender, EventArgs e)
+        {
+            var message = "Microphone access has been granted. You can now use voice dictation.";
+            PermissionRetry?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnPermissionRequestFailed(object? sender, EventArgs e)
+        {
+            var message = "Microphone permission request failed. Please try again or enable manually in Windows Settings.";
+            PermissionRequired?.Invoke(this, EventArgs.Empty);
+        }
+
+        public async Task<bool> StartCaptureAsync()
         {
             try
             {
                 if (_isCapturing)
                 {
-                    return Task.FromResult(false); // Already capturing
+                    return false; // Already capturing
+                }
+                
+                // Check microphone permission first if AudioDeviceService is available
+                if (_audioDeviceService != null)
+                {
+                    var permissionStatus = await _audioDeviceService.CheckMicrophonePermissionAsync();
+                    if (permissionStatus != MicrophonePermissionStatus.Granted)
+                    {
+                        // Permission not granted, try to request it
+                        var permissionGranted = await _audioDeviceService.RequestMicrophonePermissionAsync();
+                        if (!permissionGranted)
+                        {
+                            ShowPermissionErrorMessage();
+                            return false;
+                        }
+                    }
                 }
                 
                 // Check for available audio devices
@@ -105,65 +160,93 @@ namespace ScottWisper
                 _waveIn.StartRecording();
                 _isCapturing = true;
                 
-                return Task.FromResult(true);
+                return true;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                HandleUnauthorizedAccessException(ex);
+                return false;
+            }
+            catch (SecurityException ex)
+            {
+                HandleSecurityException(ex);
+                return false;
             }
             catch (Exception ex)
             {
                 CaptureError?.Invoke(this, ex);
-                return Task.FromResult(false);
+                return false;
             }
         }
-        
-        public Task<bool> StopCaptureAsync()
+
+        public async Task<bool> StopCaptureAsync()
         {
             try
             {
                 if (!_isCapturing || _waveIn == null)
                 {
-                    return Task.FromResult(false); // Not capturing
+                    return false; // Not capturing
                 }
                 
                 // Stop recording
                 _waveIn.StopRecording();
                 _isCapturing = false;
                 
-                return Task.FromResult(true);
+                return true;
             }
             catch (Exception ex)
             {
                 CaptureError?.Invoke(this, ex);
-                return Task.FromResult(false);
+                return false;
             }
         }
-        
-        public byte[]? GetCapturedAudio()
+
+        private void ShowPermissionErrorMessage()
         {
-            lock (_lockObject)
+            var message = @"Microphone access is required for voice dictation.
+
+To enable microphone access:
+1. Click 'Open Settings' below
+2. Go to Privacy & Security -> Microphone
+3. Enable 'Microphone access' and allow ScottWisper to access your microphone
+4. Restart the application
+
+After enabling microphone access, voice dictation will work normally.";
+            
+            PermissionRequired?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void HandleUnauthorizedAccessException(Exception ex)
+        {
+            var message = $"Access to microphone was denied. Please check Windows Privacy Settings to enable microphone access for ScottWisper. Error: {ex.Message}";
+            PermissionRequired?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void HandleSecurityException(Exception ex)
+        {
+            var message = $"Security error accessing microphone. Please ensure ScottWisper has permission to access audio devices. Error: {ex.Message}";
+            PermissionRequired?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void OpenWindowsMicrophoneSettings()
+        {
+            try
             {
-                if (_audioStream == null || _audioStream.Length == 0)
-                {
-                    return null;
-                }
-                
-                // Convert to WAV format
-                _audioStream.Position = 0;
-                using var waveStream = new RawSourceWaveStream(_audioStream, _waveIn?.WaveFormat ?? new WaveFormat(SampleRate, BitDepth, Channels));
-                using var wavStream = new MemoryStream();
-                WaveFileWriter.WriteWavFileToStream(wavStream, waveStream);
-                return wavStream.ToArray();
+                // Open Windows Privacy & Security -> Microphone settings
+                const string settingsPath = "ms-settings:privacy-microphone";
+                ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
             }
         }
-        
-        public void ClearCapturedAudio()
+
+        public async Task<bool> RetryWithPermissionAsync()
         {
-            lock (_lockObject)
-            {
-                if (_audioStream != null)
-                {
-                    _audioStream.SetLength(0);
-                    _audioStream.Position = 0;
-                }
-            }
+            // Wait a moment and retry capture
+            await Task.Delay(1000);
+            return await StartCaptureAsync();
         }
         
         private void OnDataAvailable(object? sender, WaveInEventArgs e)
@@ -193,18 +276,59 @@ namespace ScottWisper
             
             if (e.Exception != null)
             {
-                CaptureError?.Invoke(this, e.Exception);
+                if (e.Exception is UnauthorizedAccessException)
+                {
+                    HandleUnauthorizedAccessException(e.Exception);
+                }
+                else if (e.Exception is SecurityException)
+                {
+                    HandleSecurityException(e.Exception);
+                }
+                else
+                {
+                    CaptureError?.Invoke(this, e.Exception);
+                }
             }
         }
         
-        public static AudioDevice[] GetAvailableDevices()
+        public byte[]? GetCapturedAudio()
         {
-            var devices = new AudioDevice[WaveIn.DeviceCount];
+            lock (_lockObject)
+            {
+                if (_audioStream == null || _audioStream.Length == 0)
+                {
+                    return null;
+                }
+                
+                // Convert to WAV format
+                _audioStream.Position = 0;
+                using var waveStream = new RawSourceWaveStream(_audioStream, _waveIn?.WaveFormat ?? new WaveFormat(_sampleRate, _bitDepth, _channels));
+                using var wavStream = new MemoryStream();
+                WaveFileWriter.WriteWavFileToStream(wavStream, waveStream);
+                return wavStream.ToArray();
+            }
+        }
+        
+        public void ClearCapturedAudio()
+        {
+            lock (_lockObject)
+            {
+                if (_audioStream != null)
+                {
+                    _audioStream.SetLength(0);
+                    _audioStream.Position = 0;
+                }
+            }
+        }
+        
+        public static CaptureAudioDevice[] GetAvailableDevices()
+        {
+            var devices = new CaptureAudioDevice[WaveIn.DeviceCount];
             
             for (int i = 0; i < WaveIn.DeviceCount; i++)
             {
                 var capabilities = WaveIn.GetCapabilities(i);
-                devices[i] = new AudioDevice
+                devices[i] = new CaptureAudioDevice
                 {
                     DeviceNumber = i,
                     Name = capabilities.ProductName,
@@ -240,7 +364,7 @@ namespace ScottWisper
         }
     }
     
-    public class AudioDevice
+    public class CaptureAudioDevice
     {
         public int DeviceNumber { get; set; }
         public string Name { get; set; } = string.Empty;
