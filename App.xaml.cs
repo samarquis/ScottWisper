@@ -25,10 +25,11 @@ namespace ScottWisper
         private SystemTrayService? _systemTrayService;
         private bool _isDictating = false;
         private readonly object _dictationLock = new object();
-        private TextInjectionService? _textInjectionService;
+
         private bool _textInjectionEnabled = true;
         private IServiceProvider? _serviceProvider;
         private ISettingsService? _settingsService;
+        private ITextInjection? _textInjectionService;
 
         protected override async void OnStartup(StartupEventArgs e)
         {
@@ -120,7 +121,7 @@ namespace ScottWisper
                 _whisperService = new WhisperService(_settingsService);
                 _costTrackingService = new CostTrackingService(_settingsService);
                 _audioCaptureService = new AudioCaptureService(_settingsService);
-                _textInjectionService = new TextInjectionService(_settingsService);
+                _textInjectionService = _serviceProvider.GetRequiredService<ITextInjection>();
 
                 // Initialize transcription window
                 _transcriptionWindow = new TranscriptionWindow();
@@ -166,6 +167,7 @@ namespace ScottWisper
             services.Configure<UISettings>(options => configuration.GetSection("UI").Bind(options));
             services.Configure<AppSettings>(options => configuration.Bind(options));
             services.AddSingleton<ISettingsService, SettingsService>();
+            services.AddSingleton<ITextInjection, TextInjectionService>();
             
             // Also make configuration available for legacy use
             services.AddSingleton<IConfiguration>(configuration);

@@ -54,6 +54,9 @@ namespace ScottWisper
         private bool _isInitialized;
         private bool _disposed;
         private readonly ISettingsService? _settingsService;
+        private readonly List<InjectionAttempt> _injectionHistory = new();
+        private readonly Stopwatch _performanceStopwatch = new();
+        private bool _debugMode = false;
         
         // Windows API imports for text injection
         [DllImport("user32.dll", SetLastError = true)]
@@ -162,6 +165,203 @@ namespace ScottWisper
             }
         }
 
+        /// <summary>
+        /// Records injection attempt for performance monitoring
+        /// </summary>
+        private void RecordInjectionAttempt(string text, bool success, InjectionMethod method, TimeSpan duration)
+        {
+            var attempt = new InjectionAttempt
+            {
+                Timestamp = DateTime.Now,
+                Text = text,
+                Success = success,
+                Method = method,
+                Duration = duration,
+                ApplicationInfo = GetCurrentWindowInfo()
+            };
+
+            _injectionHistory.Add(attempt);
+
+            // Keep only last 100 attempts
+            if (_injectionHistory.Count > 100)
+            {
+                _injectionHistory.RemoveAt(0);
+            }
+
+            if (_debugMode)
+            {
+                System.Diagnostics.Debug.WriteLine($"Injection Attempt: {method} {(success ? "SUCCESS" : "FAILED")} in {duration.TotalMilliseconds}ms for {attempt.ApplicationInfo.ProcessName}");
+            }
+        }
+
+        /// <summary>
+        /// Get injection performance metrics
+        /// </summary>
+        public InjectionMetrics GetPerformanceMetrics()
+        {
+            var recentAttempts = _injectionHistory
+                .Where(a => a.Timestamp > DateTime.Now.AddMinutes(-5))
+                .ToList();
+
+            if (recentAttempts.Count == 0)
+                return new InjectionMetrics { AverageLatency = TimeSpan.Zero, SuccessRate = 0, TotalAttempts = 0 };
+
+            var successfulAttempts = recentAttempts.Where(a => a.Success).ToList();
+            var averageLatency = successfulAttempts.Any() 
+                ? TimeSpan.FromTicks((long)successfulAttempts.Average(a => a.Duration.Ticks))
+                : TimeSpan.Zero;
+
+            return new InjectionMetrics
+            {
+                AverageLatency = averageLatency,
+                SuccessRate = (double)successfulAttempts.Count / recentAttempts.Count,
+                TotalAttempts = recentAttempts.Count,
+                RecentFailures = recentAttempts.Where(a => !a.Success).Take(5).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Enable or disable debug mode for troubleshooting
+        /// </summary>
+        public void SetDebugMode(bool enabled)
+        {
+            _debugMode = enabled;
+            System.Diagnostics.Debug.WriteLine($"TextInjection debug mode: {(enabled ? "ENABLED" : "DISABLED")}");
+        }
+
+        /// <summary>
+        /// Test injection functionality in current application
+        /// </summary>
+        public async Task<InjectionTestResult> TestInjectionAsync()
+        {
+            var testText = "ScottWisper Test Injection - " + DateTime.Now.ToString("HH:mm:ss");
+            var compatibility = GetApplicationCompatibility();
+            
+            var stopwatch = Stopwatch.StartNew();
+            var success = await InjectTextAsync(testText, new InjectionOptions 
+            { 
+                UseClipboardFallback = true,
+                RetryCount = 1,
+                DelayBetweenCharsMs = 10
+            });
+            stopwatch.Stop();
+
+            return new InjectionTestResult
+            {
+                Success = success,
+                TestText = testText,
+                Duration = stopwatch.Elapsed,
+                ApplicationInfo = GetCurrentWindowInfo(),
+                Compatibility = compatibility,
+                MethodUsed = success ? "Primary" : "Fallback"
+            };
+        }
+
+        /// <summary>
+        /// Injects text at the current cursor position with enhanced compatibility and fallback handling
+        /// </summary>
+        public async Task<bool> InjectTextAsync(string text, InjectionOptions? options = null)
+        {
+            if (string.IsNullOrEmpty(text))
+                return true;
+
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(TextInjectionService));
+
+            options ??= new InjectionOptions();
+            var stopwatch = Stopwatch.StartNew();
+
+            lock (_lockObject)
+            {
+                if (!_isInitialized)
+                {
+                    throw new InvalidOperationException("TextInjectionService not initialized. Call InitializeAsync first.");
+                }
+            }
+
+            // Get application compatibility information
+            var compatibility = GetApplicationCompatibility();
+            if (!compatibility.IsCompatible)
+            {
+                System.Diagnostics.Debug.WriteLine($"Application {compatibility.Category} not compatible for text injection");
+                return false;
+            }
+
+            // Verify we have an active window to inject into
+            if (!HasActiveWindow())
+            {
+                return false;
+            }
+
+            // Try different injection methods with retry logic
+            var attempts = 0;
+            var maxAttempts = options.RetryCount;
+            InjectionMethod methodUsed = InjectionMethod.SendInput;
+
+            while (attempts <= maxAttempts)
+            {
+                try
+                {
+                    bool success = false;
+
+                    // Method 1: Windows API SendInput (primary method)
+                    if (compatibility.PreferredMethod == InjectionMethod.SendInput)
+                    {
+                        success = TrySendInput(text, options, compatibility);
+                        methodUsed = InjectionMethod.SendInput;
+                    }
+                    
+                    // Method 2: Clipboard-based injection (fallback for Office apps or preferred)
+                    if (!success && (options.UseClipboardFallback || compatibility.PreferredMethod == InjectionMethod.ClipboardFallback))
+                    {
+                        success = await TryClipboardInjectionAsync(text, options);
+                        methodUsed = InjectionMethod.ClipboardFallback;
+                    }
+
+                    // Method 3: Fallback handling with compatibility adjustments
+                    if (!success && compatibility.RequiresSpecialHandling.Length > 0)
+                    {
+                        success = await TryCompatibilityInjectionAsync(text, options, compatibility);
+                        methodUsed = InjectionMethod.SendKeys; // Special handling
+                    }
+
+                    // Record attempt
+                    stopwatch.Stop();
+                    RecordInjectionAttempt(text, success, methodUsed, stopwatch.Elapsed);
+                    stopwatch.Restart();
+
+                    if (success) 
+                    {
+                        if (_debugMode)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Text injection successful using {methodUsed} for {compatibility.Category} in {stopwatch.ElapsedMilliseconds}ms");
+                        }
+                        return true;
+                    }
+
+                    // All methods failed
+                    if (attempts == maxAttempts)
+                    {
+                        return false;
+                    }
+
+                    attempts++;
+                    await Task.Delay(options.DelayBetweenRetriesMs);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Text injection attempt {attempts + 1} failed: {ex.Message}");
+                    attempts++;
+                    if (attempts <= maxAttempts)
+                    {
+                        await Task.Delay(options.DelayBetweenRetriesMs);
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
         {
             // Handle text injection settings changes
@@ -193,81 +393,12 @@ namespace ScottWisper
             }
         }
 
-        /// <summary>
-        /// Injects text at the current cursor position with multiple fallback methods
-        /// </summary>
-        public async Task<bool> InjectTextAsync(string text, InjectionOptions? options = null)
-        {
-            if (string.IsNullOrEmpty(text))
-                return true;
 
-            if (_disposed)
-                throw new ObjectDisposedException(nameof(TextInjectionService));
-
-            options ??= new InjectionOptions();
-
-            lock (_lockObject)
-            {
-                if (!_isInitialized)
-                {
-                    throw new InvalidOperationException("TextInjectionService not initialized. Call InitializeAsync first.");
-                }
-            }
-
-            // Verify we have an active window to inject into
-            if (!HasActiveWindow())
-            {
-                return false;
-            }
-
-            // Try different injection methods with retry logic
-            var attempts = 0;
-            var maxAttempts = options.RetryCount;
-
-            while (attempts <= maxAttempts)
-            {
-                try
-                {
-                    bool success = false;
-
-                    // Method 1: Windows API SendInput (primary method)
-                    success = TrySendInput(text, options);
-                    if (success) return true;
-
-                    // Method 2: Clipboard-based injection (fallback)
-                    if (options.UseClipboardFallback)
-                    {
-                        success = await TryClipboardInjectionAsync(text, options);
-                        if (success) return true;
-                    }
-
-                    // All methods failed
-                    if (attempts == maxAttempts)
-                    {
-                        return false;
-                    }
-
-                    attempts++;
-                    await Task.Delay(options.DelayBetweenRetriesMs);
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Text injection attempt {attempts + 1} failed: {ex.Message}");
-                    attempts++;
-                    if (attempts <= maxAttempts)
-                    {
-                        await Task.Delay(options.DelayBetweenRetriesMs);
-                    }
-                }
-            }
-
-            return false;
-        }
 
         /// <summary>
         /// Try injection using Windows API SendInput
         /// </summary>
-        private bool TrySendInput(string text, InjectionOptions options)
+        private bool TrySendInput(string text, InjectionOptions options, ApplicationCompatibility? compatibility = null)
         {
             try
             {
@@ -280,7 +411,7 @@ namespace ScottWisper
 
                 // Create input array for all characters
                 var inputs = new List<INPUT>();
-                
+               
                 foreach (char c in text)
                 {
                     if (c == '\n')
@@ -303,10 +434,19 @@ namespace ScottWisper
                     }
                     else
                     {
-                        // Unicode character support
-                        inputs.Add(CreateUnicodeInput(c));
+                        // Unicode character support - handle special cases based on application compatibility
+                        if (compatibility?.RequiresSpecialHandling.Contains("unicode") == true)
+                        {
+                            // Use safer Unicode injection for applications that need it
+                            inputs.Add(CreateUnicodeInput(c));
+                        }
+                        else
+                        {
+                            // Standard Unicode injection
+                            inputs.Add(CreateUnicodeInput(c));
+                        }
                     }
-                    
+                   
                     Thread.Sleep(options.DelayBetweenCharsMs);
                 }
 
@@ -442,6 +582,75 @@ namespace ScottWisper
         }
 
         /// <summary>
+        /// Try application-specific compatibility injection
+        /// </summary>
+        private async Task<bool> TryCompatibilityInjectionAsync(string text, InjectionOptions options, ApplicationCompatibility compatibility)
+        {
+            try
+            {
+                var inputs = new List<INPUT>();
+                
+                foreach (char c in text)
+                {
+                    if (compatibility.RequiresSpecialHandling.Contains("unicode"))
+                    {
+                        // Use Unicode input with compatibility delays
+                        inputs.Add(CreateUnicodeInput(c));
+                        await Task.Delay(options.DelayBetweenCharsMs * 2); // Slower for compatibility
+                    }
+                    else if (compatibility.RequiresSpecialHandling.Contains("newline") && c == '\n')
+                    {
+                        // Special newline handling for certain applications
+                        inputs.Add(CreateKeyDownInput(VK_RETURN));
+                        inputs.Add(CreateKeyUpInput(VK_RETURN));
+                        await Task.Delay(50); // Extra delay for newlines
+                    }
+                    else if (compatibility.RequiresSpecialHandling.Contains("tab") && c == '\t')
+                    {
+                        // Special tab handling for IDEs and editors
+                        inputs.Add(CreateKeyDownInput(VK_TAB));
+                        inputs.Add(CreateKeyUpInput(VK_TAB));
+                        await Task.Delay(30); // Faster for tabs
+                    }
+                    else if (compatibility.RequiresSpecialHandling.Contains("syntax_chars") && IsSyntaxCharacter(c))
+                    {
+                        // Special handling for syntax-sensitive characters in code editors
+                        inputs.Add(CreateUnicodeInput(c));
+                        await Task.Delay(options.DelayBetweenCharsMs * 3); // Much slower for syntax
+                    }
+                    else
+                    {
+                        // Standard injection
+                        inputs.Add(CreateUnicodeInput(c));
+                        await Task.Delay(options.DelayBetweenCharsMs);
+                    }
+                }
+
+                // Send all inputs
+                if (inputs.Count > 0)
+                {
+                    var result = SendInput((uint)inputs.Count, inputs.ToArray(), Marshal.SizeOf<INPUT>());
+                    return result == inputs.Count;
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Compatibility injection failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Check if character needs special handling in code editors
+        /// </summary>
+        private bool IsSyntaxCharacter(char c)
+        {
+            return c is '{' or c is '}' or c is '[' or c is ']' || c is '(' || c is ')' || c is '<' || c is '>';
+        }
+
+        /// <summary>
         /// Check if there's an active window to inject into
         /// </summary>
         private bool HasActiveWindow()
@@ -497,7 +706,7 @@ namespace ScottWisper
         public bool IsInjectionCompatible()
         {
             var windowInfo = GetCurrentWindowInfo();
-            
+             
             if (!windowInfo.HasFocus)
                 return false;
 
@@ -518,6 +727,92 @@ namespace ScottWisper
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Get application compatibility profile for the current window
+        /// </summary>
+        public ApplicationCompatibility GetApplicationCompatibility()
+        {
+            var windowInfo = GetCurrentWindowInfo();
+            if (!windowInfo.HasFocus || string.IsNullOrEmpty(windowInfo.ProcessName))
+                return new ApplicationCompatibility { Category = ApplicationCategory.Unknown, IsCompatible = false };
+
+            var processName = windowInfo.ProcessName.ToLowerInvariant();
+
+            // Browsers
+            if (processName.Contains("chrome") || processName.Contains("firefox") || 
+                processName.Contains("msedge") || processName.Contains("opera"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Browser,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline" }
+                };
+            }
+
+            // Development tools
+            if (processName.Contains("devenv") || processName.Contains("code") || 
+                processName.Contains("sublime") || processName.Contains("notepad++"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.DevelopmentTool,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars" }
+                };
+            }
+
+            // Office applications
+            if (processName.Contains("winword") || processName.Contains("excel") || 
+                processName.Contains("powerpnt") || processName.Contains("outlook"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Office,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.ClipboardFallback,
+                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline" }
+                };
+            }
+
+            // Communication tools
+            if (processName.Contains("slack") || processName.Contains("discord") || 
+                processName.Contains("teams") || processName.Contains("zoom"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Communication,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "newline", "emoji" }
+                };
+            }
+
+            // Text editors
+            if (processName.Contains("notepad") || processName.Contains("wordpad") || 
+                processName.Contains("write"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.TextEditor,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "tab" }
+                };
+            }
+
+            // Default compatibility
+            return new ApplicationCompatibility 
+            { 
+                Category = ApplicationCategory.Unknown,
+                IsCompatible = IsInjectionCompatible(),
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new string[0]
+            };
         }
 
         /// <summary>
@@ -598,5 +893,81 @@ namespace ScottWisper
         public int Y { get; set; }
         public IntPtr WindowHandle { get; set; }
         public bool HasCaret { get; set; }
+    }
+
+    /// <summary>
+    /// Application compatibility information
+    /// </summary>
+    public class ApplicationCompatibility
+    {
+        public ApplicationCategory Category { get; set; }
+        public bool IsCompatible { get; set; }
+        public InjectionMethod PreferredMethod { get; set; }
+        public string[] RequiresSpecialHandling { get; set; } = Array.Empty<string>();
+        public Dictionary<string, object> ApplicationSettings { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Categories of applications for compatibility handling
+    /// </summary>
+    public enum ApplicationCategory
+    {
+        Unknown,
+        Browser,
+        DevelopmentTool,
+        Office,
+        Communication,
+        TextEditor,
+        Terminal,
+        Gaming
+    }
+
+    /// <summary>
+    /// Text injection methods
+    /// </summary>
+    public enum InjectionMethod
+    {
+        SendInput,
+        ClipboardFallback,
+        SendKeys,
+        SendMessage
+    }
+
+    /// <summary>
+    /// Injection attempt record for performance tracking
+    /// </summary>
+    public class InjectionAttempt
+    {
+        public DateTime Timestamp { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public bool Success { get; set; }
+        public InjectionMethod Method { get; set; }
+        public TimeSpan Duration { get; set; }
+        public WindowInfo ApplicationInfo { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Injection performance metrics
+    /// </summary>
+    public class InjectionMetrics
+    {
+        public TimeSpan AverageLatency { get; set; }
+        public double SuccessRate { get; set; }
+        public int TotalAttempts { get; set; }
+        public List<InjectionAttempt> RecentFailures { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Result of injection test
+    /// </summary>
+    public class InjectionTestResult
+    {
+        public bool Success { get; set; }
+        public string TestText { get; set; } = string.Empty;
+        public TimeSpan Duration { get; set; }
+        public WindowInfo ApplicationInfo { get; set; } = new();
+        public ApplicationCompatibility Compatibility { get; set; } = new();
+        public string MethodUsed { get; set; } = string.Empty;
+        public string[] Issues { get; set; } = Array.Empty<string>();
     }
 }
