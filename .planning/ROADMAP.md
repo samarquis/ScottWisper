@@ -87,11 +87,69 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 
 ---
 
-### Phase 3: Professional Features & Compliance
+### Phase 3: Integration Layer Repair
+
+**Goal:** Fix critical integration failures that prevent system compilation and end-to-end operation.
+
+**Dependencies:** Phase 2 completion - Requires existing integration code to repair
+
+**Gap Closure:** Closes all interface contract violations, namespace conflicts, and service construction errors identified in audit
+
+**Requirements:** None (integration repair phase)
+
+**Success Criteria:**
+1. **System Compilation**: All 104 compilation errors resolved
+2. **Interface Contracts**: All missing events and enums implemented
+3. **Namespace Consistency**: Type conflicts resolved across namespaces
+4. **Service Construction**: All services initialize correctly with proper dependencies
+5. **Integration Testing**: Cross-phase integration tests pass
+
+---
+
+### Phase 4: Missing Implementation
+
+**Goal:** Complete blocked requirements and missing functionality identified in audit.
+
+**Dependencies:** Phase 3 completion - Requires working integration layer
+
+**Gap Closure:** Closes CORE-03, SYS-02, and SYS-03 requirement gaps
+
+**Requirements:**
+- CORE-03: Automatic text injection into active window (validation)
+- SYS-02: Settings management (complete UI)
+- SYS-03: Audio device selection (permission handling)
+
+**Success Criteria:**
+1. **Text Injection Validation**: Cross-application compatibility verified
+2. **Settings UI Complete**: Full hotkey and audio device configuration interface
+3. **Permission Handling**: Microphone permissions properly requested and handled
+4. **Device Selection**: Audio device switching works reliably
+
+---
+
+### Phase 5: End-to-End Validation
+
+**Goal:** Validate all user workflows and ensure system works end-to-end.
+
+**Dependencies:** Phase 4 completion - Requires all implementation complete
+
+**Gap Closure:** Closes all broken end-to-end flows identified in audit
+
+**Requirements:** None (validation phase)
+
+**Success Criteria:**
+1. **Dictation Activation Flow**: Hotkey → transcription → text injection works
+2. **Settings Persistence Flow**: Configuration changes save and restore correctly
+3. **Cross-Application Compatibility**: Text injection works in target applications
+4. **Performance Validation**: System meets latency and accuracy requirements
+
+---
+
+### Phase 6: Professional Features & Compliance
 
 **Goal:** Deliver enterprise-ready privacy features and professional workflow integrations that differentiate from consumer-focused alternatives.
 
-**Dependencies:** Phase 2 completion - Requires universal integration working reliably
+**Dependencies:** Phase 5 completion - Requires validated end-to-end workflows
 
 **Requirements:**
 - UX-03: Basic punctuation commands
@@ -119,9 +177,12 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 |-------|--------|------------|-------|
 | Phase 1: Core Technology Validation | ✅ Complete | 100% | All 4 plans executed, Phase goal verified ✓ |
 | Phase 2: Windows Integration & User Experience | 📋 Planned | 0% | 22 plans created in 4 waves, ready for execution |
-| Phase 3: Competitive Features & Polish | ⏸️ Not Started | 0% | Depends on Phase 2 |
+| Phase 3: Integration Layer Repair | 📋 Planned | 0% | Gap closure phase - fixes critical integration failures |
+| Phase 4: Missing Implementation | 📋 Planned | 0% | Gap closure phase - completes blocked requirements |
+| Phase 5: End-to-End Validation | 📋 Planned | 0% | Gap closure phase - validates all user workflows |
+| Phase 6: Competitive Features & Polish | ⏸️ Not Started | 0% | Depends on gap closure completion |
 
-**Overall Project Progress:** [███░░░░░░] 33% - Phase 1 complete, ready for Phase 2
+**Overall Project Progress:** [███░░░░░░] 33% - Phase 1 complete, Phase 2 in progress, gap closure planned
 
 ## Milestone Timeline
 
