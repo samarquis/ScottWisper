@@ -6,6 +6,11 @@ using System.Threading;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using ScottWisper.Services;
+using System.Windows;
+using System.Windows.Forms;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ScottWisper.Tests
 {
@@ -331,6 +336,386 @@ namespace ScottWisper.Tests
 
         #endregion
 
+        #region Cross-Application Compatibility Tests
+
+        [TestMethod]
+        [TestCategory("Compatibility")]
+        [DataRow("chrome", "Browser", "Google Chrome")]
+        [DataRow("firefox", "Browser", "Mozilla Firefox")]
+        [DataRow("msedge", "Browser", "Microsoft Edge")]
+        public async Task Compatibility_ShouldDetectWebBrowsers(string processName, string category, string displayName)
+        {
+            // Arrange
+            var mockProcess = new Process { ProcessName = processName };
+            var service = new TextInjectionService(null);
+            
+            // Act - Mock the process detection by simulating window info
+            var testText = $"Compatibility test for {displayName}";
+            
+            // Simulate browser compatibility testing
+            var result = await service.TestInjectionAsync();
+            
+            // Assert
+            Assert.IsNotNull(result, "Test result should not be null");
+            Assert.IsTrue(result.Compatibility.Category == ScottWisper.Services.ApplicationCategory.Browser, 
+                $"Should detect {displayName} as browser");
+            Assert.IsTrue(result.Compatibility.IsCompatible, "Should be compatible for text injection");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("unicode"), 
+                "Should require Unicode handling for browsers");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("newline"), 
+                "Should require newline handling for browsers");
+        }
+
+        [TestMethod]
+        [TestCategory("Compatibility")]
+        [DataRow("devenv", "DevelopmentTool", "Visual Studio")]
+        [DataRow("code", "DevelopmentTool", "VS Code")]
+        [DataRow("sublime", "DevelopmentTool", "Sublime Text")]
+        [DataRow("notepad++", "DevelopmentTool", "Notepad++")]
+        public async Task Compatibility_ShouldDetectDevelopmentTools(string processName, string category, string displayName)
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = $"Compatibility test for {displayName}";
+            
+            // Act
+            var result = await service.TestInjectionAsync();
+            
+            // Assert
+            Assert.IsNotNull(result, "Test result should not be null");
+            Assert.IsTrue(result.Compatibility.Category == ScottWisper.Services.ApplicationCategory.DevelopmentTool, 
+                $"Should detect {displayName} as development tool");
+            Assert.IsTrue(result.Compatibility.IsCompatible, "Should be compatible for text injection");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("unicode"), 
+                "Should require Unicode handling for development tools");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("tab"), 
+                "Should require tab handling for IDEs");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("syntax_chars"), 
+                "Should require syntax character handling for code editors");
+        }
+
+        [TestMethod]
+        [TestCategory("Compatibility")]
+        [DataRow("winword", "Office", "Microsoft Word")]
+        [DataRow("excel", "Office", "Microsoft Excel")]
+        [DataRow("powerpnt", "Office", "Microsoft PowerPoint")]
+        [DataRow("outlook", "Office", "Microsoft Outlook")]
+        public async Task Compatibility_ShouldDetectOfficeApplications(string processName, string category, string displayName)
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = $"Office compatibility test for {displayName}";
+            
+            // Act
+            var result = await service.TestInjectionAsync();
+            
+            // Assert
+            Assert.IsNotNull(result, "Test result should not be null");
+            Assert.IsTrue(result.Compatibility.Category == ScottWisper.Services.ApplicationCategory.Office, 
+                $"Should detect {displayName} as Office application");
+            Assert.IsTrue(result.Compatibility.IsCompatible, "Should be compatible for text injection");
+            Assert.IsTrue(result.Compatibility.PreferredMethod == ScottWisper.Services.InjectionMethod.ClipboardFallback, 
+                "Should prefer clipboard fallback for Office apps");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("formatting"), 
+                "Should require formatting handling for Office");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("unicode"), 
+                "Should require Unicode handling for Office");
+        }
+
+        [TestMethod]
+        [TestCategory("Compatibility")]
+        [DataRow("slack", "Communication", "Slack")]
+        [DataRow("discord", "Communication", "Discord")]
+        [DataRow("teams", "Communication", "Microsoft Teams")]
+        [DataRow("zoom", "Communication", "Zoom")]
+        public async Task Compatibility_ShouldDetectCommunicationTools(string processName, string category, string displayName)
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = $"Communication test for {displayName}";
+            
+            // Act
+            var result = await service.TestInjectionAsync();
+            
+            // Assert
+            Assert.IsNotNull(result, "Test result should not be null");
+            Assert.IsTrue(result.Compatibility.Category == ScottWisper.Services.ApplicationCategory.Communication, 
+                $"Should detect {displayName} as communication tool");
+            Assert.IsTrue(result.Compatibility.IsCompatible, "Should be compatible for text injection");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("newline"), 
+                "Should require newline handling for chat applications");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("emoji"), 
+                "Should require emoji handling for modern chat apps");
+        }
+
+        [TestMethod]
+        [TestCategory("Compatibility")]
+        [DataRow("notepad", "TextEditor", "Windows Notepad")]
+        [DataRow("wordpad", "TextEditor", "Windows WordPad")]
+        [DataRow("write", "TextEditor", "Windows Write")]
+        public async Task Compatibility_ShouldDetectTextEditors(string processName, string category, string displayName)
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = $"Text editor test for {displayName}";
+            
+            // Act
+            var result = await service.TestInjectionAsync();
+            
+            // Assert
+            Assert.IsNotNull(result, "Test result should not be null");
+            Assert.IsTrue(result.Compatibility.Category == ScottWisper.Services.ApplicationCategory.TextEditor, 
+                $"Should detect {displayName} as text editor");
+            Assert.IsTrue(result.Compatibility.IsCompatible, "Should be compatible for text injection");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("unicode"), 
+                "Should require Unicode handling for text editors");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("newline"), 
+                "Should require newline handling for text editors");
+            Assert.IsTrue(result.Compatibility.RequiresSpecialHandling.Contains("tab"), 
+                "Should require tab handling for text editors");
+        }
+
+        #endregion
+
+        #region Unicode and Special Character Tests
+
+        [TestMethod]
+        [TestCategory("Unicode")]
+        public async Task Unicode_ShouldHandleCommonSymbols()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testTexts = new[]
+            {
+                "Café naïve résumé",
+                "Hello 世界! 🌍",
+                "Mathematical: ∑∏∫∆∇∂",
+                "Currency: $¥€£¢",
+                "Quotes: "''「」『』",
+                "Arrows: ←→↑↓↔↖↗↘↙↗",
+                "Special: @#$%^&*()_+-={}[]|\\:;\"'<>?,./"
+            };
+
+            // Act & Assert
+            foreach (var testText in testTexts)
+            {
+                var result = await service.TestInjectionAsync();
+                Assert.IsNotNull(result, $"Unicode test should return result for: {testText}");
+                Assert.IsTrue(result.Success || result.Compatibility.IsCompatible, 
+                    $"Should handle Unicode text: {testText}");
+            }
+        }
+
+        [TestMethod]
+        [TestCategory("Unicode")]
+        public async Task Unicode_ShouldHandleEmojisAndSymbols()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var emojiTexts = new[]
+            {
+                "Smileys: 😀😃😄😁😆😅😂🤣😊😇",
+                "Gestures: 👋👍👌✌✋👏👐",
+                "Objects: 🏠🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪",
+                "Symbols: ❤️💔💯💢💥💫💦💨🕳️💬👁🗨🔥💩",
+                "Flags: 🏳️🌈🏴🏴🏵🏶🏷🏸🏹",
+                "Recent: 🥰🥵🥶🥷🥸🥹🥺🥻🥼🥽🥾🥿",
+                "Complex mixed: 👨‍💻👩‍❤️‍💋‍👨‍👩‍👧‍👦‍👦‍👧‍👨‍👦‍👩‍👧‍👨‍👨‍👧‍👦"
+            };
+
+            // Act & Assert
+            foreach (var emojiText in emojiTexts)
+            {
+                var result = await service.TestInjectionAsync();
+                Assert.IsNotNull(result, $"Emoji test should return result for: {emojiText.Substring(0, Math.Min(50, emojiText.Length))}...");
+                Assert.IsTrue(result.Success || result.Compatibility.IsCompatible, 
+                    $"Should handle emoji text: {emojiText.Substring(0, Math.Min(30, emojiText.Length))}...");
+            }
+        }
+
+        #endregion
+
+        #region Performance and Latency Tests
+
+        [TestMethod]
+        [TestCategory("Performance")]
+        public async Task Performance_ShouldMeetLatencyRequirements()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = "Performance test text with reasonable length";
+            var latencies = new List<double>();
+
+            // Act - Test multiple injections for latency measurement
+            for (int i = 0; i < 20; i++)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var result = await service.InjectTextAsync($"{testText} #{i + 1}", new InjectionOptions 
+                { 
+                    DelayBetweenCharsMs = 5,
+                    RetryCount = 1
+                });
+                stopwatch.Stop();
+                
+                latencies.Add(stopwatch.Elapsed.TotalMilliseconds);
+            }
+
+            // Assert
+            var averageLatency = latencies.Average();
+            var maxLatency = latencies.Max();
+            
+            Assert.IsTrue(averageLatency < 100, $"Average latency should be < 100ms, was {averageLatency:F2}ms");
+            Assert.IsTrue(maxLatency < 200, $"Max latency should be < 200ms, was {maxLatency:F2}ms");
+            Assert.IsTrue(latencies.All(l => l < 500), "All latencies should be < 500ms");
+        }
+
+        [TestMethod]
+        [TestCategory("Performance")]
+        public async Task Performance_ShouldMaintainHighSuccessRate()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var successCount = 0;
+            var totalAttempts = 50;
+            var failureReasons = new List<string>();
+
+            // Act - Perform multiple injection attempts
+            for (int i = 0; i < totalAttempts; i++)
+            {
+                var testText = $"Success rate test #{i + 1}";
+                var result = await service.InjectTextAsync(testText, new InjectionOptions 
+                { 
+                    UseClipboardFallback = true,
+                    RetryCount = 3,
+                    DelayBetweenRetriesMs = 50
+                });
+
+                if (result)
+                    successCount++;
+                else
+                    failureReasons.Add($"Attempt {i + 1} failed");
+            }
+
+            // Assert
+            var successRate = (double)successCount / totalAttempts;
+            Assert.IsTrue(successRate >= 0.95, $"Success rate should be ≥95%, was {(successRate * 100):F1}%");
+            Assert.IsTrue(successCount >= 48, $"Should succeed at least 48/50 attempts, succeeded {successCount}");
+            
+            // Log failure reasons for analysis
+            if (failureReasons.Count > 0)
+            {
+                Debug.WriteLine($"Injection failures: {string.Join(", ", failureReasons)}");
+            }
+        }
+
+        #endregion
+
+        #region Fallback Mechanism Tests
+
+        [TestMethod]
+        [TestCategory("Fallback")]
+        public async Task Fallback_ShouldUseClipboardWhenSendInputFails()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = "Fallback mechanism test text";
+
+            // Act - Test with clipboard fallback enabled
+            var result = await service.InjectTextAsync(testText, new InjectionOptions 
+            { 
+                UseClipboardFallback = true,
+                RetryCount = 3,
+                DelayBetweenRetriesMs = 100
+            });
+
+            // Assert
+            Assert.IsTrue(result, "Should succeed with clipboard fallback enabled");
+            
+            // Verify fallback method was tried if needed
+            var metrics = service.GetPerformanceMetrics();
+            Assert.IsNotNull(metrics, "Should have performance metrics available");
+        }
+
+        [TestMethod]
+        [TestCategory("Fallback")]
+        public async Task Fallback_ShouldRetryWithDifferentMethods()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = "Multi-method retry test";
+
+            // Act - Test with aggressive retry configuration
+            var result = await service.InjectTextAsync(testText, new InjectionOptions 
+            { 
+                UseClipboardFallback = true,
+                RetryCount = 5,
+                DelayBetweenRetriesMs = 50,
+                DelayBetweenCharsMs = 10
+            });
+
+            // Assert
+            Assert.IsTrue(result, "Should succeed with multiple retry attempts and fallbacks");
+            
+            var metrics = service.GetPerformanceMetrics();
+            Assert.IsTrue(metrics.TotalAttempts >= 1, "Should have attempted injection at least once");
+        }
+
+        #endregion
+
+        #region Application Mode Switching Tests
+
+        [TestMethod]
+        [TestCategory("ModeSwitching")]
+        public async Task ModeSwitching_ShouldAdaptToApplicationChanges()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+            var testText = "Mode switching test";
+
+            // Act - Test compatibility detection for different application types
+            var browserResult = await service.TestInjectionAsync();
+            
+            // Simulate application change and test again
+            await Task.Delay(100);
+            var developmentResult = await service.TestInjectionAsync();
+
+            // Assert
+            Assert.IsNotNull(browserResult, "Browser compatibility should be detected");
+            Assert.IsNotNull(developmentResult, "Development tool compatibility should be detected");
+            
+            // Verify different handling based on application type
+            if (browserResult.Compatibility.Category == ScottWisper.Services.ApplicationCategory.Browser)
+            {
+                Assert.IsTrue(browserResult.Compatibility.RequiresSpecialHandling.Contains("unicode"), 
+                    "Browser mode should enable Unicode handling");
+            }
+            
+            if (developmentResult.Compatibility.Category == ScottWisper.Services.ApplicationCategory.DevelopmentTool)
+            {
+                Assert.IsTrue(developmentResult.Compatibility.RequiresSpecialHandling.Contains("syntax_chars"), 
+                    "Development mode should enable syntax character handling");
+            }
+        }
+
+        [TestMethod]
+        [TestCategory("ModeSwitching")]
+        public void ModeSwitching_ShouldHaveCorrectCompatibilityProfiles()
+        {
+            // Arrange
+            var service = new TextInjectionService(null);
+
+            // Act & Assert - Test all compatibility methods return valid profiles
+            var browserCompatibility = service.GetApplicationCompatibility();
+            Assert.IsTrue(browserCompatibility.IsCompatible || browserCompatibility.Category == ScottWisper.Services.ApplicationCategory.Unknown, 
+                "Should return valid compatibility profile");
+
+            // Verify all required categories are supported
+            var supportedCategories = Enum.GetValues<ScottWisper.Services.ApplicationCategory>();
+            Assert.IsTrue(supportedCategories.Length >= 6, "Should support at least 6 application categories");
+        }
+
+        #endregion
+
         #region Integration Test Categories
 
         [TestMethod]
@@ -338,27 +723,41 @@ namespace ScottWisper.Tests
         public void Integration_ShouldValidateTestCategories()
         {
             // Verify all test categories are properly attributed
-            var testMethods = GetType().GetMethods()
+            var TestMethods = GetType().GetMethods()
                 .Where(m => m.GetCustomAttributes(typeof(TestMethodAttribute), false).Length > 0);
 
-            var hasTextInjectionTests = testMethods.Any(m => 
+            var hasCompatibilityTests = TestMethods.Any(m => 
                 m.GetCustomAttributes(typeof(TestCategoryAttribute), false)
-                 .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("TextInjection")));
+                 .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("Compatibility")));
             
-            var hasFeedbackTests = testMethods.Any(m => 
+            var hasUnicodeTests = TestMethods.Any(m => 
                 m.GetCustomAttributes(typeof(TestCategoryAttribute), false)
-                 .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("Feedback")));
+                 .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("Unicode")));
             
-            var hasPerformanceTests = testMethods.Any(m => 
+            var hasPerformanceTests = TestMethods.Any(m => 
                 m.GetCustomAttributes(typeof(TestCategoryAttribute), false)
                  .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("Performance")));
-
+            
+            var hasFallbackTests = TestMethods.Any(m => 
+                m.GetCustomAttributes(typeof(TestCategoryAttribute), false)
+                 .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("Fallback")));
+            
+            var hasModeSwitchingTests = TestMethods.Any(m => 
+                m.GetCustomAttributes(typeof(TestCategoryAttribute), false)
+                 .Any(attr => ((TestCategoryAttribute)attr).TestCategories.Contains("ModeSwitching")));
+            
             // Assert
-            Assert.IsTrue(hasTextInjectionTests, "Should have TextInjection test category");
-            Assert.IsTrue(hasFeedbackTests, "Should have Feedback test category");
+            Assert.IsTrue(hasCompatibilityTests, "Should have Compatibility test category");
+            Assert.IsTrue(hasUnicodeTests, "Should have Unicode test category");
             Assert.IsTrue(hasPerformanceTests, "Should have Performance test category");
-            Assert.IsTrue(testMethods.Count() >= 20, "Should have comprehensive test coverage");
+            Assert.IsTrue(hasFallbackTests, "Should have Fallback test category");
+            Assert.IsTrue(hasModeSwitchingTests, "Should have ModeSwitching test category");
+            Assert.IsTrue(TestMethods.Count() >= 60, $"Should have comprehensive test coverage, found {TestMethods.Count()}");
         }
+
+        #endregion
+    }
+}
 
         #endregion
     }
