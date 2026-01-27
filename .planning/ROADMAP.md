@@ -89,20 +89,31 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 
 ### Phase 3: Integration Layer Repair
 
-**Goal:** Fix critical integration failures that prevent system compilation and end-to-end operation.
+**Goal:** Fix critical integration failures that prevent universal text injection and complete user experience.
 
 **Dependencies:** Phase 2 completion - Requires existing integration code to repair
 
-**Gap Closure:** Closes all interface contract violations, namespace conflicts, and service construction errors identified in audit
+**Gap Closure:** Closes Phase 02 verification gaps for cross-application validation, permission handling, settings UI, and integration testing
 
-**Requirements:** None (integration repair phase)
+**Requirements:** None (gap closure phase)
 
 **Success Criteria:**
-1. **System Compilation**: All 104 compilation errors resolved
-2. **Interface Contracts**: All missing events and enums implemented
-3. **Namespace Consistency**: Type conflicts resolved across namespaces
-4. **Service Construction**: All services initialize correctly with proper dependencies
-5. **Integration Testing**: Cross-phase integration tests pass
+1. **Cross-Application Validation**: Text injection validated across browsers, Visual Studio, Office, Notepad++, terminal
+2. **Permission Handling**: Microphone permission requests handled gracefully with device change detection
+3. **Settings UI Complete**: Full hotkey and audio device configuration interface operational
+4. **Integration Testing**: Systematic testing framework validates cross-application compatibility
+5. **Gap Closure**: All Phase 02 verification gaps resolved with human validation
+
+**Plans:** 3 plans
+
+**Wave Structure:**
+- **Wave 1:** Cross-application validation + settings UI (parallel plans 03-01, 03-02)
+- **Wave 2:** Integration and comprehensive validation (plan 03-03)
+
+Plans:
+- [ ] 03-01-PLAN.md — Cross-application text injection validation and microphone permission handling
+- [ ] 03-02-PLAN.md — Complete settings UI implementation and integration testing framework
+- [ ] 03-03-PLAN.md — Integration of gap closure fixes and comprehensive validation
 
 ---
 
@@ -177,7 +188,7 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 |-------|--------|------------|-------|
 | Phase 1: Core Technology Validation | ✅ Complete | 100% | All 4 plans executed, Phase goal verified ✓ |
 | Phase 2: Windows Integration & User Experience | 📋 Planned | 0% | 22 plans created in 4 waves, ready for execution |
-| Phase 3: Integration Layer Repair | 📋 Planned | 0% | Gap closure phase - fixes critical integration failures |
+| Phase 3: Integration Layer Repair | 📋 Planned | 0% | Gap closure phase - fixes cross-application validation and permission handling |
 | Phase 4: Missing Implementation | 📋 Planned | 0% | Gap closure phase - completes blocked requirements |
 | Phase 5: End-to-End Validation | 📋 Planned | 0% | Gap closure phase - validates all user workflows |
 | Phase 6: Competitive Features & Polish | ⏸️ Not Started | 0% | Depends on gap closure completion |
