@@ -84,6 +84,7 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 - [ ] 02-20-PLAN.md — Settings validation testing
 - [ ] 02-21-PLAN.md — Validation and performance testing
 - [ ] 02-22-PLAN.md — Documentation and Phase 2 summary
+- [ ] 02-23-PLAN.md — Microphone permission handling gap closure
 
 ---
 
