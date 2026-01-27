@@ -301,6 +301,11 @@ namespace ScottWisper
             public List<string> Recommendations { get; set; } = new List<string>();
             public List<string> Issues { get; set; } = new List<string>();
         }
+
+        /// <summary>
+        /// Get injection performance metrics from recent attempts
+        /// </summary>
+        public InjectionMetrics GetInjectionMetrics()
         {
             var recentAttempts = _injectionHistory
                 .Where(a => a.Timestamp > DateTime.Now.AddMinutes(-5))
@@ -756,8 +761,7 @@ namespace ScottWisper
                             await Task.Delay(handlingDelay);
                         }
                     }
-                    }
-                    
+                   
                     // Communication tool-specific handling
                     if (compatibility.ApplicationSettings?.ContainsKey("comm_app") == true)
                     {
@@ -804,7 +808,7 @@ namespace ScottWisper
                         inputs.Add(CreateUnicodeInput(c));
                         await Task.Delay(handlingDelay);
                     }
-                }
+                } // foreach loop
 
                 // Send all inputs
                 if (inputs.Count > 0)
@@ -814,13 +818,13 @@ namespace ScottWisper
                 }
 
                 return false;
-            }
+            } // try close
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Enhanced compatibility injection failed: {ex.Message}");
                 return false;
             }
-        }
+        } // method close
 
         /// <summary>
         /// Check if character needs special handling in code editors
