@@ -165,6 +165,7 @@ namespace ScottWisper
             services.Configure<TranscriptionSettings>(options => configuration.GetSection("Transcription").Bind(options));
             services.Configure<HotkeySettings>(options => configuration.GetSection("Hotkeys").Bind(options));
             services.Configure<UISettings>(options => configuration.GetSection("UI").Bind(options));
+            services.Configure<TextInjectionSettings>(options => configuration.GetSection("TextInjection").Bind(options));
             services.Configure<AppSettings>(options => configuration.Bind(options));
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
@@ -430,13 +431,15 @@ namespace ScottWisper
                         await feedbackService.UpdateProgressAsync(20, "Preparing text for injection");
                     }
 
-                    // Inject transcribed text at cursor position
+                    // Inject transcribed text at cursor position using user settings
+                    var textInjectionSettings = _settingsService?.Settings?.TextInjection ?? new TextInjectionSettings();
                     var injectionOptions = new InjectionOptions
                     {
-                        UseClipboardFallback = true,
-                        RetryCount = 3,
-                        DelayBetweenRetriesMs = 100,
-                        DelayBetweenCharsMs = 5
+                        UseClipboardFallback = textInjectionSettings.UseClipboardFallback,
+                        RetryCount = textInjectionSettings.RetryCount,
+                        DelayBetweenRetriesMs = textInjectionSettings.DelayBetweenRetriesMs,
+                        DelayBetweenCharsMs = textInjectionSettings.DelayBetweenCharsMs,
+                        RespectExistingText = textInjectionSettings.RespectExistingText
                     };
 
                     if (feedbackService != null)
@@ -449,6 +452,10 @@ namespace ScottWisper
                     if (success)
                     {
                         System.Diagnostics.Debug.WriteLine($"Text injected successfully: {transcription}");
+                        
+                        // Log successful injection with performance metrics
+                        var metrics = _textInjectionService.GetPerformanceMetrics();
+                        System.Diagnostics.Debug.WriteLine($"Injection performance: {metrics.AverageLatency.TotalMilliseconds}ms avg latency, {metrics.SuccessRate:P1} success rate, {metrics.TotalAttempts} attempts");
                         
                         if (feedbackService != null)
                         {
@@ -470,11 +477,49 @@ namespace ScottWisper
                     {
                         System.Diagnostics.Debug.WriteLine($"Text injection failed: {transcription}");
                         
+                        // Get performance metrics for failed injection
+                        var metrics = _textInjectionService.GetPerformanceMetrics();
+                        var recentFailures = metrics.RecentFailures.Take(3).ToList();
+                        
+                        // Enhanced error handling with recovery attempts
+                        if (textInjectionSettings.EnablePerformanceMonitoring && metrics.AverageLatency.TotalMilliseconds > textInjectionSettings.InjectionLatencyThresholdMs)
+                        {
+                            // Try alternative injection method if latency is too high
+                            System.Diagnostics.Debug.WriteLine("High injection latency detected, trying alternative method...");
+                            
+                            var fallbackOptions = new InjectionOptions
+                            {
+                                UseClipboardFallback = !injectionOptions.UseClipboardFallback, // Try opposite method
+                                RetryCount = 1,
+                                DelayBetweenRetriesMs = 50,
+                                DelayBetweenCharsMs = 2
+                            };
+                            
+                            var fallbackSuccess = await _textInjectionService.InjectTextAsync(transcription, fallbackOptions);
+                            if (fallbackSuccess)
+                            {
+                                System.Diagnostics.Debug.WriteLine("Alternative injection method succeeded");
+                                if (feedbackService != null)
+                                {
+                                    await feedbackService.ShowToastNotificationAsync(
+                                        "Injection Recovery", 
+                                        "Text inserted using alternative method", 
+                                        FeedbackService.NotificationType.Completion
+                                    );
+                                }
+                            }
+                        }
+                        
+                        // Show detailed error information to user
+                        var errorMessage = recentFailures.Count > 0 
+                            ? $"Text injection failed ({recentFailures.Count} recent failures). Last error: {recentFailures.FirstOrDefault()?.ApplicationInfo?.ProcessName ?? "Unknown"}"
+                            : "Text injection failed. Text was only shown in preview window.";
+                        
                         if (feedbackService != null)
                         {
                             await feedbackService.ShowToastNotificationAsync(
                                 "Injection Issue", 
-                                "Text injection failed. Text was only shown in preview window.", 
+                                errorMessage, 
                                 FeedbackService.NotificationType.Warning
                             );
                         }
@@ -482,7 +527,7 @@ namespace ScottWisper
                         // Show fallback notification to user
                         Dispatcher.Invoke(() =>
                         {
-                            _systemTrayService?.ShowNotification("Text injection failed. Text was only shown in preview window.", "Injection Issue");
+                            _systemTrayService?.ShowNotification(errorMessage, "Injection Issue");
                         });
                     }
                 }

@@ -128,6 +128,29 @@ namespace ScottWisper.Configuration
         public bool ShowTranscriptionWindow { get; set; } = true;
     }
 
+    public class TextInjectionSettings
+    {
+        public bool Enabled { get; set; } = true;
+        public bool UseClipboardFallback { get; set; } = true;
+        public int RetryCount { get; set; } = 3;
+        public int DelayBetweenRetriesMs { get; set; } = 100;
+        public int DelayBetweenCharsMs { get; set; } = 5;
+        public bool RespectExistingText { get; set; } = true;
+        public string PreferredMethod { get; set; } = "SendInput"; // SendInput, ClipboardFallback, Auto
+        public bool EnableDebugMode { get; set; } = false;
+        public bool EnablePerformanceMonitoring { get; set; } = true;
+        public int InjectionLatencyThresholdMs { get; set; } = 50; // Alert if injection takes longer than this
+        public bool EnableCompatibilityMapping { get; set; } = true;
+        public Dictionary<string, bool> ApplicationSpecificSettings { get; set; } = new Dictionary<string, bool>
+        {
+            ["browsers_use_unicode_fix"] = true,
+            ["development_delay_syntax_chars"] = true,
+            ["office_prefer_clipboard"] = true,
+            ["communication_enhanced_emoji"] = true,
+            ["text_editors_preserve_formatting"] = true
+        };
+    }
+
     public class DeviceTestingResult
     {
         public string DeviceId { get; set; } = string.Empty;
@@ -195,6 +218,7 @@ namespace ScottWisper.Configuration
         public TranscriptionSettings Transcription { get; set; } = new();
         public HotkeySettings Hotkeys { get; set; } = new();
         public UISettings UI { get; set; } = new();
+        public TextInjectionSettings TextInjection { get; set; } = new();
         public List<DeviceTestingResult> DeviceTestHistory { get; set; } = new List<DeviceTestingResult>();
         public DateTime LastDeviceRefresh { get; set; } = DateTime.MinValue;
         public int MaxTestHistory { get; set; } = 50;
