@@ -318,11 +318,11 @@ namespace ScottWisper
                         methodUsed = InjectionMethod.ClipboardFallback;
                     }
 
-                    // Method 3: Fallback handling with compatibility adjustments
+                    // Method 3: Enhanced compatibility injection with specialized handling
                     if (!success && compatibility.RequiresSpecialHandling.Length > 0)
                     {
                         success = await TryCompatibilityInjectionAsync(text, options, compatibility);
-                        methodUsed = InjectionMethod.SendKeys; // Special handling
+                        methodUsed = InjectionMethod.SendKeys; // Specialized handling
                     }
 
                     // Record attempt
@@ -582,7 +582,7 @@ namespace ScottWisper
         }
 
         /// <summary>
-        /// Try application-specific compatibility injection
+        /// Enhanced application-specific compatibility injection with specialized handling
         /// </summary>
         private async Task<bool> TryCompatibilityInjectionAsync(string text, InjectionOptions options, ApplicationCompatibility compatibility)
         {
@@ -592,37 +592,114 @@ namespace ScottWisper
                 
                 foreach (char c in text)
                 {
+                    // Apply specialized handling based on application settings
+                    var handlingDelay = options.DelayBetweenCharsMs;
+                    
+                    // Browser-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("browser") == true)
+                    {
+                        if (compatibility.ApplicationSettings?.ContainsKey("web_forms") == true)
+                        {
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 3); // Slower for web forms
+                        }
+                        else
+                        {
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay);
+                        }
+                    }
+                    }
+                    
+                    // Development tool-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("ide") == true)
+                    {
+                        var editorType = compatibility.ApplicationSettings?.ContainsKey("editor_type")?.ToString();
+                        if (editorType == "electron_based")
+                        {
+                            // VS Code Electron-based - careful injection
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 4);
+                        }
+                        else if (editorType == "intellisense_safe")
+                        {
+                            // IDE with IntelliSense - extra care for special chars
+                            if (IsSyntaxCharacter(c))
+                            {
+                                inputs.Add(CreateUnicodeInput(c));
+                                await Task.Delay(handlingDelay * 5);
+                            }
+                            else
+                            {
+                                inputs.Add(CreateUnicodeInput(c));
+                                await Task.Delay(handlingDelay);
+                            }
+                        }
+                    }
+                    
+                    // Office-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("office_app") == true)
+                    {
+                        var officeApp = compatibility.ApplicationSettings?.ContainsKey("office_app")?.ToString();
+                        if (officeApp == "word")
+                        {
+                            // Word - use clipboard with formatting preservation
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 2);
+                        }
+                        else
+                        {
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay);
+                        }
+                    }
+                    }
+                    
+                    // Communication tool-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("comm_app") == true)
+                    {
+                        var commApp = compatibility.ApplicationSettings?.ContainsKey("comm_app")?.ToString();
+                        if (commApp?.ContainsKey("emoji_support") == true)
+                        {
+                            // Enhanced emoji support
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 1);
+                        }
+                        else
+                        {
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 2);
+                        }
+                    }
+                    
+                    // Default handling with fallback logic
                     if (compatibility.RequiresSpecialHandling.Contains("unicode"))
                     {
-                        // Use Unicode input with compatibility delays
                         inputs.Add(CreateUnicodeInput(c));
-                        await Task.Delay(options.DelayBetweenCharsMs * 2); // Slower for compatibility
+                        await Task.Delay(options.DelayBetweenCharsMs * 2); // Slower for Unicode
                     }
                     else if (compatibility.RequiresSpecialHandling.Contains("newline") && c == '\n')
                     {
-                        // Special newline handling for certain applications
                         inputs.Add(CreateKeyDownInput(VK_RETURN));
                         inputs.Add(CreateKeyUpInput(VK_RETURN));
                         await Task.Delay(50); // Extra delay for newlines
                     }
                     else if (compatibility.RequiresSpecialHandling.Contains("tab") && c == '\t')
                     {
-                        // Special tab handling for IDEs and editors
                         inputs.Add(CreateKeyDownInput(VK_TAB));
                         inputs.Add(CreateKeyUpInput(VK_TAB));
                         await Task.Delay(30); // Faster for tabs
                     }
                     else if (compatibility.RequiresSpecialHandling.Contains("syntax_chars") && IsSyntaxCharacter(c))
                     {
-                        // Special handling for syntax-sensitive characters in code editors
                         inputs.Add(CreateUnicodeInput(c));
-                        await Task.Delay(options.DelayBetweenCharsMs * 3); // Much slower for syntax
+                        await Task.Delay(options.DelayBetweenCharsMs * 4); // Much slower for syntax
                     }
                     else
                     {
                         // Standard injection
                         inputs.Add(CreateUnicodeInput(c));
-                        await Task.Delay(options.DelayBetweenCharsMs);
+                        await Task.Delay(handlingDelay);
                     }
                 }
 
@@ -637,7 +714,7 @@ namespace ScottWisper
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Compatibility injection failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Enhanced compatibility injection failed: {ex.Message}");
                 return false;
             }
         }
@@ -730,7 +807,7 @@ namespace ScottWisper
         }
 
         /// <summary>
-        /// Get application compatibility profile for the current window
+        /// Get application compatibility profile for the current window with enhanced detection
         /// </summary>
         public ApplicationCompatibility GetApplicationCompatibility()
         {
@@ -740,78 +817,330 @@ namespace ScottWisper
 
             var processName = windowInfo.ProcessName.ToLowerInvariant();
 
-            // Browsers
-            if (processName.Contains("chrome") || processName.Contains("firefox") || 
-                processName.Contains("msedge") || processName.Contains("opera"))
+            // Enhanced browser detection with specific compatibility modes
+            if (processName.Contains("chrome"))
             {
                 return new ApplicationCompatibility 
                 { 
                     Category = ApplicationCategory.Browser,
                     IsCompatible = true,
                     PreferredMethod = InjectionMethod.SendInput,
-                    RequiresSpecialHandling = new[] { "unicode", "newline" }
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "web_forms" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["browser"] = "chrome",
+                        ["requires_unicode_fix"] = true,
+                        ["form_field_detection"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("firefox"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Browser,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "firefox_specific" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["browser"] = "firefox",
+                        ["requires_unicode_fix"] = true,
+                        ["content_editable_fix"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("msedge"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Browser,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "edge_chromium" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["browser"] = "edge",
+                        ["requires_unicode_fix"] = true,
+                        ["webview2_compatibility"] = true
+                    }
                 };
             }
 
-            // Development tools
-            if (processName.Contains("devenv") || processName.Contains("code") || 
-                processName.Contains("sublime") || processName.Contains("notepad++"))
+            // Enhanced development tool detection
+            if (processName.Contains("devenv"))
             {
                 return new ApplicationCompatibility 
                 { 
                     Category = ApplicationCategory.DevelopmentTool,
                     IsCompatible = true,
                     PreferredMethod = InjectionMethod.SendInput,
-                    RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars" }
+                    RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars", "intellisense_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["ide"] = "visual_studio",
+                        ["editor_type"] = "rich_text",
+                        ["intellisense_compatible"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("code"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.DevelopmentTool,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars", "electron_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["ide"] = "vscode",
+                        ["editor_type"] = "electron_based",
+                        ["webview_compatible"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("sublime"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.DevelopmentTool,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars", "sublime_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["ide"] = "sublime_text",
+                        ["editor_type"] = "native",
+                        ["multi_cursor_safe"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("notepad++"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.DevelopmentTool,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars", "scintilla_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["ide"] = "notepad_plus_plus",
+                        ["editor_type"] = "scintilla_based",
+                        ["plugin_safe"] = true
+                    }
                 };
             }
 
-            // Office applications
-            if (processName.Contains("winword") || processName.Contains("excel") || 
-                processName.Contains("powerpnt") || processName.Contains("outlook"))
+            // Enhanced Office application detection
+            if (processName.Contains("winword"))
             {
                 return new ApplicationCompatibility 
                 { 
                     Category = ApplicationCategory.Office,
                     IsCompatible = true,
                     PreferredMethod = InjectionMethod.ClipboardFallback,
-                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline" }
+                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline", "word_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["office_app"] = "word",
+                        ["rich_text_formatting"] = true,
+                        ["clipboard_preferred"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("excel"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Office,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.ClipboardFallback,
+                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline", "excel_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["office_app"] = "excel",
+                        ["cell_formatting"] = true,
+                        ["formula_safe"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("powerpnt"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Office,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.ClipboardFallback,
+                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline", "powerpoint_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["office_app"] = "powerpoint",
+                        ["slide_formatting"] = true,
+                        ["text_box_safe"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("outlook"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Office,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.ClipboardFallback,
+                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline", "outlook_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["office_app"] = "outlook",
+                        ["email_formatting"] = true,
+                        ["rich_text_compatible"] = true
+                    }
                 };
             }
 
-            // Communication tools
-            if (processName.Contains("slack") || processName.Contains("discord") || 
-                processName.Contains("teams") || processName.Contains("zoom"))
+            // Enhanced communication tool detection
+            if (processName.Contains("slack"))
             {
                 return new ApplicationCompatibility 
                 { 
                     Category = ApplicationCategory.Communication,
                     IsCompatible = true,
                     PreferredMethod = InjectionMethod.SendInput,
-                    RequiresSpecialHandling = new[] { "newline", "emoji" }
+                    RequiresSpecialHandling = new[] { "newline", "emoji", "slack_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["comm_app"] = "slack",
+                        ["electron_based"] = true,
+                        ["emoji_support"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("discord"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Communication,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "newline", "emoji", "discord_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["comm_app"] = "discord",
+                        ["electron_based"] = true,
+                        ["rich_emoji_support"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("teams"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Communication,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "newline", "emoji", "teams_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["comm_app"] = "teams",
+                        ["electron_based"] = true,
+                        ["microsoft_integration"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("zoom"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.Communication,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "newline", "zoom_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["comm_app"] = "zoom",
+                        ["video_conference"] = true,
+                        ["chat_compatible"] = true
+                    }
                 };
             }
 
-            // Text editors
-            if (processName.Contains("notepad") || processName.Contains("wordpad") || 
-                processName.Contains("write"))
+            // Enhanced text editor detection
+            if (processName.Contains("notepad"))
             {
                 return new ApplicationCompatibility 
                 { 
                     Category = ApplicationCategory.TextEditor,
                     IsCompatible = true,
                     PreferredMethod = InjectionMethod.SendInput,
-                    RequiresSpecialHandling = new[] { "unicode", "newline", "tab" }
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "tab", "notepad_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["text_editor"] = "notepad",
+                        ["plain_text"] = true,
+                        ["system_native"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("wordpad"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.TextEditor,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "tab", "wordpad_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["text_editor"] = "wordpad",
+                        ["rich_text"] = true,
+                        ["system_native"] = true
+                    }
+                };
+            }
+            
+            if (processName.Contains("write"))
+            {
+                return new ApplicationCompatibility 
+                { 
+                    Category = ApplicationCategory.TextEditor,
+                    IsCompatible = true,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "tab", "write_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["text_editor"] = "write",
+                        ["plain_text"] = true,
+                        ["system_native"] = true
+                    }
                 };
             }
 
-            // Default compatibility
+            // Default compatibility with enhanced fallback detection
+            var isCompatible = IsInjectionCompatible();
             return new ApplicationCompatibility 
             { 
                 Category = ApplicationCategory.Unknown,
-                IsCompatible = IsInjectionCompatible(),
-                PreferredMethod = InjectionMethod.SendInput,
-                RequiresSpecialHandling = new string[0]
+                IsCompatible = isCompatible,
+                PreferredMethod = isCompatible ? InjectionMethod.SendInput : InjectionMethod.ClipboardFallback,
+                RequiresSpecialHandling = isCompatible ? new[] { "unicode", "newline" } : new[] { "fallback_only" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["detected_process"] = processName,
+                    ["fallback_mode"] = !isCompatible
+                }
             };
         }
 
