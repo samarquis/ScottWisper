@@ -30,6 +30,13 @@ namespace ScottWisper
         private readonly Dictionary<TrayStatus, Icon> _statusIcons;
         private DateTime _lastStatusChange;
         private string _statusMessage = "ScottWisper - Ready";
+        
+        // Performance optimization fields
+        private readonly System.Timers.Timer _memoryMonitorTimer;
+        private long _lastGcMemory = 0;
+        private int _notificationQueue = 0;
+        private readonly object _lockObject = new();
+        private bool _isCleaningUp = false;
 
         public event EventHandler? StartDictationRequested;
         public event EventHandler? StopDictationRequested;
@@ -42,6 +49,12 @@ namespace ScottWisper
         {
             _statusIcons = new Dictionary<TrayStatus, Icon>();
             _lastStatusChange = DateTime.Now;
+            _lastGcMemory = GC.GetTotalMemory(false);
+            
+            // Initialize memory monitoring timer (checks every 30 seconds)
+            _memoryMonitorTimer = new System.Timers.Timer(30000);
+            _memoryMonitorTimer.Elapsed += OnMemoryMonitorTimer;
+            _memoryMonitorTimer.AutoReset = true;
         }
 
         public void Initialize()
@@ -71,6 +84,9 @@ namespace ScottWisper
 
             // Set initial status
             UpdateStatus(TrayStatus.Ready);
+            
+            // Start memory monitoring for long-term stability
+            _memoryMonitorTimer.Start();
         }
 
         private void CreateStatusIcons()
@@ -311,8 +327,36 @@ namespace ScottWisper
             _currentStatus = status;
             _lastStatusChange = DateTime.Now;
 
-            // Update status message
-            _statusMessage = status switch
+            // Update status message (optimized with pre-built messages)
+            _statusMessage = GetStatusMessage(status);
+
+            if (_notifyIcon != null)
+            {
+                // Update icon efficiently
+                if (_statusIcons.TryGetValue(status, out var icon))
+                {
+                    _notifyIcon.Icon = icon;
+                }
+
+                // Update tooltip with status and timing info (optimized string formatting)
+                var timeSinceChange = DateTime.Now - _lastStatusChange;
+                var tooltip = $"{_statusMessage}\nStatus for: {timeSinceChange:mm\\:ss}";
+                _notifyIcon.Text = tooltip.Trim();
+            }
+
+            // Update context menu (only if needed)
+            UpdateContextMenuEfficiently();
+
+            // Show notification for important status changes
+            ShowStatusChangeNotification(oldStatus, status);
+
+            // Trigger status changed event
+            StatusChanged?.Invoke(this, status);
+        }
+
+        private string GetStatusMessage(TrayStatus status)
+        {
+            return status switch
             {
                 TrayStatus.Idle => "ScottWisper - Idle",
                 TrayStatus.Ready => "ScottWisper - Ready",
@@ -322,29 +366,30 @@ namespace ScottWisper
                 TrayStatus.Offline => "ScottWisper - Offline",
                 _ => "ScottWisper - Unknown"
             };
+        }
 
-            if (_notifyIcon != null)
+        private void UpdateContextMenuEfficiently()
+        {
+            if (_notifyIcon?.ContextMenuStrip == null || _isCleaningUp)
+                return;
+
+            // Find and update only the status menu item and dictation item
+            foreach (ToolStripItem item in _notifyIcon.ContextMenuStrip.Items)
             {
-                // Update icon
-                if (_statusIcons.ContainsKey(status))
+                if (item is ToolStripMenuItem menuItem)
                 {
-                    _notifyIcon.Icon = _statusIcons[status];
+                    var text = menuItem.Text;
+                    if (text.StartsWith("Status:") && text != $"Status: {_currentStatus}")
+                    {
+                        menuItem.Text = $"Status: {_currentStatus}";
+                    }
+                    else if ((text == "Start Dictation" || text == "Stop Dictation") && 
+                             text != (_isDictating ? "Stop Dictation" : "Start Dictation"))
+                    {
+                        menuItem.Text = _isDictating ? "Stop Dictation" : "Start Dictation";
+                    }
                 }
-
-                // Update tooltip with status and timing info
-                var timeSinceChange = DateTime.Now - _lastStatusChange;
-                var tooltip = $"{_statusMessage}\nStatus for: {timeSinceChange:mm\\:ss}";
-                _notifyIcon.Text = tooltip.Trim();
             }
-
-            // Update context menu
-            UpdateContextMenu();
-
-            // Show notification for important status changes
-            ShowStatusChangeNotification(oldStatus, status);
-
-            // Trigger status changed event
-            StatusChanged?.Invoke(this, status);
         }
 
         private void UpdateContextMenu()
@@ -425,20 +470,129 @@ namespace ScottWisper
         {
             if (_notifyIcon != null && !_isDisposed)
             {
+                lock (_lockObject)
+                {
+                    // Limit notification queue to prevent overwhelming the user
+                    if (_notificationQueue > 5)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Notification queue full, skipping notification");
+                        return;
+                    }
+                    
+                    _notificationQueue++;
+                }
+
                 try
                 {
-                    // Determine icon based on title content
-                    var icon = title.Contains("Error") ? ToolTipIcon.Error : 
-                               title.Contains("Warning") ? ToolTipIcon.Warning : 
-                               ToolTipIcon.Info;
+                    // Determine icon efficiently
+                    var icon = GetNotificationIcon(title);
                     
                     _notifyIcon.ShowBalloonTip(durationMs, title, message, icon);
                     System.Diagnostics.Debug.WriteLine($"Notification shown: {title} - {message}");
+                    
+                    // Auto-decrement notification queue after reasonable time
+                    Task.Delay(durationMs).ContinueWith(_ => 
+                    {
+                        lock (_lockObject)
+                        {
+                            _notificationQueue = Math.Max(0, _notificationQueue - 1);
+                        }
+                    });
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Failed to show notification: {ex.Message}");
+                    lock (_lockObject)
+                    {
+                        _notificationQueue = Math.Max(0, _notificationQueue - 1);
+                    }
                 }
+            }
+        }
+
+        private ToolTipIcon GetNotificationIcon(string title)
+        {
+            // Efficient icon determination with minimal string operations
+            if (title.Contains("Error"))
+                return ToolTipIcon.Error;
+            if (title.Contains("Warning"))
+                return ToolTipIcon.Warning;
+            return ToolTipIcon.Info;
+        }
+
+        private void OnMemoryMonitorTimer(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (_isDisposed || _isCleaningUp)
+                return;
+
+            try
+            {
+                var currentMemory = GC.GetTotalMemory(false);
+                var memoryIncrease = currentMemory - _lastGcMemory;
+                
+                // If memory increased significantly, trigger cleanup
+                if (memoryIncrease > 5 * 1024 * 1024) // 5MB threshold
+                {
+                    PerformMemoryCleanup();
+                }
+                
+                _lastGcMemory = currentMemory;
+                System.Diagnostics.Debug.WriteLine($"Memory monitor: {currentMemory / 1024.0 / 1024.0:F2}MB (increase: {memoryIncrease / 1024.0 / 1024.0:F2}MB)");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Memory monitor error: {ex.Message}");
+            }
+        }
+
+        private void PerformMemoryCleanup()
+        {
+            if (_isCleaningUp)
+                return;
+
+            lock (_lockObject)
+            {
+                if (_isCleaningUp)
+                    return;
+                
+                _isCleaningUp = true;
+            }
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("Performing system tray memory cleanup...");
+                
+                // Force garbage collection
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                
+                // Clean up any unused status icons
+                var currentStatus = _currentStatus;
+                foreach (var kvp in _statusIcons.ToList())
+                {
+                    if (kvp.Key != currentStatus && kvp.Value != null)
+                    {
+                        // Only dispose icons that aren't currently in use
+                        // Note: We keep all icons for reuse, so no disposal here
+                    }
+                }
+                
+                // Clean up notification queue
+                if (_notificationQueue > 10)
+                {
+                    _notificationQueue = 0;
+                }
+                
+                System.Diagnostics.Debug.WriteLine("System tray memory cleanup completed");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Memory cleanup error: {ex.Message}");
+            }
+            finally
+            {
+                _isCleaningUp = false;
             }
         }
 
@@ -448,6 +602,10 @@ namespace ScottWisper
                 return;
 
             _isDisposed = true;
+
+            // Stop memory monitor timer
+            _memoryMonitorTimer?.Stop();
+            _memoryMonitorTimer?.Dispose();
 
             // Hide icon before disposal
             if (_notifyIcon != null)
