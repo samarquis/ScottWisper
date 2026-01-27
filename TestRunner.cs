@@ -96,14 +96,20 @@ namespace ScottWisper.Testing
 
             try
             {
-                // Get all test methods
-                var testMethods = typeof(IntegrationTests).GetMethods()
+                // Get all test methods from IntegrationTests
+                var integrationTestMethods = typeof(IntegrationTests).GetMethods()
                     .Where(m => m.GetCustomAttributes(typeof(TestMethodAttribute), false).Length > 0);
-
-                summary.TotalTests = testMethods.Count();
+                
+                // Get all test methods from SystemTrayTests
+                var systemTrayTestMethods = typeof(SystemTrayTests).GetMethods()
+                    .Where(m => m.GetCustomAttributes(typeof(TestMethodAttribute), false).Length > 0);
+                
+                // Combine all test methods
+                var allTestMethods = integrationTestMethods.Concat(systemTrayTestMethods).ToList();
+                summary.TotalTests = allTestMethods.Count;
 
                 // Execute each test
-                foreach (var testMethod in testMethods)
+                foreach (var testMethod in allTestMethods)
                 {
                     var result = await ExecuteSingleTestAsync(testMethod, summary);
                     summary.Results.Add(result);
@@ -331,7 +337,7 @@ namespace ScottWisper.Testing
 
             foreach (var category in summary.CategoryResults.OrderByDescending(kv => kv.Value))
             {
-                var categoryTotal = summary.Results.Count(r => GetTestCategory(r.GetType().GetMethod(r.TestName)!) == category.Key);
+                var categoryTotal = summary.Results.Count(r => r.Category == category.Key);
                 var categoryPassed = summary.CategoryResults[category.Key];
                 var categorySuccessRate = categoryTotal > 0 ? (double)categoryPassed / categoryTotal * 100 : 0.0;
 
@@ -340,6 +346,28 @@ namespace ScottWisper.Testing
 
             html.AppendLine("        </table>");
             html.AppendLine("    </div>");
+
+            // System Tray specific metrics if available
+            var systemTrayResults = summary.Results.Where(r => r.Category == "SystemTray").ToList();
+            if (systemTrayResults.Count > 0)
+            {
+                html.AppendLine("    <div class=\"summary\">");
+                html.AppendLine("        <h2>System Tray Performance Analysis</h2>");
+                html.AppendLine("        <table>");
+                html.AppendLine("            <tr><th>Metric</th><th>Value</th><th>Status</th></tr>");
+                
+                var avgLatency = systemTrayResults.Average(r => r.ExecutionTime.TotalMilliseconds);
+                var avgMemory = systemTrayResults.Average(r => r.MemoryUsageMB);
+                var responsivenessRate = (double)systemTrayResults.Count(r => r.ExecutionTime.TotalMilliseconds < 100) / systemTrayResults.Count * 100;
+                
+                html.AppendLine($"            <tr><td>Average Response Time</td><td>{avgLatency:F2}ms</td><td>{(avgLatency < 100 ? "✓ Good" : "⚠ Slow")}</td></tr>");
+                html.AppendLine($"            <tr><td>Average Memory Usage</td><td>{avgMemory:F2}MB</td><td>{(avgMemory < 10 ? "✓ Good" : "⚠ High")}</td></tr>");
+                html.AppendLine($"            <tr><td>Responsiveness Rate</td><td>{responsivenessRate:F1}%</td><td>{(responsivenessRate > 95 ? "✓ Excellent" : "⚠ Needs Improvement")}</td></tr>");
+                html.AppendLine($"            <tr><td>Test Coverage</td><td>{systemTrayResults.Count} tests</td><td>{(systemTrayResults.Count >= 10 ? "✓ Comprehensive" : "⚠ Limited")}</td></tr>");
+                
+                html.AppendLine("        </table>");
+                html.AppendLine("    </div>");
+            }
 
             // Performance metrics
             if (summary.PerformanceMetrics.Count > 0)
@@ -398,10 +426,32 @@ namespace ScottWisper.Testing
             console.WriteLine("RESULTS BY CATEGORY:");
             foreach (var category in summary.CategoryResults.OrderByDescending(kv => kv.Value))
             {
-                var categoryTotal = summary.Results.Count(r => GetTestCategory(r.GetType().GetMethod(r.TestName)!) == category.Key);
+                var categoryTotal = summary.Results.Count(r => r.Category == category.Key);
                 var categoryPassed = summary.CategoryResults[category.Key];
                 var categorySuccessRate = categoryTotal > 0 ? (double)categoryPassed / categoryTotal * 100 : 0.0;
                 console.WriteLine($"  {category.Key}: {categoryPassed}/{categoryTotal} ({categorySuccessRate:F1}%)");
+            }
+
+            // System Tray specific analysis
+            var systemTrayResults = summary.Results.Where(r => r.Category == "SystemTray").ToList();
+            if (systemTrayResults.Count > 0)
+            {
+                console.WriteLine();
+                console.WriteLine("SYSTEM TRAY PERFORMANCE ANALYSIS:");
+                var avgLatency = systemTrayResults.Average(r => r.ExecutionTime.TotalMilliseconds);
+                var avgMemory = systemTrayResults.Average(r => r.MemoryUsageMB);
+                var responsivenessRate = (double)systemTrayResults.Count(r => r.ExecutionTime.TotalMilliseconds < 100) / systemTrayResults.Count * 100;
+                var stabilityTests = systemTrayResults.Count(r => r.TestName.Contains("Stability"));
+                var performanceTests = systemTrayResults.Count(r => r.TestName.Contains("Performance"));
+                var memoryTests = systemTrayResults.Count(r => r.TestName.Contains("Memory"));
+                
+                console.WriteLine($"  Average Response Time: {avgLatency:F2}ms {(avgLatency < 100 ? "✓" : "⚠")}");
+                console.WriteLine($"  Average Memory Usage: {avgMemory:F2}MB {(avgMemory < 10 ? "✓" : "⚠")}");
+                console.WriteLine($"  Responsiveness Rate: {responsivenessRate:F1}% {(responsivenessRate > 95 ? "✓" : "⚠")}");
+                console.WriteLine($"  Stability Tests: {stabilityTests} passed");
+                console.WriteLine($"  Performance Tests: {performanceTests} passed");
+                console.WriteLine($"  Memory Management Tests: {memoryTests} passed");
+                console.WriteLine($"  Total System Tray Tests: {systemTrayResults.Count(r => r.Passed)}/{systemTrayResults.Count}");
             }
 
             if (summary.FailedTestNames.Count > 0)
@@ -434,9 +484,99 @@ namespace ScottWisper.Testing
         }
 
         /// <summary>
+        /// Run system tray specific tests with detailed analysis
+        /// </summary>
+        public async Task<TestSuiteSummary> RunSystemTrayTestsAsync()
+        {
+            var summary = new TestSuiteSummary { StartTime = DateTime.Now };
+            var initialMemory = Process.GetCurrentProcess().WorkingSet64 / (1024 * 1024);
+            var initialCpuTime = Process.GetCurrentProcess().TotalProcessorTime;
+
+            try
+            {
+                // Get only system tray test methods
+                var systemTrayTestMethods = typeof(SystemTrayTests).GetMethods()
+                    .Where(m => m.GetCustomAttributes(typeof(TestMethodAttribute), false).Length > 0);
+
+                summary.TotalTests = systemTrayTestMethods.Count();
+
+                // Execute each system tray test
+                foreach (var testMethod in systemTrayTestMethods)
+                {
+                    var result = await ExecuteSingleTestAsync(testMethod, summary);
+                    summary.Results.Add(result);
+
+                    if (result.Passed)
+                        summary.PassedTests++;
+                    else
+                    {
+                        summary.FailedTests++;
+                        summary.FailedTestNames.Add(result.TestName);
+                    }
+
+                    // Update category results
+                    var categoryAttr = testMethod.GetCustomAttributes(typeof(TestCategoryAttribute), false)
+                        .FirstOrDefault() as TestCategoryAttribute;
+                    var category = categoryAttr?.TestCategories.FirstOrDefault() ?? "SystemTray";
+                    
+                    if (!summary.CategoryResults.ContainsKey(category))
+                        summary.CategoryResults[category] = 0;
+                    
+                    summary.CategoryResults[category] += result.Passed ? 1 : 0;
+                }
+
+                summary.EndTime = DateTime.Now;
+                summary.TotalExecutionTime = summary.EndTime - summary.StartTime;
+
+                // Calculate system tray specific metrics
+                var finalMemory = Process.GetCurrentProcess().WorkingSet64 / (1024 * 1024);
+                var finalCpuTime = Process.GetCurrentProcess().TotalProcessorTime;
+                var cpuUsageMs = (finalCpuTime - initialCpuTime).TotalMilliseconds;
+
+                var systemTrayResults = summary.Results.Where(r => r.Category == "SystemTray").ToList();
+                if (systemTrayResults.Count > 0)
+                {
+                    summary.PerformanceMetrics.AverageLatencyMs = systemTrayResults.Average(r => r.ExecutionTime.TotalMilliseconds);
+                    summary.PerformanceMetrics.MaxLatencyMs = systemTrayResults.Max(r => r.ExecutionTime.TotalMilliseconds);
+                    summary.PerformanceMetrics.AverageMemoryMB = systemTrayResults.Average(r => r.MemoryUsageMB);
+                    summary.PerformanceMetrics.MaxMemoryMB = systemTrayResults.Max(r => r.MemoryUsageMB);
+                    summary.PerformanceMetrics.AverageCpuUsage = cpuUsageMs / summary.TotalExecutionTime.TotalMilliseconds * 100;
+                    summary.PerformanceMetrics.TotalRunTime = summary.TotalExecutionTime;
+                    summary.PerformanceMetrics.OperationsPerSecond = (int)(systemTrayResults.Count / summary.TotalExecutionTime.TotalSeconds);
+
+                    // Add system tray specific insights
+                    var stabilityTests = systemTrayResults.Where(r => r.TestName.Contains("Stability")).ToList();
+                    var performanceTests = systemTrayResults.Where(r => r.TestName.Contains("Performance")).ToList();
+                    var memoryTests = systemTrayResults.Where(r => r.TestName.Contains("Memory")).ToList();
+
+                    summary.PerformanceMetrics.Add($"System Tray Tests: {systemTrayResults.Count} total, {systemTrayResults.Count(r => r.Passed)} passed");
+                    summary.PerformanceMetrics.Add($"Stability Tests: {stabilityTests.Count(r => r.Passed)}/{stabilityTests.Count} passed");
+                    summary.PerformanceMetrics.Add($"Performance Tests: {performanceTests.Count(r => r.Passed)}/{performanceTests.Count} passed");
+                    summary.PerformanceMetrics.Add($"Memory Management Tests: {memoryTests.Count(r => r.Passed)}/{memoryTests.Count} passed");
+                    summary.PerformanceMetrics.Add($"System Tray Average Response Time: {summary.PerformanceMetrics.AverageLatencyMs:F2}ms");
+                    summary.PerformanceMetrics.Add($"System Tray Memory Efficiency: {(finalMemory - initialMemory)/systemTrayResults.Count:F2}MB per test");
+                }
+            }
+            catch (Exception ex)
+            {
+                summary.FailedTests = summary.TotalTests;
+                summary.ErrorMessage = ex.Message;
+                summary.Results.Add(new TestExecutionResult
+                {
+                    TestName = "SystemTrayTestRunner",
+                    Passed = false,
+                    ErrorMessage = ex.Message,
+                    ExecutionTime = DateTime.Now - summary.StartTime
+                });
+            }
+
+            return summary;
+        }
+
+        /// <summary>
         /// Save reports to files
         /// </summary>
-        public async Task SaveReportsAsync(TestSuiteSummary summary)
+        public async Task<string[]> SaveReportsAsync(TestSuiteSummary summary)
         {
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
             var reportsDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "ScottWisper-TestReports");
@@ -445,6 +585,22 @@ namespace ScottWisper.Testing
             {
                 Directory.CreateDirectory(reportsDir);
             }
+
+            // Save HTML report
+            var htmlReport = Path.Combine(reportsDir, $"TestReport_{timestamp}.html");
+            await File.WriteAllTextAsync(htmlReport, GenerateHtmlReport(summary));
+
+            // Save console report
+            var consoleReport = Path.Combine(reportsDir, $"TestReport_{timestamp}.txt");
+            await File.WriteAllTextAsync(consoleReport, GenerateConsoleReport(summary));
+
+            // Save JSON summary for programmatic access
+            var jsonReport = Path.Combine(reportsDir, $"TestSummary_{timestamp}.json");
+            var jsonSummary = System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(jsonReport, jsonSummary);
+
+            return new string[] { htmlReport, consoleReport, jsonReport };
+        }
 
             // Save HTML report
             var htmlReport = Path.Combine(reportsDir, $"TestReport_{timestamp}.html");

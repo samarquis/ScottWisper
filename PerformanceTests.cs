@@ -17,6 +17,7 @@ namespace ScottWisper
         private readonly AudioCaptureService _audioCaptureService;
         private readonly WhisperService _whisperService;
         private readonly HotkeyService _hotkeyService;
+        private readonly SystemTrayService _systemTrayService;
         private readonly List<PerformanceResult> _results = new();
 
         public PerformanceTests(AudioCaptureService audioCaptureService, WhisperService whisperService, HotkeyService hotkeyService)
@@ -24,6 +25,15 @@ namespace ScottWisper
             _audioCaptureService = audioCaptureService ?? throw new ArgumentNullException(nameof(audioCaptureService));
             _whisperService = whisperService ?? throw new ArgumentNullException(nameof(whisperService));
             _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
+            _systemTrayService = new SystemTrayService();
+        }
+
+        public PerformanceTests(AudioCaptureService audioCaptureService, WhisperService whisperService, HotkeyService hotkeyService, SystemTrayService systemTrayService)
+        {
+            _audioCaptureService = audioCaptureService ?? throw new ArgumentNullException(nameof(audioCaptureService));
+            _whisperService = whisperService ?? throw new ArgumentNullException(nameof(whisperService));
+            _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
+            _systemTrayService = systemTrayService ?? throw new ArgumentNullException(nameof(systemTrayService));
         }
 
         /// <summary>
@@ -358,6 +368,231 @@ namespace ScottWisper
         }
 
         /// <summary>
+        /// Tests system tray performance under various conditions
+        /// </summary>
+        public async Task<SystemTrayPerformanceMetrics> TestSystemTrayPerformance()
+        {
+            if (_systemTrayService == null)
+                throw new InvalidOperationException("SystemTrayService not initialized");
+
+            // Initialize system tray
+            _systemTrayService.Initialize();
+            
+            var startTime = DateTime.UtcNow;
+            var performanceMeasurements = new List<SystemTrayMeasurement>();
+            
+            // Test 1: Status update performance
+            var statusUpdateTimes = new List<long>();
+            var statuses = Enum.GetValues<SystemTrayService.TrayStatus>();
+            
+            for (int i = 0; i < 100; i++)
+            {
+                var status = statuses[i % statuses.Length];
+                var stopwatch = Stopwatch.StartNew();
+                _systemTrayService.UpdateStatus(status);
+                stopwatch.Stop();
+                statusUpdateTimes.Add(stopwatch.ElapsedMilliseconds);
+                await Task.Delay(10);
+            }
+
+            // Test 2: Notification performance
+            var notificationTimes = new List<long>();
+            for (int i = 0; i < 50; i++)
+            {
+                var stopwatch = Stopwatch.StartNew();
+                _systemTrayService.ShowNotification($"Test notification {i}", "Performance Test");
+                stopwatch.Stop();
+                notificationTimes.Add(stopwatch.ElapsedMilliseconds);
+                await Task.Delay(50);
+            }
+
+            // Test 3: Memory usage during operation
+            var memorySnapshots = new List<MemorySnapshot>();
+            var initialMemory = GC.GetTotalMemory(false);
+            
+            for (int i = 0; i < 20; i++)
+            {
+                // Simulate typical system tray operations
+                _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+                _systemTrayService.UpdateDictationStatus(true);
+                _systemTrayService.ShowNotification($"Cycle {i}", "Memory test");
+                _systemTrayService.UpdateDictationStatus(false);
+                
+                var currentMemory = GC.GetTotalMemory(false);
+                memorySnapshots.Add(new MemorySnapshot
+                {
+                    Timestamp = DateTime.UtcNow,
+                    MemoryBytes = currentMemory,
+                    OperationCount = i
+                });
+                
+                await Task.Delay(100);
+            }
+
+            // Test 4: High-frequency updates
+            var highFreqTimes = new List<long>();
+            var highFreqStart = DateTime.UtcNow;
+            
+            while (DateTime.UtcNow - highFreqStart < TimeSpan.FromSeconds(5))
+            {
+                var stopwatch = Stopwatch.StartNew();
+                _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Recording);
+                _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Processing);
+                _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+                stopwatch.Stop();
+                highFreqTimes.Add(stopwatch.ElapsedMilliseconds);
+                await Task.Delay(10);
+            }
+
+            var finalMemory = GC.GetTotalMemory(false);
+            var memoryIncrease = finalMemory - initialMemory;
+
+            var metrics = new SystemTrayPerformanceMetrics
+            {
+                AverageStatusUpdateTime = statusUpdateTimes.Average(),
+                MaxStatusUpdateTime = statusUpdateTimes.Max(),
+                MinStatusUpdateTime = statusUpdateTimes.Min(),
+                AverageNotificationTime = notificationTimes.Average(),
+                MaxNotificationTime = notificationTimes.Max(),
+                MinNotificationTime = notificationTimes.Min(),
+                MemoryIncreaseBytes = memoryIncrease,
+                MemoryIncreaseMB = memoryIncrease / (1024.0 * 1024.0),
+                HighFrequencyUpdateCount = highFreqTimes.Count,
+                AverageHighFreqUpdateTime = highFreqTimes.Count > 0 ? highFreqTimes.Average() : 0,
+                MemorySnapshots = memorySnapshots,
+                TotalTestDuration = DateTime.UtcNow - startTime,
+                StatusUpdateResponsiveness = (double)statusUpdateTimes.Count(t => t < 100) / statusUpdateTimes.Count * 100,
+                NotificationResponsiveness = notificationTimes.Count > 0 ? 
+                    (double)notificationTimes.Count(t => t < 50) / notificationTimes.Count * 100 : 0
+            };
+
+            _results.Add(new PerformanceResult
+            {
+                TestType = "SystemTrayPerformance",
+                Timestamp = DateTime.UtcNow,
+                Metrics = metrics,
+                Success = metrics.AverageStatusUpdateTime < 100 && 
+                          metrics.AverageNotificationTime < 50 && 
+                          metrics.MemoryIncreaseMB < 10
+            });
+
+            return metrics;
+        }
+
+        /// <summary>
+        /// Tests long-term system tray stability and resource management
+        /// </summary>
+        public async Task<SystemTrayStabilityMetrics> TestLongTermStability()
+        {
+            if (_systemTrayService == null)
+                throw new InvalidOperationException("SystemTrayService not initialized");
+
+            _systemTrayService.Initialize();
+            
+            var testDuration = TimeSpan.FromMinutes(5); // Reduced for automated testing
+            var startTime = DateTime.UtcNow;
+            var operationCount = 0;
+            var errors = new List<string>();
+            var memoryLeakData = new List<long>();
+            var responsivenessData = new List<bool>();
+
+            var initialMemory = GC.GetTotalMemory(false);
+            var lastCheckTime = startTime;
+
+            while (DateTime.UtcNow - startTime < testDuration)
+            {
+                try
+                {
+                    var operationStart = DateTime.UtcNow;
+                    
+                    // Perform typical system tray operations
+                    var random = new Random();
+                    var operation = random.Next(0, 4);
+                    
+                    switch (operation)
+                    {
+                        case 0:
+                            _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Ready);
+                            break;
+                        case 1:
+                            _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Recording);
+                            _systemTrayService.UpdateDictationStatus(true);
+                            break;
+                        case 2:
+                            _systemTrayService.UpdateStatus(SystemTrayService.TrayStatus.Processing);
+                            _systemTrayService.UpdateDictationStatus(false);
+                            break;
+                        case 3:
+                            _systemTrayService.ShowNotification($"Stability test {operationCount}", "Long-term test");
+                            break;
+                    }
+                    
+                    var operationEnd = DateTime.UtcNow;
+                    var operationLatency = (operationEnd - operationStart).TotalMilliseconds;
+                    responsivenessData.Add(operationLatency < 100);
+                    
+                    operationCount++;
+                    
+                    // Check memory every 10 operations
+                    if (operationCount % 10 == 0)
+                    {
+                        var currentMemory = GC.GetTotalMemory(false);
+                        memoryLeakData.Add(currentMemory);
+                        
+                        // Check for potential memory leaks
+                        var memoryIncrease = currentMemory - initialMemory;
+                        if (memoryIncrease > 50 * 1024 * 1024) // 50MB increase threshold
+                        {
+                            errors.Add($"Potential memory leak detected at operation {operationCount}: {memoryIncrease / 1024.0 / 1024.0:F2}MB increase");
+                        }
+                        
+                        lastCheckTime = DateTime.UtcNow;
+                    }
+                    
+                    await Task.Delay(200); // 5 operations per second
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"Operation {operationCount}: {ex.Message}");
+                }
+            }
+
+            var finalMemory = GC.GetTotalMemory(false);
+            var totalMemoryIncrease = finalMemory - initialMemory;
+
+            var metrics = new SystemTrayStabilityMetrics
+            {
+                TestDuration = testDuration,
+                TotalOperations = operationCount,
+                SuccessfulOperations = operationCount - errors.Count,
+                FailedOperations = errors.Count,
+                ErrorRate = operationCount > 0 ? (double)errors.Count / operationCount * 100 : 0,
+                ResponsivenessRate = responsivenessData.Count > 0 ? 
+                    (double)responsivenessData.Count(r => r) / responsivenessData.Count * 100 : 0,
+                InitialMemoryBytes = initialMemory,
+                FinalMemoryBytes = finalMemory,
+                MemoryIncreaseBytes = totalMemoryIncrease,
+                MemoryIncreaseMB = totalMemoryIncrease / (1024.0 * 1024.0),
+                MemoryLeakData = memoryLeakData,
+                Errors = errors,
+                SuccessRate = operationCount > 0 ? (double)(operationCount - errors.Count) / operationCount * 100 : 0,
+                ResourceCleanupEfficiency = CalculateResourceCleanupEfficiency(memoryLeakData)
+            };
+
+            _results.Add(new PerformanceResult
+            {
+                TestType = "SystemTrayStability",
+                Timestamp = DateTime.UtcNow,
+                Metrics = metrics,
+                Success = metrics.ErrorRate < 5 && 
+                          metrics.ResponsivenessRate > 95 && 
+                          metrics.MemoryIncreaseMB < 50
+            });
+
+            return metrics;
+        }
+
+        /// <summary>
         /// Runs all performance tests and returns comprehensive report
         /// </summary>
         public async Task<PerformanceTestReport> RunAllTests()
@@ -385,6 +620,16 @@ namespace ScottWisper
                 report.StabilityMetrics = await TestStability(TimeSpan.FromMinutes(10));
                 report.TestResults.Add(_results.Last());
 
+                // Run system tray performance tests
+                Console.WriteLine("Running system tray performance tests...");
+                report.SystemTrayPerformanceMetrics = await TestSystemTrayPerformance();
+                report.TestResults.Add(_results.Last());
+
+                // Run system tray stability tests
+                Console.WriteLine("Running system tray stability tests...");
+                report.SystemTrayStabilityMetrics = await TestLongTermStability();
+                report.TestResults.Add(_results.Last());
+
                 // Run cost validation tests
                 Console.WriteLine("Running cost validation tests...");
                 report.CostValidationMetrics = await ValidateCostTracking();
@@ -400,6 +645,9 @@ namespace ScottWisper
                 report.EndTime = DateTime.UtcNow;
                 report.Duration = report.EndTime - report.StartTime;
                 report.Success = report.TestResults.All(r => r.Success) && string.IsNullOrEmpty(report.ErrorMessage);
+                
+                // Cleanup system tray service
+                _systemTrayService?.Dispose();
             }
 
             return report;
@@ -534,6 +782,24 @@ namespace ScottWisper
             var durationMinutes = (double)audioDataLength / bytesPerSecond / 60.0;
             return (decimal)durationMinutes * costPerMinute;
         }
+
+        private double CalculateResourceCleanupEfficiency(List<long> memorySnapshots)
+        {
+            if (memorySnapshots.Count < 3) return 100.0; // Perfect if insufficient data
+
+            // Calculate memory trend
+            var firstHalf = memorySnapshots.Take(memorySnapshots.Count / 2).ToList();
+            var secondHalf = memorySnapshots.Skip(memorySnapshots.Count / 2).ToList();
+
+            var firstHalfAvg = firstHalf.Average();
+            var secondHalfAvg = secondHalf.Average();
+
+            // Efficiency based on memory growth trend (lower growth = higher efficiency)
+            var memoryGrowthRate = (secondHalfAvg - firstHalfAvg) / Math.Max(firstHalfAvg, 1);
+            var efficiency = Math.Max(0, 100 - (memoryGrowthRate * 1000)); // Scale growth to efficiency
+
+            return Math.Min(100, efficiency);
+        }
     }
 
     // Data models
@@ -642,6 +908,8 @@ namespace ScottWisper
         public AccuracyMetrics? AccuracyMetrics { get; set; }
         public StabilityMetrics? StabilityMetrics { get; set; }
         public CostValidationMetrics? CostValidationMetrics { get; set; }
+        public SystemTrayPerformanceMetrics? SystemTrayPerformanceMetrics { get; set; }
+        public SystemTrayStabilityMetrics? SystemTrayStabilityMetrics { get; set; }
     }
 
     public class TestCase
@@ -657,6 +925,43 @@ namespace ScottWisper
     {
         public string Name { get; set; } = string.Empty;
         public int[] AudioDataSizes { get; set; } = Array.Empty<int>();
+    }
+
+    // System Tray Performance Metrics Classes
+    public class SystemTrayPerformanceMetrics
+    {
+        public double AverageStatusUpdateTime { get; set; }
+        public double MaxStatusUpdateTime { get; set; }
+        public double MinStatusUpdateTime { get; set; }
+        public double AverageNotificationTime { get; set; }
+        public double MaxNotificationTime { get; set; }
+        public double MinNotificationTime { get; set; }
+        public long MemoryIncreaseBytes { get; set; }
+        public double MemoryIncreaseMB { get; set; }
+        public int HighFrequencyUpdateCount { get; set; }
+        public double AverageHighFreqUpdateTime { get; set; }
+        public List<MemorySnapshot> MemorySnapshots { get; set; } = new();
+        public TimeSpan TotalTestDuration { get; set; }
+        public double StatusUpdateResponsiveness { get; set; } // Percentage of updates < 100ms
+        public double NotificationResponsiveness { get; set; } // Percentage of notifications < 50ms
+    }
+
+    public class SystemTrayStabilityMetrics
+    {
+        public TimeSpan TestDuration { get; set; }
+        public int TotalOperations { get; set; }
+        public int SuccessfulOperations { get; set; }
+        public int FailedOperations { get; set; }
+        public double ErrorRate { get; set; } // Percentage of failed operations
+        public double ResponsivenessRate { get; set; } // Percentage of operations < 100ms latency
+        public long InitialMemoryBytes { get; set; }
+        public long FinalMemoryBytes { get; set; }
+        public long MemoryIncreaseBytes { get; set; }
+        public double MemoryIncreaseMB { get; set; }
+        public List<long> MemoryLeakData { get; set; } = new();
+        public List<string> Errors { get; set; } = new();
+        public double SuccessRate { get; set; } // Overall success rate
+        public double ResourceCleanupEfficiency { get; set; } // Memory leak prevention score
     }
 
     // Extension method for random short generation
