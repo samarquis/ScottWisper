@@ -12,12 +12,45 @@ using ScottWisper.Services;
 namespace ScottWisper
 {
     /// <summary>
-    /// Interface for text injection methods
+    /// Performance metrics for injection operations
+    /// </summary>
+    public class InjectionMetrics
+    {
+        public TimeSpan AverageLatency { get; set; }
+        public double SuccessRate { get; set; }
+        public int TotalAttempts { get; set; }
+        public List<InjectionAttempt> RecentFailures { get; set; } = new();
+    }
+
+    /// <summary>
+    /// User feedback report for injection issues
+    /// </summary>
+    public class InjectionIssuesReport
+    {
+        public int IssueCount { get; set; }
+        public string OverallHealth { get; set; }
+        public List<string> Recommendations { get; set; } = new List<string>();
+        public List<string> Issues { get; set; } = new List<string>();
+    }
+
+    /// <summary>
+    /// Test result for injection functionality
+    /// </summary>
+    public class InjectionTestResult
+    {
+        public bool Success { get; set; }
+        public string TestText { get; set; } = string.Empty;
+        public string MethodUsed { get; set; } = string.Empty;
+        public string[] Issues { get; set; } = Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Universal text injection service interface
     /// </summary>
     public interface ITextInjection
     {
         /// <summary>
-        /// Injects text at the current cursor position
+        /// Injects text at current cursor position
         /// </summary>
         Task<bool> InjectTextAsync(string text, InjectionOptions? options = null);
         
@@ -30,6 +63,36 @@ namespace ScottWisper
         /// Cleanup resources
         /// </summary>
         void Dispose();
+        
+        /// <summary>
+        /// Test injection functionality
+        /// </summary>
+        Task<InjectionTestResult> TestInjectionAsync();
+        
+        /// <summary>
+        /// Enable or disable debug mode
+        /// </summary>
+        void SetDebugMode(bool enabled);
+        
+        /// <summary>
+        /// Get injection performance metrics
+        /// </summary>
+        InjectionMetrics GetInjectionMetrics();
+
+        /// <summary>
+        /// Get injection performance metrics (alias for compatibility)
+        /// </summary>
+        InjectionMetrics GetPerformanceMetrics() => GetInjectionMetrics();
+        
+        /// <summary>
+        /// Get injection issues report
+        /// </summary>
+        InjectionIssuesReport GetInjectionIssuesReport();
+        
+        /// <summary>
+        /// Check if current environment is compatible
+        /// </summary>
+        bool IsInjectionCompatible();
     }
 
     /// <summary>
@@ -289,17 +352,6 @@ namespace ScottWisper
                 Recommendations = recommendations,
                 Issues = issues
             };
-        }
-
-        /// <summary>
-        /// User feedback report for injection issues
-        /// </summary>
-        public class InjectionIssuesReport
-        {
-            public int IssueCount { get; set; }
-            public string OverallHealth { get; set; }
-            public List<string> Recommendations { get; set; } = new List<string>();
-            public List<string> Issues { get; set; } = new List<string>();
         }
 
         /// <summary>
@@ -716,7 +768,6 @@ namespace ScottWisper
                             inputs.Add(CreateUnicodeInput(c));
                             await Task.Delay(handlingDelay);
                         }
-                    }
                     }
                     
                     // Development tool-specific handling
@@ -1382,28 +1433,10 @@ namespace ScottWisper
         public WindowInfo ApplicationInfo { get; set; } = new();
     }
 
-    /// <summary>
-    /// Injection performance metrics
-    /// </summary>
-    public class InjectionMetrics
-    {
-        public TimeSpan AverageLatency { get; set; }
-        public double SuccessRate { get; set; }
-        public int TotalAttempts { get; set; }
-        public List<InjectionAttempt> RecentFailures { get; set; } = new();
-    }
+
 
     /// <summary>
     /// Result of injection test
     /// </summary>
-    public class InjectionTestResult
-    {
-        public bool Success { get; set; }
-        public string TestText { get; set; } = string.Empty;
-        public TimeSpan Duration { get; set; }
-        public WindowInfo ApplicationInfo { get; set; } = new();
-        public ApplicationCompatibility Compatibility { get; set; } = new();
-        public string MethodUsed { get; set; } = string.Empty;
-        public string[] Issues { get; set; } = Array.Empty<string>();
-    }
+
 }
