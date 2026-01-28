@@ -767,9 +767,18 @@ namespace ScottWisper
         {
             try
             {
-                // Initialize AudioDeviceService with permission handling
+                // Initialize AudioDeviceService with enhanced device change monitoring and user workflows
                 _audioDeviceService = new AudioDeviceService();
-                await HandlePermissionEvents();
+                
+                // Start device change monitoring for real-time updates
+                var monitoringStarted = await _audioDeviceService.MonitorDeviceChangesAsync();
+                if (monitoringStarted)
+                {
+                    System.Diagnostics.Debug.WriteLine("Device change monitoring started successfully");
+                }
+                
+                // Initialize comprehensive permission handling
+                await HandleEnhancedPermissionEvents();
                 
                 // Initialize ValidationService for comprehensive testing
                 _validationService = new ValidationService(
@@ -781,9 +790,9 @@ namespace ScottWisper
                 // Perform service health checking with gap fix validation
                 await ValidateServiceHealth();
                 
-                // Initialize cross-application validation with device change handling
+                // Initialize cross-application validation with enhanced device change handling
                 await InitializeCrossApplicationValidation();
-                await SetupDeviceChangeHandling();
+                await SetupEnhancedDeviceChangeHandling();
                 
                 // Add settings validation with complete UI binding
                 await ValidateSettingsUI();
@@ -1100,7 +1109,7 @@ namespace ScottWisper
             }
         }
 
-        // Permission Event Handlers
+        // Enhanced Permission Event Handlers with comprehensive user guidance
         private async Task OnPermissionDenied(object? sender, Services.PermissionEventArgs e)
         {
             try
@@ -1123,7 +1132,11 @@ namespace ScottWisper
                     _systemTrayService?.UpdateStatus(SystemTrayService.TrayStatus.Error);
                 });
                 
-                await ActivateGracefulFallbackMode("Microphone permission denied");
+                // Use AudioDeviceService enhanced permission handling
+                if (_audioDeviceService != null)
+                {
+                    await _audioDeviceService.HandlePermissionDeniedEventAsync(e.DeviceId ?? "unknown", e.Exception);
+                }
             }
             catch (Exception ex)
             {
