@@ -1148,10 +1148,12 @@ namespace ScottWisper
                         }
                     }
                    
-                    // Communication tool-specific handling
-                    if (compatibility.ApplicationSettings?.ContainsKey("comm_app") == true)
+// Communication tool-specific handling
+                    var hasCommAppKey = compatibility.ApplicationSettings?.ContainsKey("comm_app") == true;
+                    if (hasCommAppKey)
                     {
-                        var commApp = compatibility.ApplicationSettings?.ContainsKey("comm_app")?.ToString();
+                        var commApp = compatibility.ApplicationSettings?.ContainsKey("comm_app") == true ? 
+                            compatibility.ApplicationSettings?["comm_app"]?.ToString() : "";
                         if (commApp?.ContainsKey("emoji_support") == true)
                         {
                             // Enhanced emoji support
