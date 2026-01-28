@@ -34,17 +34,7 @@ namespace ScottWisper
         public List<string> Issues { get; set; } = new List<string>();
     }
 
-    /// <summary>
-    /// Helper method to safely get dictionary value
-    /// </summary>
-    private static T? GetDictionaryValue<T>(Dictionary<string, object>? dictionary, string key)
-    {
-        if (dictionary != null && dictionary.TryGetValue(key, out var value) && value is T)
-        {
-            return (T)value;
-        }
-        return default(T);
-    }
+
 
     /// <summary>
     /// Result of injection test

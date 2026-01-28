@@ -484,44 +484,6 @@ namespace ScottWisper
                     "Test Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-            
-            try
-            {
-                UpdateDeviceStatus($"Testing device: {selectedItem.Content}...");
-                
-                // Perform the test
-                var testPassed = await _audioDeviceService.TestDeviceAsync(deviceId);
-                
-                // Create test result
-                var testResult = new DeviceTestingResult
-                {
-                    DeviceId = deviceId,
-                    DeviceName = selectedItem.Content.ToString()!,
-                    TestPassed = testPassed,
-                    TestTime = DateTime.Now,
-                    ErrorMessage = testPassed ? "" : "Device test failed"
-                };
-                
-                // Save test result
-                await _settingsService.AddDeviceTestResultAsync(testResult);
-                
-                // Update UI
-                PopulateDeviceGrid();
-                UpdateDeviceStatus(testPassed ? "Device test passed" : "Device test failed");
-                
-                MessageBox.Show(testPassed 
-                    ? $"Device '{selectedItem.Content}' test completed successfully!" 
-                    : $"Device '{selectedItem.Content}' test failed. See device notes for details.", 
-                    "Test Result", MessageBoxButton.OK, 
-                    testPassed ? MessageBoxImage.Information : MessageBoxImage.Warning);
-            }
-            catch (Exception ex)
-            {
-                UpdateDeviceStatus($"Test failed: {ex.Message}");
-                MessageBox.Show($"Failed to test device: {ex.Message}", 
-                    "Test Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
 
         private async void RefreshDevices_Click(object sender, RoutedEventArgs e)
         {
