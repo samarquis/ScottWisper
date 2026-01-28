@@ -124,7 +124,7 @@ namespace ScottWisper
                 if (_audioDeviceService != null)
                 {
                     var permissionStatus = await _audioDeviceService.CheckMicrophonePermissionAsync();
-                    if (permissionStatus != MicrophonePermissionStatus.Granted)
+                    if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
                     {
                         // Permission not granted, try to request it
                         var permissionGranted = await _audioDeviceService.RequestMicrophonePermissionAsync();
