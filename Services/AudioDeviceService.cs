@@ -24,6 +24,10 @@ namespace ScottWisper.Services
         event EventHandler<PermissionEventArgs> PermissionGranted;
         event EventHandler<PermissionEventArgs> PermissionRequestFailed;
         
+        // Device change recovery events
+        event EventHandler<DeviceRecoveryEventArgs> DeviceRecoveryAttempted;
+        event EventHandler<DeviceRecoveryEventArgs> DeviceRecoveryCompleted;
+        
         Task<List<AudioDevice>> GetInputDevicesAsync();
         Task<List<AudioDevice>> GetOutputDevicesAsync();
         Task<AudioDevice> GetDefaultInputDeviceAsync();
@@ -46,6 +50,19 @@ namespace ScottWisper.Services
         event EventHandler<AudioLevelEventArgs> AudioLevelUpdated;
         Task StartRealTimeMonitoringAsync(string deviceId);
         Task StopRealTimeMonitoringAsync();
+        
+        // Enhanced device change monitoring methods
+        Task<bool> MonitorDeviceChangesAsync();
+        void StopDeviceChangeMonitoring();
+        Task<bool> ShowPermissionRequestDialogAsync();
+        void GuideUserToSettings();
+        Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message);
+        Task<bool> RetryPermissionRequestAsync(int maxAttempts = 3, int baseDelayMs = 1000);
+        Task<string> GeneratePermissionDiagnosticReportAsync();
+        void OpenWindowsMicrophoneSettings();
+        Task EnterGracefulFallbackModeAsync(string reason);
+        Task<bool> HandleDeviceChangeRecoveryAsync(string deviceId, bool isConnected);
+        Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null);
     }
 
     public class AudioDeviceService : IAudioDeviceService, IDisposable
@@ -57,6 +74,11 @@ namespace ScottWisper.Services
         private System.Threading.Timer? _levelUpdateTimer;
         private float _currentAudioLevel = 0f;
         private bool _isMonitoring = false;
+        
+        // Device change monitoring
+        private IntPtr _deviceNotificationHandle = IntPtr.Zero;
+        private WinEventDelegate? _winEventDelegate;
+        private IntPtr _winEventHook = IntPtr.Zero;
 
         public event EventHandler<AudioDeviceEventArgs>? DeviceConnected;
         public event EventHandler<AudioDeviceEventArgs>? DeviceDisconnected;
@@ -82,11 +104,66 @@ namespace ScottWisper.Services
             string? lpDirectory,
             int nShowCmd);
 
+        // Windows API for device change detection
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr RegisterDeviceNotification(IntPtr recipient, ref DEV_BROADCAST_DEVICEINTERFACE deviceInterface, int flags);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int UnregisterDeviceNotification(IntPtr handle);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr SetWinEventHook(
+            WinEventDelegate eventDelegate,
+            uint idProcess,
+            uint idThread,
+            uint eventMin,
+            uint eventMax,
+            uint flags);
+
+        [DllImport("user32.dll")]
+        private static extern bool UnhookWinEvent(IntPtr hWinEventHook);
+
+        // Device notification structures
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DEV_BROADCAST_DEVICEINTERFACE
+        {
+            public int dbcc_size;
+            public int dbcc_devicetype;
+            public int dbcc_reserved;
+            public Guid dbcc_classguid;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)]
+            public char[] dbcc_name;
+        }
+
+        // WinEvent constants
+        private const uint EVENT_SYSTEM_DEVICECHANGE = 0x0219;
+        private const uint EVENT_SYSTEM_FOREGROUND = 0x0003;
+        
+        // Device types
+        private const int DBT_DEVTYP_DEVICEINTERFACE = 0x00000005;
+        private static readonly Guid GUID_DEVINTERFACE_AUDIO_CAPTURE = new Guid("2C977F2C-F56A-11D0-94EA-00AA00B16C33");
+        private static readonly Guid GUID_DEVINTERFACE_AUDIO_RENDER = new Guid("E6327CAD-DCE6-11D0-85E3-00AA00316D76");
+
+        // Delegate for Windows events
+        private delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+
     public AudioDeviceService()
     {
         _enumerator = new MMDeviceEnumerator();
-        // Note: For now, not using real-time device monitoring due to NAudio API complexity
-        // This can be enhanced later with proper event handling
+        
+        // Initialize device change monitoring
+        _ = Task.Run(async () =>
+        {
+            var monitoringStarted = await MonitorDeviceChangesAsync();
+            if (monitoringStarted)
+            {
+                System.Diagnostics.Debug.WriteLine("Device change monitoring initialized successfully");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("Failed to initialize device change monitoring");
+            }
+        });
     }
 
         public async Task<List<AudioDevice>> GetInputDevicesAsync()
@@ -294,14 +371,14 @@ namespace ScottWisper.Services
                         // Test 2: Format support
                         result.SupportedFormats = GetSupportedFormats(device);
 
-                        // Test 3: Quality assessment
-                        result.QualityScore = await AssessDeviceQualityAsync(device);
+// Test 3: Quality assessment
+                        result.QualityScore = await Task.Run(() => AssessDeviceQualityAsync(device));
 
                         // Test 4: Latency measurement
-                        result.LatencyMs = await MeasureDeviceLatencyAsync(device);
+                        result.LatencyMs = await Task.Run(() => MeasureDeviceLatencyAsync(device));
 
                         // Test 5: Noise floor measurement
-                        result.NoiseFloorDb = await MeasureNoiseFloorAsync(device);
+                        result.NoiseFloorDb = await Task.Run(() => MeasureNoiseFloorAsync(device));
 
                         result.Success = result.BasicFunctionality && result.QualityScore > 0.3f;
                         return result;
@@ -572,7 +649,7 @@ namespace ScottWisper.Services
 
         public async Task StartRealTimeMonitoringAsync(string deviceId)
         {
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 lock (_lockObject)
                 {
@@ -592,7 +669,7 @@ namespace ScottWisper.Services
 
                         _monitoringWaveIn.DataAvailable += OnMonitoringDataAvailable;
                         
-                        _levelUpdateTimer = new Timer(UpdateAudioLevel, null, 0, 50);
+                        _levelUpdateTimer = new System.Threading.Timer(UpdateAudioLevel, null, 0, 50);
                         
                         _monitoringWaveIn.StartRecording();
                         _isMonitoring = true;
@@ -638,7 +715,7 @@ namespace ScottWisper.Services
             });
         }
 
-        private void OnMonitoringDataAvailable(object sender, WaveInEventArgs e)
+        private void OnMonitoringDataAvailable(object? sender, WaveInEventArgs e)
         {
             if (e.BytesRecorded == 0) return;
 
@@ -671,14 +748,9 @@ namespace ScottWisper.Services
             }
         }
 
-        private void UpdateAudioLevel(object state)
+        private void UpdateAudioLevel(object? state)
         {
-            AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs
-            {
-                DeviceId = "current",
-                Level = _currentAudioLevel,
-                Timestamp = DateTime.Now
-            });
+            AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs("current", _currentAudioLevel, DateTime.Now));
         }
 
         private List<string> GetSupportedFormats(MMDevice device)
@@ -788,7 +860,7 @@ namespace ScottWisper.Services
                     await Task.Delay(500); // Wait up to 500ms for first buffer
                     waveIn.StopRecording();
 
-                    return stopwatch.ElapsedMilliseconds;
+                    return (int)stopwatch.ElapsedMilliseconds;
                 }
             }
             catch
@@ -1199,16 +1271,395 @@ namespace ScottWisper.Services
             }
         }
 
+        /// <summary>
+        /// Starts monitoring for device changes using WM_DEVICECHANGE
+        /// </summary>
+        public async Task<bool> MonitorDeviceChangesAsync()
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Register for device notifications
+                    var deviceInterface = new DEV_BROADCAST_DEVICEINTERFACE
+                    {
+                        dbcc_size = Marshal.SizeOf<DEV_BROADCAST_DEVICEINTERFACE>(),
+                        dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE,
+                        dbcc_classguid = GUID_DEVINTERFACE_AUDIO_CAPTURE,
+                        dbcc_name = new char[1]
+                    };
+
+                    _deviceNotificationHandle = RegisterDeviceNotification(IntPtr.Zero, ref deviceInterface, 0x0003);
+                    
+                    if (_deviceNotificationHandle != IntPtr.Zero)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Device change monitoring started successfully");
+                        return true;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Failed to register for device notifications");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
+                    return false;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Stops device change monitoring
+        /// </summary>
+        public void StopDeviceChangeMonitoring()
+        {
+            try
+            {
+                if (_deviceNotificationHandle != IntPtr.Zero)
+                {
+                    UnregisterDeviceNotification(_deviceNotificationHandle);
+                    _deviceNotificationHandle = IntPtr.Zero;
+                }
+
+                if (_winEventHook != IntPtr.Zero)
+                {
+                    UnhookWinEvent(_winEventHook);
+                    _winEventHook = IntPtr.Zero;
+                }
+
+                System.Diagnostics.Debug.WriteLine("Device change monitoring stopped");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping device monitoring: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows user-friendly permission request dialog
+        /// </summary>
+        public async Task<bool> ShowPermissionRequestDialogAsync()
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Show Windows microphone privacy settings
+                    const string settingsPath = "ms-settings:privacy-microphone";
+                    var result = ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
+                    
+                    if (result.ToInt32() > 32) // ShellExecute success
+                    {
+                        System.Diagnostics.Debug.WriteLine("Permission request dialog opened successfully");
+                        return true;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Failed to open permission request dialog");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error showing permission request dialog: {ex.Message}");
+                    return false;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Guides user to Windows settings for manual permission setup
+        /// </summary>
+        public void GuideUserToSettings()
+        {
+            try
+            {
+                OpenWindowsMicrophoneSettings();
+                
+                System.Diagnostics.Debug.WriteLine("User guided to Windows microphone settings");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error guiding user to settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows permission status notifier in system tray
+        /// </summary>
+        public async Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // This would integrate with system tray service
+                    // For now, just log the notification
+                    var statusMessage = $"Microphone Permission: {status} - {message}";
+                    System.Diagnostics.Debug.WriteLine(statusMessage);
+                    
+                    // Fire permission status event
+                    switch (status)
+                    {
+                        case MicrophonePermissionStatus.Denied:
+                            PermissionDenied?.Invoke(this, new PermissionEventArgs(status, message));
+                            break;
+                        case MicrophonePermissionStatus.Granted:
+                            PermissionGranted?.Invoke(this, new PermissionEventArgs(status, message));
+                            break;
+                        case MicrophonePermissionStatus.SystemError:
+                            PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(status, message));
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error showing permission status notifier: {ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Implements retry mechanism for permission requests with exponential backoff
+        /// </summary>
+        public async Task<bool> RetryPermissionRequestAsync(int maxAttempts = 3, int baseDelayMs = 1000)
+        {
+            for (int attempt = 1; attempt <= maxAttempts; attempt++)
+            {
+                try
+                {
+                    var status = await CheckMicrophonePermissionAsync();
+                    if (status == MicrophonePermissionStatus.Granted)
+                    {
+                        await ShowPermissionStatusNotifierAsync(status, "Permission granted successfully");
+                        return true;
+                    }
+
+                    if (attempt < maxAttempts)
+                    {
+                        var delayMs = baseDelayMs * (int)Math.Pow(2, attempt - 1); // Exponential backoff
+                        await ShowPermissionStatusNotifierAsync(status, $"Permission denied, retrying in {delayMs/1000} seconds... (Attempt {attempt}/{maxAttempts})");
+                        await Task.Delay(delayMs);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error during permission retry {attempt}: {ex.Message}");
+                }
+            }
+
+            await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, "Permission request failed after all retries");
+            return false;
+        }
+
+        /// <summary>
+        /// Generates a permission diagnostic report
+        /// </summary>
+        public async Task<string> GeneratePermissionDiagnosticReportAsync()
+        {
+            return await Task.Run(async () =>
+            {
+                var report = new System.Text.StringBuilder();
+                report.AppendLine("=== Microphone Permission Diagnostic Report ===");
+                report.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                report.AppendLine();
+
+                try
+                {
+                    // Check current permission status
+                    var status = await CheckMicrophonePermissionAsync();
+                    report.AppendLine($"Current Permission Status: {status}");
+                    report.AppendLine();
+
+                    // List available input devices
+                    var devices = await GetInputDevicesAsync();
+                    report.AppendLine($"Available Input Devices: {devices.Count}");
+                    
+                    foreach (var device in devices)
+                    {
+                        report.AppendLine($"  - {device.Name}");
+                        report.AppendLine($"    ID: {device.Id}");
+                        report.AppendLine($"    Status: {device.State}");
+                        report.AppendLine($"    Permission: {device.PermissionStatus}");
+                        report.AppendLine($"    Compatible: {IsDeviceCompatible(device.Id)}");
+                        report.AppendLine();
+                    }
+
+                    // Test device access
+                    if (devices.Any())
+                    {
+                        report.AppendLine("Testing device access...");
+                        var testResult = await TestDeviceAsync(devices.First().Id);
+                        report.AppendLine($"Device Test Result: {(testResult ? "SUCCESS" : "FAILED")}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    report.AppendLine($"Diagnostic Error: {ex.Message}");
+                    report.AppendLine($"Stack Trace: {ex.StackTrace}");
+                }
+
+                report.AppendLine("=== End Report ===");
+                return report.ToString();
+            });
+        }
+
+        /// <summary>
+        /// Opens Windows microphone settings
+        /// </summary>
+        public void OpenWindowsMicrophoneSettings()
+        {
+            try
+            {
+                // Open Windows Privacy & Security -> Microphone settings
+                const string settingsPath = "ms-settings:privacy-microphone";
+                ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Enters graceful fallback mode when permissions are denied
+        /// </summary>
+        public async Task EnterGracefulFallbackModeAsync(string reason)
+        {
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"Entering graceful fallback mode: {reason}");
+                    
+                    // Fire permission denied event with guidance
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                        $"Microphone access denied: {reason}. Follow these steps:\n" +
+                        "1. Open Windows Settings (Win+I)\n" +
+                        "2. Go to Privacy & Security -> Microphone\n" +
+                        "3. Enable 'Microphone access' and 'Let desktop apps access your microphone'\n" +
+                        "4. Restart ScottWisper"));
+                    
+                    // Try to guide user to settings
+                    await Task.Delay(2000); // Brief delay before opening settings
+                    await ShowPermissionRequestDialogAsync();
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error entering fallback mode: {ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Handles device change recovery for transient failures
+        /// </summary>
+        public async Task<bool> HandleDeviceChangeRecoveryAsync(string deviceId, bool isConnected)
+        {
+            return await Task.Run(async () =>
+            {
+                try
+                {
+                    System.Diagnostics.Debug.WriteLine($"Handling device change recovery: {deviceId}, Connected: {isConnected}");
+                    
+                    if (isConnected)
+                    {
+                        // Device reconnected - test functionality
+                        await Task.Delay(1000); // Wait for device to stabilize
+                        
+                        var testResult = await TestDeviceAsync(deviceId);
+                        if (testResult)
+                        {
+                            DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(new AudioDevice
+                            {
+                                Id = deviceId,
+                                Name = $"Device {deviceId}",
+                                State = AudioDeviceState.Active
+                            }));
+                            
+                            return true;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Device reconnected but failed functionality test: {deviceId}");
+                        }
+                    }
+                    else
+                    {
+                        // Device disconnected
+                        DeviceDisconnected?.Invoke(this, new AudioDeviceEventArgs(new AudioDevice
+                        {
+                            Id = deviceId,
+                            Name = $"Device {deviceId}",
+                            State = AudioDeviceState.Unplugged
+                        }));
+                    }
+                    
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in device change recovery: {ex.Message}");
+                    return false;
+                }
+            });
+        }
+
+        /// <summary>
+        /// Handles permission denied event with user guidance
+        /// </summary>
+        public async Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null)
+        {
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    var message = error != null 
+                        ? $"Permission denied for device {deviceId}: {error.Message}"
+                        : $"Permission denied for device {deviceId}";
+                    
+                    System.Diagnostics.Debug.WriteLine(message);
+                    
+                    // Show user-friendly guidance
+                    await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, message);
+                    
+                    // Try automatic recovery
+                    var recoverySuccess = await RetryPermissionRequestAsync();
+                    if (!recoverySuccess)
+                    {
+                        await EnterGracefulFallbackModeAsync("Automatic recovery failed");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
+                }
+            });
+        }
+
         public void Dispose()
         {
             lock (_lockObject)
             {
                 if (!_disposed)
                 {
-                    // Stop real-time monitoring
-                    _ = StopRealTimeMonitoringAsync();
+                    // Stop device change monitoring
+                    StopDeviceChangeMonitoring();
                     
-                    _levelUpdateTimer?.Stop();
+                    // Stop real-time monitoring
+                    try
+                    {
+                        var stopTask = StopRealTimeMonitoringAsync();
+                        stopTask.Wait(5000); // Wait max 5 seconds for cleanup
+                    }
+                    catch
+                    {
+                        // Ignore cleanup errors
+                    }
+                    
+                    _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                     _levelUpdateTimer?.Dispose();
                     _levelUpdateTimer = null;
                     
@@ -1338,6 +1789,26 @@ namespace ScottWisper.Services
             DeviceId = deviceId;
             Level = level;
             Timestamp = timestamp;
+        }
+    }
+
+    public class DeviceRecoveryEventArgs : EventArgs
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public bool IsConnected { get; set; }
+        public bool RecoverySuccess { get; set; }
+        public string RecoveryMessage { get; set; } = string.Empty;
+        public DateTime RecoveryTime { get; set; } = DateTime.Now;
+        public Exception? RecoveryException { get; set; }
+
+        public DeviceRecoveryEventArgs(string deviceId, bool isConnected, bool success, string message, Exception? ex = null)
+        {
+            DeviceId = deviceId;
+            IsConnected = isConnected;
+            RecoverySuccess = success;
+            RecoveryMessage = message;
+            RecoveryException = ex;
+            RecoveryTime = DateTime.Now;
         }
     }
 }
