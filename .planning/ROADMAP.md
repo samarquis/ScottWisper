@@ -125,6 +125,7 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 - [ ] 03-05-PLAN.md — Missing IntegrationTestFramework and ValidationTestRunner creation
 - [ ] 03-06-PLAN.md — Advanced features: device monitoring, app validation, settings UI completion
 - [ ] 03-07-PLAN.md — Final integration and comprehensive validation report generation
+- [ ] 03-08-PLAN.md — Fix orphaned code blocks in SettingsWindow.xaml.cs preventing compilation
 
 ---
 
