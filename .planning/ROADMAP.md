@@ -109,16 +109,22 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 4. **Integration Testing**: Systematic testing framework validates cross-application compatibility
 5. **Gap Closure**: All Phase 02 verification gaps resolved with human validation
 
-**Plans:** 3 plans
+**Plans:** 7 plans (gap closure)
 
 **Wave Structure:**
-- **Wave 1:** Cross-application validation + settings UI (parallel plans 03-01, 03-02)
-- **Wave 2:** Integration and comprehensive validation (plan 03-03)
+- **Wave 1:** Critical compilation error fixes (plan 03-04)
+- **Wave 2:** Missing testing framework implementation (plan 03-05)
+- **Wave 3:** Advanced features and missing functionality (plan 03-06)
+- **Wave 4:** Integration and comprehensive validation (plan 03-07)
 
-Plans:
+**Gap Closure Plans:**
 - [ ] 03-01-PLAN.md — Cross-application text injection validation and microphone permission handling
 - [ ] 03-02-PLAN.md — Complete settings UI implementation and integration testing framework
 - [ ] 03-03-PLAN.md — Integration of gap closure fixes and comprehensive validation
+- [ ] 03-04-PLAN.md — Critical compilation error resolution (40+ errors)
+- [ ] 03-05-PLAN.md — Missing IntegrationTestFramework and ValidationTestRunner creation
+- [ ] 03-06-PLAN.md — Advanced features: device monitoring, app validation, settings UI completion
+- [ ] 03-07-PLAN.md — Final integration and comprehensive validation report generation
 
 ---
 
@@ -193,7 +199,7 @@ Plans:
 |-------|--------|------------|-------|
 | Phase 1: Core Technology Validation | ✅ Complete | 100% | All 4 plans executed, Phase goal verified ✓ |
 | Phase 2: Windows Integration & User Experience | 📋 Planned | 0% | 23 plans created in 4 waves, ready for execution |
-| Phase 3: Integration Layer Repair | 📋 Planned | 0% | Gap closure phase - fixes cross-application validation and permission handling (3 plans created) |
+| Phase 3: Integration Layer Repair | 📋 Planned | 0% | Gap closure phase - fixes cross-application validation and permission handling (7 gap closure plans created) |
 | Phase 4: Missing Implementation | 📋 Planned | 0% | Gap closure phase - completes blocked requirements |
 | Phase 5: End-to-End Validation | 📋 Planned | 0% | Gap closure phase - validates all user workflows |
 | Phase 6: Competitive Features & Polish | ⏸️ Not Started | 0% | Depends on gap closure completion |
