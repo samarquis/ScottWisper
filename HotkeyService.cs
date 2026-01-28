@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -26,9 +27,9 @@ namespace ScottWisper
 
     public class HotkeyConflictEventArgs : EventArgs
     {
-        public HotkeyConflict Conflict { get; }
+        public Configuration.HotkeyConflict Conflict { get; }
 
-        public HotkeyConflictEventArgs(HotkeyConflict conflict)
+        public HotkeyConflictEventArgs(Configuration.HotkeyConflict conflict)
         {
             Conflict = conflict;
         }
@@ -274,7 +275,7 @@ namespace ScottWisper
             {
                 result.IsValid = false;
                 result.ErrorMessage = $"This hotkey conflicts with: {conflictDef.Name} ({conflictDef.Combination})";
-                result.Conflicts.Add(new HotkeyConflict
+                result.Conflicts.Add(new Configuration.HotkeyConflict
                 {
                     ConflictingHotkey = conflictDef.Combination,
                     ConflictingApplication = "ScottWisper",
@@ -342,12 +343,12 @@ namespace ScottWisper
             return virtualKey != 0;
         }
 
-        private HotkeyConflict? DetectConflict(HotkeyDefinition hotkey, int errorCode)
+        private Configuration.HotkeyConflict? DetectConflict(HotkeyDefinition hotkey, int errorCode)
         {
             var conflictType = GetConflictType(errorCode);
             if (conflictType == null) return null;
 
-            return new HotkeyConflict
+            return new Configuration.HotkeyConflict
             {
                 ConflictingHotkey = hotkey.Combination,
                 ConflictType = conflictType,
@@ -419,9 +420,9 @@ namespace ScottWisper
         private bool IsProblematicHotkey(uint modifiers, uint virtualKey)
         {
             // Check for combinations that might be difficult
-            var requiresThreeFingers = ((modifiers & MOD_CONTROL) != 0) + 
-                                     ((modifiers & MOD_ALT) != 0) + 
-                                     ((modifiers & MOD_SHIFT) != 0) >= 2;
+            var requiresThreeFingers = (((modifiers & MOD_CONTROL) != 0 ? 1 : 0) + 
+                                      ((modifiers & MOD_ALT) != 0 ? 1 : 0) + 
+                                      ((modifiers & MOD_SHIFT) != 0 ? 1 : 0)) >= 2;
             
             var requiresSystemKey = (modifiers & MOD_WIN) != 0;
             

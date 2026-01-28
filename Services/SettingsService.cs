@@ -43,6 +43,7 @@ namespace ScottWisper.Services
     public interface ISettingsService
     {
         AppSettings Settings { get; }
+        event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
         Task SaveAsync();
         Task<T> GetValueAsync<T>(string key);
         Task SetValueAsync<T>(string key, T value);
@@ -61,11 +62,11 @@ namespace ScottWisper.Services
         
         // Enhanced device testing methods
         Task AddAudioDeviceTestResultAsync(AudioDeviceTestResult result);
-        Task<List<AudioDeviceTestResult>> GetAudioDeviceTestHistoryAsync(string deviceId);
+        Task<List<Configuration.AudioDeviceTestResult>> GetAudioDeviceTestHistoryAsync(string deviceId);
         Task SaveAudioQualityMetricsAsync(AudioQualityMetrics metrics);
         Task<List<AudioQualityMetrics>> GetAudioQualityHistoryAsync(string deviceId);
-        Task SaveDeviceCompatibilityScoreAsync(DeviceCompatibilityScore score);
-        Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync();
+        Task SaveDeviceCompatibilityScoreAsync(Configuration.DeviceCompatibilityScore score);
+        Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         Task SetRealTimeMonitoringEnabledAsync(string deviceId, bool enabled);
         Task RefreshDeviceListAsync();
         Task<bool> IsDeviceEnabledAsync(string deviceId);
@@ -93,6 +94,8 @@ namespace ScottWisper.Services
         private AppSettings _currentSettings;
 
         public AppSettings Settings => _currentSettings;
+
+        public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
 
         public SettingsService(IConfiguration configuration, IOptionsMonitor<AppSettings> options)
         {
@@ -152,10 +155,22 @@ namespace ScottWisper.Services
 
         public async Task SetValueAsync<T>(string key, T value)
         {
+            var oldValue = await GetValueAsync<T>(key);
+            
             // For now, this will update the in-memory settings
             // In a full implementation, you'd want to update specific properties
             var json = JsonSerializer.Serialize(value);
             _configuration[key] = json;
+            
+            // Fire SettingsChanged event
+            SettingsChanged?.Invoke(this, new SettingsChangedEventArgs
+            {
+                Key = key,
+                OldValue = oldValue,
+                NewValue = value,
+                Category = "General",
+                RequiresRestart = false
+            });
         }
 
         public async Task<string> GetEncryptedValueAsync(string key)
@@ -339,7 +354,7 @@ namespace ScottWisper.Services
                 TestTime = result.TestTime,
                 TestPassed = result.Success,
                 ErrorMessage = result.ErrorMessage,
-                Notes = result.SupportedFormats.Count > 0 ? null : "No supported formats"
+                TestMetrics = new Dictionary<string, object> { ["Notes"] = result.SupportedFormats.Count > 0 ? null : "No supported formats" }
             };
 
             await AddDeviceTestResultAsync(legacyResult);
@@ -356,10 +371,10 @@ namespace ScottWisper.Services
                 .ToList();
         }
 
-        public async Task<List<AudioDeviceTestResult>> GetAudioDeviceTestHistoryAsync(string deviceId)
+        public async Task<List<Configuration.AudioDeviceTestResult>> GetAudioDeviceTestHistoryAsync(string deviceId)
         {
             if (string.IsNullOrEmpty(deviceId))
-                return new List<AudioDeviceTestResult>();
+                return new List<Configuration.AudioDeviceTestResult>();
 
             await Task.CompletedTask; // Make method async
             return _currentSettings.AudioDeviceTestHistory
@@ -396,7 +411,7 @@ namespace ScottWisper.Services
                 .ToList();
         }
 
-        public async Task SaveDeviceCompatibilityScoreAsync(DeviceCompatibilityScore score)
+        public async Task SaveDeviceCompatibilityScoreAsync(Configuration.DeviceCompatibilityScore score)
         {
             if (score == null || string.IsNullOrEmpty(score.DeviceId))
                 return;
@@ -413,7 +428,7 @@ namespace ScottWisper.Services
             await SaveAsync();
         }
 
-        public async Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync()
+        public async Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync()
         {
             await Task.CompletedTask; // Make method async
             return _currentSettings.DeviceRecommendations;
@@ -752,7 +767,7 @@ namespace ScottWisper.Services
             {
                 result.IsValid = false;
                 result.ErrorMessage = $"This hotkey is already used by: {conflictingHotkey.Name}";
-                result.Conflicts.Add(new HotkeyConflict
+                result.Conflicts.Add(new Configuration.HotkeyConflict
                 {
                     ConflictingHotkey = conflictingHotkey.Combination,
                     ConflictingApplication = "ScottWisper",

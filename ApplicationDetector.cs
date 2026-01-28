@@ -100,7 +100,7 @@ namespace ScottWisper.Services
                         ApplicationChanged?.Invoke(this, new ApplicationChangedEventArgs
                         {
                             OldApplication = oldApp,
-                            NewApplication = currentApp,
+                            NewApplication = currentApp.ApplicationName,
                             Profile = currentApp
                         });
                     }
@@ -429,10 +429,18 @@ namespace ScottWisper.Services
     #region Data Models
 
     /// <summary>
-    /// Represents an application profile for text injection compatibility
+    /// Application profile for text injection compatibility
     /// </summary>
     public class ApplicationProfile
     {
+        public static ApplicationProfile Unknown { get; } = new ApplicationProfile 
+        { 
+            Category = ApplicationCategory.Unknown,
+            ProcessName = "Unknown",
+            WindowTitle = "Unknown",
+            IsKnownApplication = false
+        };
+
         public int ProcessId { get; set; }
         public string ProcessName { get; set; } = string.Empty;
         public string ExecutablePath { get; set; } = string.Empty;
@@ -492,9 +500,12 @@ namespace ScottWisper.Services
     /// </summary>
     public enum ApplicationCategory
     {
+        Unknown,
         Other,
         WebBrowser,
+        Browser = WebBrowser, // Alias for backward compatibility
         IDE,
+        DevelopmentTool = IDE, // Alias for backward compatibility
         Office,
         TextEditor,
         Communication,

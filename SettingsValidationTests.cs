@@ -7,9 +7,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 
 namespace ScottWisper.Tests
 {
+    /// <summary>
+    /// Validation exception for settings validation
+    /// </summary>
+    public class ValidationException : Exception
+    {
+        public ValidationException() : base() { }
+        public ValidationException(string message) : base(message) { }
+        public ValidationException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
     [TestClass]
     public class SettingsValidationTests
     {
@@ -35,7 +47,7 @@ namespace ScottWisper.Tests
                 })
                 .Build();
 
-            var options = Microsoft.Extensions.Options.Options.Create(new AppSettings());
+            var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
             _settingsService = new SettingsService(configuration, options);
         }
 
@@ -266,7 +278,7 @@ namespace ScottWisper.Tests
                     .AddInMemoryCollection(new Dictionary<string, string>())
                     .Build();
                 
-                var options = Microsoft.Extensions.Options.Options.Create(new AppSettings());
+                var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
                 var recoveryService = new SettingsService(configuration, options);
                 
                 // Should not crash, should fall back to defaults

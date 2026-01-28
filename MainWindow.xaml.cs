@@ -9,7 +9,9 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using ScottWisper.Configuration;
 
 namespace ScottWisper
 {
@@ -417,7 +419,7 @@ namespace ScottWisper
         {
             if (_textInjectionService == null || _settingsService == null)
             {
-                ShowNotification("Text injection service not available", "Settings Error");
+                ShowNotification("Settings Error", "Text injection service not available");
                 return;
             }
 
@@ -449,25 +451,25 @@ namespace ScottWisper
                     _settingsService.Settings.TextInjection.EnableDebugMode = newDebugMode;
                     _settingsService.SaveAsync();
                     
-                    ShowNotification($"Debug mode {(newDebugMode ? "enabled" : "disabled")}", "Settings Updated");
+                    ShowNotification("Settings Updated", $"Debug mode {(newDebugMode ? "enabled" : "disabled")}");
                 }
             }
             catch (Exception ex)
             {
-                ShowNotification($"Error showing settings: {ex.Message}", "Settings Error");
+                ShowNotification("Settings Error", $"Error showing settings: {ex.Message}");
             }
         }
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowNotification("Help documentation coming soon!", "Help");
+            ShowNotification("Help", "Help documentation coming soon!");
         }
 
         private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
         {
             _displayHistory.Clear();
             UpdateHistoryDisplay();
-            ShowNotification("Status history cleared", "History");
+            ShowNotification("History", "Status history cleared");
         }
 
         private void TestInjectionButton_Click(object sender, RoutedEventArgs e)
@@ -486,7 +488,7 @@ namespace ScottWisper
             {
                 if (_textInjectionService == null || _settingsService == null)
                 {
-                    ShowNotification("Services not available", "Error");
+                    ShowNotification("Error", "Services not available");
                     return;
                 }
 
@@ -527,15 +529,15 @@ namespace ScottWisper
                     await _feedbackService.ShowToastNotificationAsync(
                         "Injection Issues Report", 
                         message, 
-                        FeedbackService.NotificationType.Warning
+                        IFeedbackService.NotificationType.Warning
                     );
                 }
                 
-                ShowNotification(message, "Injection Issues Report", true); // true = show detailed dialog
+                ShowNotification("Injection Issues Report", message, true); // true = show detailed dialog
             }
             catch (Exception ex)
             {
-                ShowNotification($"Error generating issues report: {ex.Message}", "Error");
+                ShowNotification("Error", $"Error generating issues report: {ex.Message}");
             }
         }
 
@@ -555,7 +557,7 @@ namespace ScottWisper
             {
                 if (_textInjectionService == null)
                 {
-                    ShowNotification("Text injection service not available", "Error");
+                    ShowNotification("Error", "Text injection service not available");
                     return;
                 }
 
@@ -570,11 +572,11 @@ namespace ScottWisper
                 // Apply to service
                 _textInjectionService.SetDebugMode(newDebugMode);
                 
-                ShowNotification($"Debug mode {(newDebugMode ? "enabled" : "disabled")}", "Debug Mode");
+                ShowNotification("Debug Mode", $"Debug mode {(newDebugMode ? "enabled" : "disabled")}");
             }
             catch (Exception ex)
             {
-                ShowNotification($"Debug mode toggle failed: {ex.Message}", "Error");
+                ShowNotification("Error", $"Debug mode toggle failed: {ex.Message}");
             }
         }
 
@@ -584,7 +586,7 @@ namespace ScottWisper
             {
                 if (_textInjectionService == null)
                 {
-                    ShowNotification("Text injection service not available", "Error");
+                    ShowNotification("Error", "Text injection service not available");
                     return;
                 }
 
@@ -615,12 +617,12 @@ namespace ScottWisper
                     report += "\nRecent Failure Details:\n";
                     foreach (var failure in metrics.RecentFailures.Take(3))
                     {
-                        report += $"  - {failure.ApplicationInfo.ProcessName}: {failure.Method.Method} ({failure.Duration.TotalMilliseconds}ms)\n";
+                        report += $"  - {failure.ApplicationInfo.ProcessName}: {failure.Method} ({failure.Duration.TotalMilliseconds}ms)\n";
                     }
                 }
                 
                 // Show in a scrollable text box for better readability
-                ShowNotification(report, "Compatibility Report", true);
+                ShowNotification("Compatibility Report", report, true);
                 
                 // Add to history
                 var historyItem = new StatusHistoryItem
@@ -636,7 +638,7 @@ namespace ScottWisper
             }
             catch (Exception ex)
             {
-                ShowNotification($"Compatibility check error: {ex.Message}", "Error");
+                ShowNotification("Error", $"Compatibility check error: {ex.Message}");
             }
         }
 
@@ -646,7 +648,7 @@ namespace ScottWisper
             {
                 if (_textInjectionService == null)
                 {
-                    ShowNotification("Text injection service not available", "Error");
+                    ShowNotification("Error", "Text injection service not available");
                     return;
                 }
 
@@ -671,7 +673,7 @@ namespace ScottWisper
                     ? $"✅ Injection test successful in {testResult.Duration.TotalMilliseconds}ms using {testResult.MethodUsed}"
                     : $"❌ Injection test failed: {string.Join(", ", testResult.Issues)}";
 
-                ShowNotification(resultMessage, testResult.Success ? "Test Success" : "Test Failed");
+                ShowNotification(testResult.Success ? "Test Success" : "Test Failed", resultMessage);
 
                 if (_feedbackService != null)
                 {
@@ -680,7 +682,7 @@ namespace ScottWisper
             }
             catch (Exception ex)
             {
-                ShowNotification($"Injection test error: {ex.Message}", "Test Error");
+                ShowNotification("Test Error", $"Injection test error: {ex.Message}");
                 if (_feedbackService != null)
                 {
                     await _feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Error, $"Test failed: {ex.Message}");
@@ -700,12 +702,12 @@ namespace ScottWisper
                     var isCurrentlyDebug = false; // Would track this in a field
                     _textInjectionService.SetDebugMode(!isCurrentlyDebug);
                     
-                    ShowNotification($"Debug mode {(isCurrentlyDebug ? "disabled" : "enabled")}", "Debug Mode");
+                    ShowNotification("Debug Mode", $"Debug mode {(isCurrentlyDebug ? "disabled" : "enabled")}");
                 }
             }
             catch (Exception ex)
             {
-                ShowNotification($"Debug mode toggle failed: {ex.Message}", "Error");
+                ShowNotification("Error", $"Debug mode toggle failed: {ex.Message}");
             }
         }
 
@@ -718,11 +720,11 @@ namespace ScottWisper
             if (_textInjectionService != null)
             {
                 await _textInjectionService.InitializeAsync();
-                ShowNotification("Text injection service connected", "Service Ready");
+                ShowNotification("Service Ready", "Text injection service connected");
             }
         }
 
-        private void ShowNotification(string message, string title = "ScottWisper")
+        private void ShowNotification(string message, string title = "ScottWisper", bool showDetailedDialog = false)
         {
             if (_feedbackService != null)
             {

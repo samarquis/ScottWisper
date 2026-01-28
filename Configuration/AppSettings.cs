@@ -126,6 +126,7 @@ namespace ScottWisper.Configuration
         public bool MinimizeToTray { get; set; } = true;
         public bool StartWithWindows { get; set; } = false;
         public bool ShowTranscriptionWindow { get; set; } = true;
+        public double WindowOpacity { get; set; } = 1.0;
     }
 
     public class TextInjectionSettings

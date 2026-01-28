@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using ScottWisper.Services;
 
 namespace ScottWisper
@@ -70,7 +71,7 @@ namespace ScottWisper
             if (e.Category == "CostTracking" || e.Category == "Transcription")
             {
                 // Settings like cost thresholds, free tier limits, etc. would be applied here
-                await Task.CompletedTask;
+                return; // No additional processing needed for cost tracking changes
             }
         }
 

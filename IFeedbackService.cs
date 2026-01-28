@@ -22,6 +22,18 @@ namespace ScottWisper
         }
 
         /// <summary>
+        /// Notification types for toast notifications
+        /// </summary>
+        enum NotificationType
+        {
+            Info,
+            Warning,
+            Error,
+            Completion,
+            StatusChange
+        }
+
+        /// <summary>
         /// Current dictation status
         /// </summary>
         DictationStatus CurrentStatus { get; }
@@ -60,6 +72,14 @@ namespace ScottWisper
         Task ShowStatusIndicatorAsync(DictationStatus status, int duration = 2000);
 
         /// <summary>
+        /// Show toast notification with type
+        /// </summary>
+        /// <param name="title">Notification title</param>
+        /// <param name="message">Notification message</param>
+        /// <param name="type">Type of notification</param>
+        Task ShowToastNotificationAsync(string title, string message, NotificationType type = NotificationType.Info);
+
+        /// <summary>
         /// Clear any active status indicators
         /// </summary>
         Task ClearStatusIndicatorAsync();
@@ -68,6 +88,26 @@ namespace ScottWisper
         /// Initialize the feedback service
         /// </summary>
         Task InitializeAsync();
+
+        /// <summary>
+        /// Start progress indicator with title and timeout
+        /// </summary>
+        /// <param name="title">Progress title</param>
+        /// <param name="timeout">Progress timeout</param>
+        Task StartProgressAsync(string title, TimeSpan timeout);
+
+        /// <summary>
+        /// Update progress with percentage and message
+        /// </summary>
+        /// <param name="percentage">Progress percentage (0-100)</param>
+        /// <param name="message">Progress message</param>
+        Task UpdateProgressAsync(int percentage, string message);
+
+        /// <summary>
+        /// Complete progress with final message
+        /// </summary>
+        /// <param name="message">Completion message</param>
+        Task CompleteProgressAsync(string message);
 
         /// <summary>
         /// Cleanup resources

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ScottWisper.Tests;
 
 namespace ScottWisper.Testing
 {
@@ -47,7 +48,9 @@ namespace ScottWisper.Testing
             public List<TestExecutionResult> Results { get; set; } = new List<TestExecutionResult>();
             public Dictionary<string, int> CategoryResults { get; set; } = new Dictionary<string, int>();
             public List<string> FailedTestNames { get; set; } = new List<string>();
-            public List<string> PerformanceMetrics { get; set; } = new List<string>();
+            public PerformanceMetrics PerformanceMetricsData { get; set; } = new PerformanceMetrics();
+            public List<string> PerformanceMetrics { get; set; } = new List<string>(); // Keep for backward compatibility
+            public string ErrorMessage { get; set; } = string.Empty;
         }
 
         /// <summary>
@@ -144,14 +147,14 @@ namespace ScottWisper.Testing
                 var passedResults = summary.Results.Where(r => r.Passed).ToList();
                 if (passedResults.Count > 0)
                 {
-                    summary.PerformanceMetrics.AverageLatencyMs = passedResults.Average(r => r.ExecutionTime.TotalMilliseconds);
-                    summary.PerformanceMetrics.MaxLatencyMs = passedResults.Max(r => r.ExecutionTime.TotalMilliseconds);
-                    summary.PerformanceMetrics.AverageMemoryMB = passedResults.Average(r => r.MemoryUsageMB);
-                    summary.PerformanceMetrics.MaxMemoryMB = passedResults.Max(r => r.MemoryUsageMB);
-                    summary.PerformanceMetrics.AverageCpuUsage = cpuUsageMs / summary.TotalExecutionTime.TotalMilliseconds * 100;
-                    summary.PerformanceMetrics.MaxCpuUsage = summary.PerformanceMetrics.AverageCpuUsage; // Simplified
-                    summary.PerformanceMetrics.TotalRunTime = summary.TotalExecutionTime;
-                    summary.PerformanceMetrics.OperationsPerSecond = (int)(passedResults.Count / summary.TotalExecutionTime.TotalSeconds);
+                    summary.PerformanceMetricsData.AverageLatencyMs = passedResults.Average(r => r.ExecutionTime.TotalMilliseconds);
+                    summary.PerformanceMetricsData.MaxLatencyMs = passedResults.Max(r => r.ExecutionTime.TotalMilliseconds);
+                    summary.PerformanceMetricsData.AverageMemoryMB = passedResults.Average(r => r.MemoryUsageMB);
+                    summary.PerformanceMetricsData.MaxMemoryMB = passedResults.Max(r => r.MemoryUsageMB);
+                    summary.PerformanceMetricsData.AverageCpuUsage = cpuUsageMs / summary.TotalExecutionTime.TotalMilliseconds * 100;
+                    summary.PerformanceMetricsData.MaxCpuUsage = summary.PerformanceMetricsData.AverageCpuUsage; // Simplified
+                    summary.PerformanceMetricsData.TotalRunTime = summary.TotalExecutionTime;
+                    summary.PerformanceMetricsData.OperationsPerSecond = (int)(passedResults.Count / summary.TotalExecutionTime.TotalSeconds);
                 }
 
                 // Generate performance insights
@@ -171,7 +174,7 @@ namespace ScottWisper.Testing
                 var memoryEfficiency = (finalMemory - initialMemory) / passedResults.Count;
                 summary.PerformanceMetrics.Add($"Memory efficiency: Average {memoryEfficiency:F2}MB per test");
                 
-                summary.PerformanceMetrics.Add($"Total CPU usage: {cpuUsageMs:F2}ms ({summary.PerformanceMetrics.AverageCpuUsage:F1}%)");
+                summary.PerformanceMetrics.Add($"Total CPU usage: {cpuUsageMs:F2}ms ({summary.PerformanceMetricsData.AverageCpuUsage:F1}%)");
             }
             catch (Exception ex)
             {
@@ -266,7 +269,7 @@ namespace ScottWisper.Testing
 
             // Calculate performance metrics
             var finalMemory = Process.GetCurrentProcess().WorkingSet64 / (1024 * 1024); // MB
-            result.MemoryUsageMB = Math.Max(0, finalMemory - initialMemory);
+            result.MemoryUsageMB = (int)Math.Max(0, finalMemory - initialMemory);
 
             // Notify callbacks
             lock (_lockObject)
@@ -425,31 +428,31 @@ namespace ScottWisper.Testing
             console.AppendLine("=".PadRight(60, '='));
 
             console.AppendLine();
-            console.WriteLine($"Generated: {summary.EndTime:yyyy-MM-dd HH:mm:ss}");
-            console.WriteLine($"Total Execution Time: {summary.TotalExecutionTime.TotalSeconds:F2} seconds");
+            console.AppendLine($"Generated: {summary.EndTime:yyyy-MM-dd HH:mm:ss}");
+            console.AppendLine($"Total Execution Time: {summary.TotalExecutionTime.TotalSeconds:F2} seconds");
 
-            console.WriteLine();
-            console.WriteLine("OVERALL RESULTS:");
-            console.WriteLine($"  Total Tests: {summary.TotalTests}");
-            console.WriteLine($"  Passed: {summary.PassedTests} ({summary.SuccessRateText})");
-            console.WriteLine($"  Failed: {summary.FailedTests}");
+            console.AppendLine();
+            console.AppendLine("OVERALL RESULTS:");
+            console.AppendLine($"  Total Tests: {summary.TotalTests}");
+            console.AppendLine($"  Passed: {summary.PassedTests} ({summary.SuccessRateText})");
+            console.AppendLine($"  Failed: {summary.FailedTests}");
 
-            console.WriteLine();
-            console.WriteLine("RESULTS BY CATEGORY:");
+            console.AppendLine();
+            console.AppendLine("RESULTS BY CATEGORY:");
             foreach (var category in summary.CategoryResults.OrderByDescending(kv => kv.Value))
             {
                 var categoryTotal = summary.Results.Count(r => r.Category == category.Key);
                 var categoryPassed = summary.CategoryResults[category.Key];
                 var categorySuccessRate = categoryTotal > 0 ? (double)categoryPassed / categoryTotal * 100 : 0.0;
-                console.WriteLine($"  {category.Key}: {categoryPassed}/{categoryTotal} ({categorySuccessRate:F1}%)");
+                console.AppendLine($"  {category.Key}: {categoryPassed}/{categoryTotal} ({categorySuccessRate:F1}%)");
             }
 
             // System Tray specific analysis
             var systemTrayResults = summary.Results.Where(r => r.Category == "SystemTray").ToList();
             if (systemTrayResults.Count > 0)
             {
-                console.WriteLine();
-                console.WriteLine("SYSTEM TRAY PERFORMANCE ANALYSIS:");
+                console.AppendLine();
+                console.AppendLine("SYSTEM TRAY PERFORMANCE ANALYSIS:");
                 var avgLatency = systemTrayResults.Average(r => r.ExecutionTime.TotalMilliseconds);
                 var avgMemory = systemTrayResults.Average(r => r.MemoryUsageMB);
                 var responsivenessRate = (double)systemTrayResults.Count(r => r.ExecutionTime.TotalMilliseconds < 100) / systemTrayResults.Count * 100;
@@ -457,39 +460,39 @@ namespace ScottWisper.Testing
                 var performanceTests = systemTrayResults.Count(r => r.TestName.Contains("Performance"));
                 var memoryTests = systemTrayResults.Count(r => r.TestName.Contains("Memory"));
                 
-                console.WriteLine($"  Average Response Time: {avgLatency:F2}ms {(avgLatency < 100 ? "✓" : "⚠")}");
-                console.WriteLine($"  Average Memory Usage: {avgMemory:F2}MB {(avgMemory < 10 ? "✓" : "⚠")}");
-                console.WriteLine($"  Responsiveness Rate: {responsivenessRate:F1}% {(responsivenessRate > 95 ? "✓" : "⚠")}");
-                console.WriteLine($"  Stability Tests: {stabilityTests} passed");
-                console.WriteLine($"  Performance Tests: {performanceTests} passed");
-                console.WriteLine($"  Memory Management Tests: {memoryTests} passed");
-                console.WriteLine($"  Total System Tray Tests: {systemTrayResults.Count(r => r.Passed)}/{systemTrayResults.Count}");
+                console.AppendLine($"  Average Response Time: {avgLatency:F2}ms {(avgLatency < 100 ? "✓" : "⚠")}");
+                console.AppendLine($"  Average Memory Usage: {avgMemory:F2}MB {(avgMemory < 10 ? "✓" : "⚠")}");
+                console.AppendLine($"  Responsiveness Rate: {responsivenessRate:F1}% {(responsivenessRate > 95 ? "✓" : "⚠")}");
+                console.AppendLine($"  Stability Tests: {stabilityTests} passed");
+                console.AppendLine($"  Performance Tests: {performanceTests} passed");
+                console.AppendLine($"  Memory Management Tests: {memoryTests} passed");
+                console.AppendLine($"  Total System Tray Tests: {systemTrayResults.Count(r => r.Passed)}/{systemTrayResults.Count}");
             }
 
             if (summary.FailedTestNames.Count > 0)
             {
-                console.WriteLine();
-                console.WriteLine("FAILED TESTS:");
+                console.AppendLine();
+                console.AppendLine("FAILED TESTS:");
                 foreach (var failedTest in summary.FailedTestNames)
                 {
-                    console.WriteLine($"  - {failedTest}");
+                    console.AppendLine($"  - {failedTest}");
                 }
             }
 
             if (summary.PerformanceMetrics.Count > 0)
             {
-                console.WriteLine();
-                console.WriteLine("PERFORMANCE METRICS:");
+                console.AppendLine();
+                console.AppendLine("PERFORMANCE METRICS:");
                 foreach (var metric in summary.PerformanceMetrics)
                 {
-                    console.WriteLine($"  {metric}");
+                    console.AppendLine($"  {metric}");
                 }
             }
 
             if (!string.IsNullOrEmpty(summary.ErrorMessage))
             {
-                console.WriteLine();
-                console.WriteLine($"ERROR: {summary.ErrorMessage}");
+                console.AppendLine();
+                console.AppendLine($"ERROR: {summary.ErrorMessage}");
             }
 
             return console.ToString();
@@ -548,13 +551,13 @@ namespace ScottWisper.Testing
                 var systemTrayResults = summary.Results.Where(r => r.Category == "SystemTray").ToList();
                 if (systemTrayResults.Count > 0)
                 {
-                    summary.PerformanceMetrics.AverageLatencyMs = systemTrayResults.Average(r => r.ExecutionTime.TotalMilliseconds);
-                    summary.PerformanceMetrics.MaxLatencyMs = systemTrayResults.Max(r => r.ExecutionTime.TotalMilliseconds);
-                    summary.PerformanceMetrics.AverageMemoryMB = systemTrayResults.Average(r => r.MemoryUsageMB);
-                    summary.PerformanceMetrics.MaxMemoryMB = systemTrayResults.Max(r => r.MemoryUsageMB);
-                    summary.PerformanceMetrics.AverageCpuUsage = cpuUsageMs / summary.TotalExecutionTime.TotalMilliseconds * 100;
-                    summary.PerformanceMetrics.TotalRunTime = summary.TotalExecutionTime;
-                    summary.PerformanceMetrics.OperationsPerSecond = (int)(systemTrayResults.Count / summary.TotalExecutionTime.TotalSeconds);
+                    summary.PerformanceMetricsData.AverageLatencyMs = systemTrayResults.Average(r => r.ExecutionTime.TotalMilliseconds);
+                    summary.PerformanceMetricsData.MaxLatencyMs = systemTrayResults.Max(r => r.ExecutionTime.TotalMilliseconds);
+                    summary.PerformanceMetricsData.AverageMemoryMB = systemTrayResults.Average(r => r.MemoryUsageMB);
+                    summary.PerformanceMetricsData.MaxMemoryMB = systemTrayResults.Max(r => r.MemoryUsageMB);
+                    summary.PerformanceMetricsData.AverageCpuUsage = cpuUsageMs / summary.TotalExecutionTime.TotalMilliseconds * 100;
+                    summary.PerformanceMetricsData.TotalRunTime = summary.TotalExecutionTime;
+                    summary.PerformanceMetricsData.OperationsPerSecond = (int)(systemTrayResults.Count / summary.TotalExecutionTime.TotalSeconds);
 
                     // Add system tray specific insights
                     var stabilityTests = systemTrayResults.Where(r => r.TestName.Contains("Stability")).ToList();
@@ -565,7 +568,7 @@ namespace ScottWisper.Testing
                     summary.PerformanceMetrics.Add($"Stability Tests: {stabilityTests.Count(r => r.Passed)}/{stabilityTests.Count} passed");
                     summary.PerformanceMetrics.Add($"Performance Tests: {performanceTests.Count(r => r.Passed)}/{performanceTests.Count} passed");
                     summary.PerformanceMetrics.Add($"Memory Management Tests: {memoryTests.Count(r => r.Passed)}/{memoryTests.Count} passed");
-                    summary.PerformanceMetrics.Add($"System Tray Average Response Time: {summary.PerformanceMetrics.AverageLatencyMs:F2}ms");
+                    summary.PerformanceMetrics.Add($"System Tray Average Response Time: {summary.PerformanceMetricsData.AverageLatencyMs:F2}ms");
                     summary.PerformanceMetrics.Add($"System Tray Memory Efficiency: {(finalMemory - initialMemory)/systemTrayResults.Count:F2}MB per test");
                 }
             }

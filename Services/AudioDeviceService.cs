@@ -113,7 +113,7 @@ namespace ScottWisper.Services
                         var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
 
                         // Filter devices based on permission status
-                        if (permissionStatus != MicrophonePermissionStatus.Granted)
+                        if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
                         {
                             audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
                         }

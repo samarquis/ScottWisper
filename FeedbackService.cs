@@ -140,6 +140,10 @@ namespace ScottWisper
         private ProgressState _currentProgress;
         private DateTime _lastStatusChange;
         private readonly Dictionary<IFeedbackService.DictationStatus, (float frequency, int duration)[]> _toneSequences;
+        
+        // Volume and mute state
+        private float _volume = 0.8f;
+        private bool _isMuted = false;
 
         public event EventHandler<IFeedbackService.DictationStatus>? StatusChanged;
         public event EventHandler<byte[]>? AudioDataForVisualization;
@@ -244,7 +248,7 @@ namespace ScottWisper
             if (!string.IsNullOrEmpty(message) && _preferences.ToastEnabled)
             {
                 var notificationType = DetermineNotificationType(status);
-                if (_preferences.EnabledNotifications.Contains(notificationType))
+                if (_preferences.EnabledNotifications.Any(nt => nt.ToString() == notificationType.ToString()))
                 {
                     await ShowNotificationAsync(GetStatusTitle(status), message, _preferences.ToastDuration);
                 }
@@ -285,9 +289,9 @@ namespace ScottWisper
             });
         }
 
-        public async Task ShowToastNotificationAsync(string title, string message, NotificationType type = NotificationType.Info)
+        public async Task ShowToastNotificationAsync(string title, string message, IFeedbackService.NotificationType type = IFeedbackService.NotificationType.Info)
         {
-            if (!_preferences.ToastEnabled || !_preferences.EnabledNotifications.Contains(type))
+            if (!_preferences.ToastEnabled || !_preferences.EnabledNotifications.Any(nt => nt.ToString() == type.ToString()))
                 return;
 
             await Application.Current.Dispatcher.InvokeAsync(() =>
@@ -374,7 +378,7 @@ namespace ScottWisper
                 ProgressUpdated?.Invoke(this, _currentProgress);
                 
                 // Show progress notification
-                ShowToastNotificationAsync("Progress", $"{operation}...", NotificationType.Info);
+                ShowToastNotificationAsync("Progress", $"{operation}...", IFeedbackService.NotificationType.Info);
             });
         }
 
@@ -408,7 +412,7 @@ namespace ScottWisper
                     _currentProgress.Progress = 100.0;
                     
                     var message = completionMessage ?? $"{_currentProgress.Operation} completed";
-                    ShowToastNotificationAsync("Complete", message, NotificationType.Completion);
+                    ShowToastNotificationAsync("Complete", message, IFeedbackService.NotificationType.Completion);
                     
                     ProgressUpdated?.Invoke(this, _currentProgress);
                 }
@@ -680,6 +684,18 @@ namespace ScottWisper
             }
         }
 
+        public async Task StartProgressAsync(string title, TimeSpan timeout)
+        {
+            // Simple implementation - could be enhanced with actual progress UI
+            await ShowStatusIndicatorAsync(IFeedbackService.DictationStatus.Processing, (int)timeout.TotalMilliseconds);
+        }
+
+        public async Task UpdateProgressAsync(int percentage, string message)
+        {
+            // Simple implementation - could be enhanced with actual progress UI
+            await SetStatusAsync(IFeedbackService.DictationStatus.Processing, $"{percentage}% - {message}");
+        }
+
         public async Task DisposeAsync()
         {
             if (_isDisposed)
@@ -754,19 +770,19 @@ namespace ScottWisper
             };
         }
 
-        private NotificationType DetermineNotificationType(IFeedbackService.DictationStatus status)
+        private IFeedbackService.NotificationType DetermineNotificationType(IFeedbackService.DictationStatus status)
         {
             return status switch
             {
-                IFeedbackService.DictationStatus.Error => NotificationType.Error,
-                IFeedbackService.DictationStatus.Complete => NotificationType.Completion,
-                IFeedbackService.DictationStatus.Processing => NotificationType.Info,
-                IFeedbackService.DictationStatus.Recording => NotificationType.Info,
-                _ => NotificationType.StatusChange
+                IFeedbackService.DictationStatus.Error => IFeedbackService.NotificationType.Error,
+                IFeedbackService.DictationStatus.Complete => IFeedbackService.NotificationType.Completion,
+                IFeedbackService.DictationStatus.Processing => IFeedbackService.NotificationType.Info,
+                IFeedbackService.DictationStatus.Recording => IFeedbackService.NotificationType.Info,
+                _ => IFeedbackService.NotificationType.StatusChange
             };
         }
 
-        private Window CreateToastWindow(string title, string message, NotificationType type)
+        private Window CreateToastWindow(string title, string message, IFeedbackService.NotificationType type)
         {
             var window = new Window
             {
@@ -790,9 +806,9 @@ namespace ScottWisper
             var grid = new Grid();
             grid.Background = type switch
             {
-                NotificationType.Error => new SolidColorBrush(Color.FromArgb(200, 220, 53, 69)),
-                NotificationType.Warning => new SolidColorBrush(Color.FromArgb(200, 255, 193, 7)),
-                NotificationType.Completion => new SolidColorBrush(Color.FromArgb(200, 40, 167, 69)),
+                IFeedbackService.NotificationType.Error => new SolidColorBrush(Color.FromArgb(200, 220, 53, 69)),
+                IFeedbackService.NotificationType.Warning => new SolidColorBrush(Color.FromArgb(200, 255, 193, 7)),
+                IFeedbackService.NotificationType.Completion => new SolidColorBrush(Color.FromArgb(200, 40, 167, 69)),
                 _ => new SolidColorBrush(Color.FromArgb(200, 33, 150, 243))
             };
 
@@ -885,7 +901,7 @@ namespace ScottWisper
                 Status = newStatus,
                 Message = null, // Could be enhanced to include contextual messages
                 Duration = duration,
-                NotificationType = DetermineNotificationType(newStatus)
+                NotificationType = (NotificationType)DetermineNotificationType(newStatus)
             };
 
             // Add to history

@@ -167,7 +167,7 @@ namespace ScottWisper.Tests
             // Act
             var testNotifications = new[]
             {
-                ("Test Notification", "This is a test message"),
+                ("Test Notification", "This is a test message", ToolTipIcon.Info),
                 ("Error", "This is an error notification", ToolTipIcon.Error),
                 ("Warning", "This is a warning", ToolTipIcon.Warning),
                 ("Info", "This is info", ToolTipIcon.Info)
@@ -176,7 +176,7 @@ namespace ScottWisper.Tests
             foreach (var (title, message, icon) in testNotifications)
             {
                 var stopwatch = Stopwatch.StartNew();
-                _systemTrayService.ShowNotification(message, title, 2000, icon);
+                _systemTrayService.ShowNotification(message, title, 2000);
                 stopwatch.Stop();
                 
                 Assert.IsTrue(stopwatch.ElapsedMilliseconds < 50, 

@@ -1,4 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.Options;
 using ScottWisper.Services;
 using ScottWisper.Configuration;
 using System;
@@ -9,6 +12,18 @@ using System.IO;
 
 namespace ScottWisper.Tests
 {
+    public class TestOptionsMonitor<T> : IOptionsMonitor<T>
+    {
+        private readonly T _options;
+        public TestOptionsMonitor(T options)
+        {
+            _options = options;
+        }
+        public T CurrentValue => _options;
+        public T Get(string name) => _options;
+        public IDisposable OnChange(Action<T, string> listener) => throw new NotImplementedException();
+    }
+
     [TestClass]
     public class SettingsTests
     {
@@ -34,8 +49,8 @@ namespace ScottWisper.Tests
                 })
                 .Build();
 
-            var options = Microsoft.Extensions.Options.Options.Create(new AppSettings());
-            _settingsService = new SettingsService(configuration, options);
+ var optionsMonitor = new TestOptionsMonitor<AppSettings>(new AppSettings());
+            _settingsService = new SettingsService(configuration, optionsMonitor);
         }
 
         [TestCleanup]
@@ -76,8 +91,8 @@ namespace ScottWisper.Tests
                 .AddJsonFile(settingsPath, optional: true, reloadOnChange: true)
                 .Build();
             
-            var newOptions = Microsoft.Extensions.Options.Options.Create(new AppSettings());
-            var newSettingsService = new SettingsService(newConfiguration, newOptions);
+            var newOptionsMonitor = new TestOptionsMonitor<AppSettings>(new AppSettings());
+            var newSettingsService = new SettingsService(newConfiguration, newOptionsMonitor);
             var loadedSettings = newSettingsService.Settings;
 
             Assert.AreEqual(48000, loadedSettings.Audio.SampleRate, "Should persist modified sample rate");
@@ -263,7 +278,7 @@ namespace ScottWisper.Tests
                 .AddJsonFile(settingsPath, optional: true, reloadOnChange: true)
                 .Build();
 
-            var options = Microsoft.Extensions.Options.Options.Create(new AppSettings());
+            var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
             var recoveryService = new SettingsService(configuration, options);
 
             // Should recover with default settings

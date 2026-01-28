@@ -12,7 +12,7 @@ namespace ScottWisper
     public class WhisperService : IDisposable
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
+        private string _apiKey;
         private readonly string _baseUrl = "https://api.openai.com/v1/audio/transcriptions";
         private readonly ISettingsService? _settingsService;
         
@@ -23,6 +23,8 @@ namespace ScottWisper
         // Whisper API pricing (as of 2024)
         private const decimal CostPerMinute = 0.006m; // $0.006 per minute
         
+        public event EventHandler? TranscriptionStarted;
+        public event EventHandler<int>? TranscriptionProgress;
         public event EventHandler<string>? TranscriptionCompleted;
         public event EventHandler<Exception>? TranscriptionError;
         public event EventHandler<UsageStats>? UsageUpdated;
@@ -52,6 +54,9 @@ namespace ScottWisper
         {
             try
             {
+                // Notify transcription started
+                TranscriptionStarted?.Invoke(this, EventArgs.Empty);
+                
                 if (audioData == null || audioData.Length == 0)
                 {
                     throw new ArgumentException("Audio data cannot be null or empty");
@@ -80,8 +85,14 @@ namespace ScottWisper
                 // Add temperature for consistent results
                 content.Add(new StringContent("0.0"), "temperature");
                 
+                // Report some progress before making the request
+                TranscriptionProgress?.Invoke(this, 25);
+                
                 // Make API request
                 var response = await _httpClient.PostAsync(_baseUrl, content);
+                
+                // Report progress after getting response
+                TranscriptionProgress?.Invoke(this, 75);
                 
                 if (!response.IsSuccessStatusCode)
                 {

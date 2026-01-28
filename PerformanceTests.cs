@@ -379,7 +379,6 @@ namespace ScottWisper
             _systemTrayService.Initialize();
             
             var startTime = DateTime.UtcNow;
-            var performanceMeasurements = new List<SystemTrayMeasurement>();
             
             // Test 1: Status update performance
             var statusUpdateTimes = new List<long>();
