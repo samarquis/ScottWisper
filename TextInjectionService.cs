@@ -42,6 +42,9 @@ namespace ScottWisper
         public string TestText { get; set; } = string.Empty;
         public string MethodUsed { get; set; } = string.Empty;
         public string[] Issues { get; set; } = Array.Empty<string>();
+        public TimeSpan Duration { get; set; }
+        public WindowInfo ApplicationInfo { get; set; } = new();
+        public ApplicationCompatibility Compatibility { get; set; }
     }
 
     /// <summary>
@@ -322,10 +325,14 @@ namespace ScottWisper
                 issues.Add("Low success rate detected");
             }
 
-            var recentLatency = recentAttempts.Where(a => a.Success)
+            var recentLatencyValues = recentAttempts.Where(a => a.Success)
                 .Select(a => a.Duration.TotalMilliseconds)
                 .DefaultIfEmpty(new double[] { 0 })
-                .Average();
+                .ToArray();
+            
+            var recentLatency = recentLatencyValues.Length > 0 
+                ? recentLatencyValues.Average() 
+                : 0;
 
             if (recentLatency > 50)
             {
@@ -790,6 +797,55 @@ namespace ScottWisper
                             inputs.Add(CreateUnicodeInput(c));
                             await Task.Delay(handlingDelay * 4);
                         }
+                        else if (editorType == "intellisense_safe")
+                        {
+                            // IDE with IntelliSense - extra care for special chars
+                            if (IsSyntaxCharacter(c))
+                            {
+                                inputs.Add(CreateUnicodeInput(c));
+                                await Task.Delay(handlingDelay * 5);
+                            }
+                            else
+                            {
+                                inputs.Add(CreateUnicodeInput(c));
+                                await Task.Delay(handlingDelay);
+                            }
+                        }
+                    }
+                    
+                    // Communication tool-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("comm_app") == true)
+                    {
+                        var hasCommApp = compatibility.ApplicationSettings?.ContainsKey("comm_app")?.ToString();
+                        if (hasCommApp?.Contains("emoji") == true)
+                        {
+                            // Enhanced emoji support
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 1);
+                        }
+                        else
+                        {
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 2);
+                        }
+                    }
+                    
+                    // Office-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("office_app") == true)
+                    {
+                        var officeApp = compatibility.ApplicationSettings?.ContainsKey("office_app")?.ToString();
+                        if (officeApp == "word")
+                        {
+                            // Word - use clipboard with formatting preservation
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay * 2);
+                        }
+                        else
+                        {
+                            inputs.Add(CreateUnicodeInput(c));
+                            await Task.Delay(handlingDelay);
+                        }
+                    }
                         else if (editorType == "intellisense_safe")
                         {
                             // IDE with IntelliSense - extra care for special chars
