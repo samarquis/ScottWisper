@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +23,7 @@ namespace ScottWisper
         private readonly List<Services.AudioDevice> _outputDevices = new List<Services.AudioDevice>();
         private bool _isLoading = true;
         private AppSettings _originalSettings;
+        private AppSettings _currentSettings;
         
         // Hotkey management fields
         private bool _isRecordingHotkey = false;
