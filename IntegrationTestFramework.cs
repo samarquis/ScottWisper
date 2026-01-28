@@ -17,7 +17,7 @@ namespace ScottWisper
     public abstract class IntegrationTestFramework
     {
         protected readonly IServiceProvider _serviceProvider;
-        protected readonly ITextInjectionService _textInjectionService;
+        protected readonly global::ScottWisper.ITextInjection _textInjectionService;
         protected readonly IAudioDeviceService _audioDeviceService;
         protected readonly ISettingsService _settingsService;
         protected readonly List<TestResult> _testResults = new List<TestResult>();
