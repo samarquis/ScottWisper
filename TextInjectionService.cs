@@ -103,9 +103,273 @@ namespace ScottWisper
         WindowInfo GetCurrentWindowInfo();
         
         /// <summary>
-        /// Get application compatibility information
+        /// Detect the currently active target application
         /// </summary>
-        ApplicationCompatibility GetApplicationCompatibility();
+        public TargetApplication DetectActiveApplication()
+        {
+            var windowInfo = GetCurrentWindowInfo();
+            if (!windowInfo.HasFocus || string.IsNullOrEmpty(windowInfo.ProcessName))
+                return TargetApplication.Unknown;
+
+            var processName = windowInfo.ProcessName.ToLowerInvariant();
+
+            if (processName.Contains("chrome"))
+                return TargetApplication.Chrome;
+            if (processName.Contains("firefox"))
+                return TargetApplication.Firefox;
+            if (processName.Contains("msedge"))
+                return TargetApplication.Edge;
+            if (processName.Contains("devenv"))
+                return TargetApplication.VisualStudio;
+            if (processName.Contains("wd")) // Word process
+                return TargetApplication.Word;
+            if (processName.Contains("olk")) // Outlook process
+                return TargetApplication.Outlook;
+            if (processName.Contains("notepad++"))
+                return TargetApplication.NotepadPlus;
+            if (processName.Contains("windowsterminal") || processName.Contains("wt"))
+                return TargetApplication.WindowsTerminal;
+            if (processName.Contains("cmd"))
+                return TargetApplication.CommandPrompt;
+            if (processName.Contains("notepad"))
+                return TargetApplication.Notepad;
+
+            return TargetApplication.Unknown;
+        }
+
+        /// <summary>
+        /// Validate browser text injection compatibility
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateBrowserInjection()
+        {
+            var results = new List<InjectionTestResult>();
+            var testText = "Test browser injection 123 @#$";
+
+            // Test Chrome
+            var chromeResult = await TestInjectionInApplication(TargetApplication.Chrome, testText);
+            results.Add(chromeResult);
+
+            // Test Firefox
+            var firefoxResult = await TestInjectionInApplication(TargetApplication.Firefox, testText);
+            results.Add(firefoxResult);
+
+            // Test Edge
+            var edgeResult = await TestInjectionInApplication(TargetApplication.Edge, testText);
+            results.Add(edgeResult);
+
+            return new InjectionTestResult
+            {
+                Success = results.All(r => r.Success),
+                TestText = testText,
+                MethodUsed = "BrowserValidation",
+                Duration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds)),
+                Issues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray(),
+                ApplicationInfo = GetCurrentWindowInfo()
+            };
+        }
+
+        /// <summary>
+        /// Validate IDE text injection compatibility
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateIDEInjection()
+        {
+            var testText = "public void TestMethod() { // IDE test\n    int value = 42;\n}";
+            
+            return await TestInjectionInApplication(TargetApplication.VisualStudio, testText);
+        }
+
+        /// <summary>
+        /// Validate Office application text injection compatibility
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateOfficeInjection()
+        {
+            var results = new List<InjectionTestResult>();
+            var wordTestText = "This is a test document for Word injection with unicode: αβγ";
+            var outlookTestText = "Test email injection with special chars: @#$%^&";
+
+            // Test Word
+            var wordResult = await TestInjectionInApplication(TargetApplication.Word, wordTestText);
+            results.Add(wordResult);
+
+            // Test Outlook
+            var outlookResult = await TestInjectionInApplication(TargetApplication.Outlook, outlookTestText);
+            results.Add(outlookResult);
+
+            return new InjectionTestResult
+            {
+                Success = results.All(r => r.Success),
+                TestText = $"{wordTestText} | {outlookTestText}",
+                MethodUsed = "OfficeValidation",
+                Duration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds)),
+                Issues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray(),
+                ApplicationInfo = GetCurrentWindowInfo()
+            };
+        }
+
+        /// <summary>
+        /// Validate terminal text injection compatibility
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateTerminalInjection()
+        {
+            var results = new List<InjectionTestResult>();
+            var testText = "echo 'Terminal test with unicode: αβγ' && ls -la";
+
+            // Test Windows Terminal
+            var wtResult = await TestInjectionInApplication(TargetApplication.WindowsTerminal, testText);
+            results.Add(wtResult);
+
+            // Test Command Prompt
+            var cmdResult = await TestInjectionInApplication(TargetApplication.CommandPrompt, testText);
+            results.Add(cmdResult);
+
+            return new InjectionTestResult
+            {
+                Success = results.All(r => r.Success),
+                TestText = testText,
+                MethodUsed = "TerminalValidation",
+                Duration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds)),
+                Issues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray(),
+                ApplicationInfo = GetCurrentWindowInfo()
+            };
+        }
+
+        /// <summary>
+        /// Validate Notepad++ text injection compatibility
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateNotepadPlusInjection()
+        {
+            var testText = "Notepad++ test with syntax chars: { [ ( ) ] } and unicode: αβγ";
+            
+            return await TestInjectionInApplication(TargetApplication.NotepadPlus, testText);
+        }
+
+        /// <summary>
+        /// Test injection in specific target application with retry logic
+        /// </summary>
+        private async Task<InjectionTestResult> TestInjectionInApplication(TargetApplication targetApp, string testText)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var issues = new List<string>();
+            var success = false;
+            
+            try
+            {
+                var compatibility = ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
+                    ? compat 
+                    : ApplicationCompatibilityMap[TargetApplication.Unknown];
+
+                // Test with different injection strategies
+                for (int attempt = 0; attempt < 3; attempt++)
+                {
+                    if (attempt == 0)
+                    {
+                        // Primary method
+                        success = await InjectTextAsync(testText, new InjectionOptions
+                        {
+                            UseClipboardFallback = false,
+                            RetryCount = 1,
+                            DelayBetweenCharsMs = GetDelayForApplication(targetApp)
+                        });
+                    }
+                    else if (attempt == 1)
+                    {
+                        // Fallback to clipboard
+                        success = await InjectTextAsync(testText, new InjectionOptions
+                        {
+                            UseClipboardFallback = true,
+                            RetryCount = 1,
+                            DelayBetweenCharsMs = GetDelayForApplication(targetApp) * 2
+                        });
+                    }
+                    else
+                    {
+                        // Slow Unicode injection
+                        success = await InjectTextAsync(testText, new InjectionOptions
+                        {
+                            UseClipboardFallback = false,
+                            RetryCount = 1,
+                            DelayBetweenCharsMs = GetDelayForApplication(targetApp) * 3
+                        });
+                    }
+
+                    if (success) break;
+                    await Task.Delay(500); // Wait between attempts
+                }
+
+                if (!success)
+                    issues.Add($"Failed to inject text into {targetApp} after 3 attempts");
+            }
+            catch (Exception ex)
+            {
+                issues.Add($"Exception testing {targetApp}: {ex.Message}");
+            }
+
+            stopwatch.Stop();
+
+            return new InjectionTestResult
+            {
+                Success = success,
+                TestText = testText,
+                MethodUsed = attempt == 0 ? "SendInput" : attempt == 1 ? "ClipboardFallback" : "SlowUnicode",
+                Duration = stopwatch.Elapsed,
+                Issues = issues.ToArray(),
+                Compatibility = ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
+                    ? compat 
+                    : new ApplicationCompatibility { Category = ApplicationCategory.Unknown, IsCompatible = false }
+            };
+        }
+
+        /// <summary>
+        /// Get appropriate delay for specific application
+        /// </summary>
+        private int GetDelayForApplication(TargetApplication app)
+        {
+            return app switch
+            {
+                TargetApplication.Chrome => 8,
+                TargetApplication.Firefox => 10,
+                TargetApplication.Edge => 8,
+                TargetApplication.VisualStudio => 5,
+                TargetApplication.Word => 15,
+                TargetApplication.Outlook => 12,
+                TargetApplication.NotepadPlus => 3,
+                TargetApplication.WindowsTerminal => 2,
+                TargetApplication.CommandPrompt => 2,
+                TargetApplication.Notepad => 5,
+                _ => 5
+            };
+        }
+
+        /// <summary>
+        /// Create cross-application validation report
+        /// </summary>
+        public CrossApplicationValidationReport CreateCrossApplicationValidationReport()
+        {
+            return new CrossApplicationValidationReport
+            {
+                Timestamp = DateTime.Now,
+                TestedApplications = Enum.GetValues<TargetApplication>().Where(a => a != TargetApplication.Unknown).ToList(),
+                CompatibilityMap = ApplicationCompatibilityMap,
+                OverallStatus = "Ready for validation testing"
+            };
+        }
+
+        /// <summary>
+        /// Result of injection test
+        /// </summary>
+
+    }
+
+    /// <summary>
+    /// Cross-application validation report
+    /// </summary>
+    public class CrossApplicationValidationReport
+    {
+        public DateTime Timestamp { get; set; }
+        public List<TargetApplication> TestedApplications { get; set; } = new();
+        public Dictionary<TargetApplication, ApplicationCompatibility> CompatibilityMap { get; set; } = new();
+        public string OverallStatus { get; set; } = string.Empty;
+        public List<InjectionTestResult> TestResults { get; set; } = new();
     }
 
     /// <summary>
@@ -953,8 +1217,132 @@ namespace ScottWisper
         /// </summary>
         private bool IsSyntaxCharacter(char c)
         {
-            return c is '{' or c is '}' or c is '[' or c is ']' || c is '(' || c is ')' || c is '<' || c is '>';
+            return c == '{' || c == '}' || c == '[' || c == ']' || c == '(' || c == ')' || c == '<' || c == '>';
         }
+
+        /// <summary>
+        /// Application compatibility map for cross-application validation
+        /// </summary>
+        public static readonly Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap = new()
+        {
+            [TargetApplication.Chrome] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Browser,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "web_forms" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["browser"] = "chrome",
+                    ["requires_unicode_fix"] = true,
+                    ["form_field_detection"] = true
+                }
+            },
+            [TargetApplication.Firefox] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Browser,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "firefox_specific" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["browser"] = "firefox",
+                    ["requires_unicode_fix"] = true,
+                    ["content_editable_fix"] = true
+                }
+            },
+            [TargetApplication.Edge] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Browser,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "edge_chromium" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["browser"] = "edge",
+                    ["requires_unicode_fix"] = true,
+                    ["webview2_compatibility"] = true
+                }
+            },
+            [TargetApplication.VisualStudio] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.DevelopmentTool,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "syntax_chars", "indentation" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["editor"] = "visual_studio",
+                    ["intellisense_compatibility"] = true,
+                    ["syntax_highlighting_mode"] = true
+                }
+            },
+            [TargetApplication.Word] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Office,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "formatting" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["application"] = "word",
+                    ["rich_text_mode"] = true,
+                    ["formatting_preservation"] = true
+                }
+            },
+            [TargetApplication.Outlook] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Office,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "email_formatting" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["application"] = "outlook",
+                    ["email_composer_mode"] = true,
+                    ["html_compatibility"] = true
+                }
+            },
+            [TargetApplication.NotepadPlus] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.TextEditor,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "syntax_highlighting" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["editor"] = "notepad_plus",
+                    ["syntax_mode"] = true,
+                    ["multi_cursor_support"] = false
+                }
+            },
+            [TargetApplication.WindowsTerminal] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Terminal,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "shell_commands" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["terminal"] = "windows_terminal",
+                    ["shell_mode"] = true,
+                    ["command_history"] = true
+                }
+            },
+            [TargetApplication.CommandPrompt] = new ApplicationCompatibility 
+            {
+                Category = ApplicationCategory.Terminal,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput,
+                RequiresSpecialHandling = new[] { "unicode", "newline", "dos_commands" },
+                ApplicationSettings = new Dictionary<string, object>
+                {
+                    ["terminal"] = "cmd",
+                    ["dos_mode"] = true,
+                    ["legacy_compatibility"] = true
+                }
+            }
+        };
 
         /// <summary>
         /// Check if there's an active window to inject into
@@ -1478,6 +1866,24 @@ namespace ScottWisper
         TextEditor,
         Terminal,
         Gaming
+    }
+
+    /// <summary>
+    /// Target applications for cross-application validation
+    /// </summary>
+    public enum TargetApplication
+    {
+        Unknown,
+        Chrome,
+        Firefox,
+        Edge,
+        VisualStudio,
+        Word,
+        Outlook,
+        NotepadPlus,
+        WindowsTerminal,
+        CommandPrompt,
+        Notepad
     }
 
     /// <summary>
