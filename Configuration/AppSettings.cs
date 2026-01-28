@@ -7,7 +7,9 @@ namespace ScottWisper.Configuration
     public class AudioSettings
     {
         public string InputDeviceId { get; set; } = "default";
+        public string SelectedInputDeviceId { get; set; } = "default";
         public string OutputDeviceId { get; set; } = "default";
+        public string SelectedOutputDeviceId { get; set; } = "default";
         public int SampleRate { get; set; } = 16000;
         public int Channels { get; set; } = 1;
         public string FallbackInputDeviceId { get; set; } = "default";

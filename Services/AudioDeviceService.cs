@@ -1393,7 +1393,7 @@ namespace ScottWisper.Services
         /// </summary>
         public async Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message)
         {
-            return await Task.Run(() =>
+            await Task.Run(() =>
             {
                 try
                 {

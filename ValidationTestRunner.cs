@@ -171,7 +171,7 @@ namespace ScottWisper
 
                 // Test microphone permission check
                 var permissionStatus = await _audioDeviceService.CheckMicrophonePermissionAsync();
-                var permissionTest = permissionStatus != ScottWisper.MicrophonePermissionStatus.NotRequested;
+                var permissionTest = permissionStatus != MicrophonePermissionStatus.NotRequested;
                 LogTestResult("Microphone Permission Check", permissionTest, $"Status: {permissionStatus}", DateTime.Now - startTime);
 
                 // Test permission request functionality

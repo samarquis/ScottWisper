@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using ScottWisper.Services;
 using Microsoft.Extensions.DependencyInjection;
+using static ScottWisper.IntegrationTestFramework; // Access TargetApplication enum
 
 namespace ScottWisper
 {
@@ -68,7 +69,7 @@ namespace ScottWisper
             var applicationKey = parts[1];
 
             TestDataProvider.TestApplications.TryGetValue(applicationKey, out var targetApp);
-            TestDataProvider.TestScenarios.FirstOrDefault(s => s.Name == scenarioName, out var scenario);
+            var scenario = TestDataProvider.GetTestScenarios().FirstOrDefault(s => s.Name == scenarioName);
 
             if (scenario == null || !TestDataProvider.TestTexts.TryGetValue(scenario.TestTexts[0], out var testText))
             {
@@ -80,18 +81,23 @@ namespace ScottWisper
             {
                 switch (targetApp)
                 {
-                    case TargetApplication.TextEditor:
+                    case TargetApplication.Notepad:
                         return await TestTextEditorAsync(testName, testText, targetApp);
-                    case TargetApplication.Browser:
+                    case TargetApplication.Chrome:
+                    case TargetApplication.Firefox:
+                    case TargetApplication.Edge:
                         return await TestBrowserAsync(testName, testText, targetApp);
-                    case TargetApplication.Office:
-                        return await TestOfficeAsync(testName, TestText, targetApp);
-                    case TargetApplication.DevelopmentTool:
+                    case TargetApplication.Word:
+                    case TargetApplication.Outlook:
+                        return await TestOfficeAsync(testName, testText, targetApp);
+                    case TargetApplication.VisualStudio:
+                    case TargetApplication.NotepadPlus:
                         return await TestDevelopmentToolAsync(testName, testText, targetApp);
-                    case TargetApplication.Terminal:
+                    case TargetApplication.WindowsTerminal:
+                    case TargetApplication.CommandPrompt:
                         return await TestTerminalAsync(testName, testText, targetApp);
                     default:
-                        return await TestGenericApplicationAsync(testName, TestText, targetApp);
+                        return await TestTextEditorAsync(testName, testText, targetApp);
                 }
             }
             catch (Exception ex)
@@ -145,7 +151,7 @@ namespace ScottWisper
                 ["edge"] = "msedge.exe"
             };
 
-            return await TestApplicationInjectionAsync(testName, TestText, targetApp, appPaths);
+            return await TestApplicationInjectionAsync(testName, testText, targetApp, appPaths);
         }
 
         private async Task<TestResult> TestOfficeAsync(string testName, string testText, TargetApplication targetApp)
@@ -157,7 +163,7 @@ namespace ScottWisper
                 ["outlook"] = "outlook.exe"
             };
 
-            return await TestApplicationInjectionAsync(testName, TestText, targetApp, appPaths);
+            return await TestApplicationInjectionAsync(testName, testText, targetApp, appPaths);
         }
 
         private async Task<TestResult> TestDevelopmentToolAsync(string testName, string testText, TargetApplication targetApp)

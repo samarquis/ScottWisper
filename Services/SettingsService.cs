@@ -57,8 +57,8 @@ namespace ScottWisper.Services
         Task SetFallbackOutputDeviceAsync(string deviceId);
         Task<DeviceSpecificSettings> GetDeviceSettingsAsync(string deviceId);
         Task SetDeviceSettingsAsync(string deviceId, DeviceSpecificSettings settings);
-        Task AddDeviceTestResultAsync(DeviceTestingResult result);
-        Task<List<DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId);
+Task AddDeviceTestResultAsync(Configuration.DeviceTestingResult result);
+        Task<List<Configuration.DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId);
         
         // Enhanced device testing methods
         Task AddAudioDeviceTestResultAsync(AudioDeviceTestResult result);
@@ -66,12 +66,13 @@ namespace ScottWisper.Services
         Task SaveAudioQualityMetricsAsync(AudioQualityMetrics metrics);
         Task<List<AudioQualityMetrics>> GetAudioQualityHistoryAsync(string deviceId);
         Task SaveDeviceCompatibilityScoreAsync(Configuration.DeviceCompatibilityScore score);
-        Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
+Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         Task SetRealTimeMonitoringEnabledAsync(string deviceId, bool enabled);
         Task RefreshDeviceListAsync();
         Task<bool> IsDeviceEnabledAsync(string deviceId);
         Task SetDeviceEnabledAsync(string deviceId, bool enabled);
         Task<string> GetRecommendedDeviceAsync(DeviceType type);
+        Task SetPreferredDeviceAsync(string deviceId, DeviceType deviceType);
         
         // Hotkey management methods
         Task<bool> CreateHotkeyProfileAsync(HotkeyProfile profile);
@@ -285,9 +286,23 @@ namespace ScottWisper.Services
             await SaveAsync();
         }
 
-        public async Task SetFallbackOutputDeviceAsync(string deviceId)
+public async Task SetFallbackOutputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.FallbackOutputDeviceId = deviceId ?? "default";
+            await SaveAsync();
+        }
+
+        public async Task SetPreferredDeviceAsync(string deviceId, DeviceType deviceType)
+        {
+            switch (deviceType)
+            {
+                case DeviceType.Input:
+                    _currentSettings.Audio.SelectedInputDeviceId = deviceId ?? "default";
+                    break;
+                case DeviceType.Output:
+                    _currentSettings.Audio.SelectedOutputDeviceId = deviceId ?? "default";
+                    break;
+            }
             await SaveAsync();
         }
 
@@ -310,7 +325,7 @@ namespace ScottWisper.Services
             await SaveAsync();
         }
 
-        public async Task AddDeviceTestResultAsync(DeviceTestingResult result)
+        public async Task AddDeviceTestResultAsync(Configuration.DeviceTestingResult result)
         {
             if (result == null || string.IsNullOrEmpty(result.DeviceId))
                 return;
@@ -346,8 +361,8 @@ namespace ScottWisper.Services
             if (result == null || string.IsNullOrEmpty(result.DeviceId))
                 return;
 
-            // Convert to legacy format for backward compatibility
-            var legacyResult = new DeviceTestingResult
+// Convert to legacy format for backward compatibility
+            var legacyResult = new Configuration.DeviceTestingResult
             {
                 DeviceId = result.DeviceId,
                 DeviceName = result.DeviceName,
@@ -360,10 +375,10 @@ namespace ScottWisper.Services
             await AddDeviceTestResultAsync(legacyResult);
         }
 
-        public async Task<List<DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId)
+        public async Task<List<Configuration.DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId)
         {
             if (string.IsNullOrEmpty(deviceId))
-                return new List<DeviceTestingResult>();
+                return new List<Configuration.DeviceTestingResult>();
 
             await Task.CompletedTask; // Make method async
             return _currentSettings.DeviceTestHistory
