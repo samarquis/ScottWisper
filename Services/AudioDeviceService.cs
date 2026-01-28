@@ -87,6 +87,8 @@ namespace ScottWisper.Services
         public event EventHandler<PermissionEventArgs>? PermissionGranted;
         public event EventHandler<PermissionEventArgs>? PermissionRequestFailed;
         public event EventHandler<AudioLevelEventArgs>? AudioLevelUpdated;
+        public event EventHandler<DeviceRecoveryEventArgs>? DeviceRecoveryAttempted;
+        public event EventHandler<DeviceRecoveryEventArgs>? DeviceRecoveryCompleted;
 
         // Windows API declarations for permission handling
         [DllImport("user32.dll", SetLastError = true)]
@@ -1506,22 +1508,7 @@ namespace ScottWisper.Services
             });
         }
 
-        /// <summary>
-        /// Opens Windows microphone settings
-        /// </summary>
-        public void OpenWindowsMicrophoneSettings()
-        {
-            try
-            {
-                // Open Windows Privacy & Security -> Microphone settings
-                const string settingsPath = "ms-settings:privacy-microphone";
-                ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
-            }
-        }
+        // Note: OpenWindowsMicrophoneSettings method implemented above
 
         /// <summary>
         /// Enters graceful fallback mode when permissions are denied

@@ -58,29 +58,38 @@ namespace ScottWisper
                 var duration = DateTime.Now - startTime;
                 var allPassed = _testResults.All(t => t.Success);
 
+                var failedTests = _testResults.Where(t => !t.Success).ToList();
                 return new TestSuiteResult
                 {
-                    TestSuiteName = "Phase 02 Gap Closure Validation",
-                    AllPassed = allPassed,
                     TotalTests = _testResults.Count,
                     PassedTests = _testResults.Count(t => t.Success),
-                    FailedTests = _testResults.Where(t => !t.Success).ToList(),
+                    FailedTests = failedTests.Count,
+                    SuccessRate = _testResults.Count > 0 ? (double)_testResults.Count(t => t.Success) / _testResults.Count : 0.0,
+                    TestResults = _testResults,
+                    ResultsByCategory = new Dictionary<string, List<TestResult>>
+                    {
+                        ["Gap Closure"] = _testResults
+                    },
                     Duration = duration,
-                    Timestamp = DateTime.Now
+                    ReportGeneratedAt = DateTime.Now
                 };
             }
             catch (Exception ex)
             {
+                var failedTests = _testResults.Where(t => !t.Success).ToList();
                 return new TestSuiteResult
                 {
-                    TestSuiteName = "Phase 02 Gap Closure Validation",
-                    AllPassed = false,
                     TotalTests = _testResults.Count,
                     PassedTests = _testResults.Count(t => t.Success),
-                    FailedTests = _testResults.Where(t => !t.Success).ToList(),
+                    FailedTests = failedTests.Count,
+                    SuccessRate = _testResults.Count > 0 ? (double)_testResults.Count(t => t.Success) / _testResults.Count : 0.0,
+                    TestResults = _testResults,
+                    ResultsByCategory = new Dictionary<string, List<TestResult>>
+                    {
+                        ["Gap Closure"] = _testResults
+                    },
                     Duration = DateTime.Now - startTime,
-                    Timestamp = DateTime.Now,
-                    Exception = ex
+                    ReportGeneratedAt = DateTime.Now
                 };
             }
         }
@@ -162,7 +171,7 @@ namespace ScottWisper
 
                 // Test microphone permission check
                 var permissionStatus = await _audioDeviceService.CheckMicrophonePermissionAsync();
-                var permissionTest = permissionStatus != MicrophonePermissionStatus.NotRequested;
+                var permissionTest = permissionStatus != ScottWisper.MicrophonePermissionStatus.NotRequested;
                 LogTestResult("Microphone Permission Check", permissionTest, $"Status: {permissionStatus}", DateTime.Now - startTime);
 
                 // Test permission request functionality
@@ -750,41 +759,7 @@ namespace ScottWisper
         }
     }
 
-    // Supporting classes for validation testing
-    public class TestSuiteResult
-    {
-        public string TestSuiteName { get; set; } = string.Empty;
-        public bool AllPassed { get; set; }
-        public int TotalTests { get; set; }
-        public int PassedTests { get; set; }
-        public List<TestResult> FailedTests { get; set; } = new();
-        public TimeSpan Duration { get; set; }
-        public DateTime Timestamp { get; set; }
-        public Exception? Exception { get; set; }
-    }
-
-    public class TestResult
-    {
-        public string TestName { get; set; } = string.Empty;
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public TimeSpan Duration { get; set; }
-        public DateTime Timestamp { get; set; }
-    }
-
-    public class DeviceRecoveryEventArgs : EventArgs
-    {
-        public string DeviceName { get; set; } = string.Empty;
-        public string DeviceId { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public Exception? Exception { get; set; }
-    }
-
-    public enum MicrophonePermissionStatus
-    {
-        NotRequested,
-        Granted,
-        Denied,
-        Unknown
-    }
+    // Supporting classes for validation testing - using existing classes from IntegrationTestFramework
+    // TestSuiteResult and TestResult are already defined in IntegrationTestFramework.cs
+    // DeviceRecoveryEventArgs and MicrophonePermissionStatus are already defined in AudioDeviceService.cs
 }

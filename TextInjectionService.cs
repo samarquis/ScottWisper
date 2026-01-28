@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Async;
+// System.Linq.Async removed - not available in this context
 using ScottWisper.Services;
 
 namespace ScottWisper
@@ -142,110 +142,24 @@ namespace ScottWisper
         }
 
         /// <summary>
-        /// Validate browser text injection compatibility
+        /// Validate browser text injection compatibility - enhanced version below
         /// </summary>
-        public async Task<InjectionTestResult> ValidateBrowserInjection()
-        {
-            var results = new List<InjectionTestResult>();
-            var testText = "Test browser injection 123 @#$";
-
-            // Test Chrome
-            var chromeResult = await TestInjectionInApplication(TargetApplication.Chrome, testText);
-            results.Add(chromeResult);
-
-            // Test Firefox
-            var firefoxResult = await TestInjectionInApplication(TargetApplication.Firefox, testText);
-            results.Add(firefoxResult);
-
-            // Test Edge
-            var edgeResult = await TestInjectionInApplication(TargetApplication.Edge, testText);
-            results.Add(edgeResult);
-
-            return new InjectionTestResult
-            {
-                Success = results.All(r => r.Success),
-                TestText = testText,
-                MethodUsed = "BrowserValidation",
-                Duration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds)),
-                Issues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray(),
-                ApplicationInfo = GetCurrentWindowInfo()
-            };
-        }
 
         /// <summary>
-        /// Validate IDE text injection compatibility
+        /// Validate IDE text injection compatibility - enhanced version below
         /// </summary>
-        public async Task<InjectionTestResult> ValidateIDEInjection()
-        {
-            var testText = "public void TestMethod() { // IDE test\n    int value = 42;\n}";
-            
-            return await TestInjectionInApplication(TargetApplication.VisualStudio, testText);
-        }
 
         /// <summary>
-        /// Validate Office application text injection compatibility
+        /// Validate Office application text injection compatibility - enhanced version below
         /// </summary>
-        public async Task<InjectionTestResult> ValidateOfficeInjection()
-        {
-            var results = new List<InjectionTestResult>();
-            var wordTestText = "This is a test document for Word injection with unicode: αβγ";
-            var outlookTestText = "Test email injection with special chars: @#$%^&";
-
-            // Test Word
-            var wordResult = await TestInjectionInApplication(TargetApplication.Word, wordTestText);
-            results.Add(wordResult);
-
-            // Test Outlook
-            var outlookResult = await TestInjectionInApplication(TargetApplication.Outlook, outlookTestText);
-            results.Add(outlookResult);
-
-            return new InjectionTestResult
-            {
-                Success = results.All(r => r.Success),
-                TestText = $"{wordTestText} | {outlookTestText}",
-                MethodUsed = "OfficeValidation",
-                Duration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds)),
-                Issues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray(),
-                ApplicationInfo = GetCurrentWindowInfo()
-            };
-        }
 
         /// <summary>
-        /// Validate terminal text injection compatibility
+        /// Validate terminal text injection compatibility - enhanced version below
         /// </summary>
-        public async Task<InjectionTestResult> ValidateTerminalInjection()
-        {
-            var results = new List<InjectionTestResult>();
-            var testText = "echo 'Terminal test with unicode: αβγ' && ls -la";
-
-            // Test Windows Terminal
-            var wtResult = await TestInjectionInApplication(TargetApplication.WindowsTerminal, testText);
-            results.Add(wtResult);
-
-            // Test Command Prompt
-            var cmdResult = await TestInjectionInApplication(TargetApplication.CommandPrompt, testText);
-            results.Add(cmdResult);
-
-            return new InjectionTestResult
-            {
-                Success = results.All(r => r.Success),
-                TestText = testText,
-                MethodUsed = "TerminalValidation",
-                Duration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds)),
-                Issues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray(),
-                ApplicationInfo = GetCurrentWindowInfo()
-            };
-        }
 
         /// <summary>
-        /// Validate Notepad++ text injection compatibility
+        /// Validate Notepad++ text injection compatibility - enhanced version below
         /// </summary>
-        public async Task<InjectionTestResult> ValidateNotepadPlusInjection()
-        {
-            var testText = "Notepad++ test with syntax chars: { [ ( ) ] } and unicode: αβγ";
-            
-            return await TestInjectionInApplication(TargetApplication.NotepadPlus, testText);
-        }
 
         /// <summary>
         /// Test injection in specific target application with retry logic
@@ -2188,31 +2102,7 @@ namespace ScottWisper
         public int Height => Bottom - Top;
     }
 
-    // ApplicationCategory enum
-    public enum ApplicationCategory
-    {
-        Unknown,
-        Browser,
-        DevelopmentTool,
-        Office,
-        Communication,
-        TextEditor,
-        Terminal,
-        Gaming
-    }
-
-    // Missing ApplicationCategory values
-    public enum ApplicationCategory
-    {
-        Unknown,
-        Browser,
-        DevelopmentTool,
-        Office,
-        Communication,
-        TextEditor,
-        Terminal,
-        Gaming
-    }
+    // ApplicationCategory enum - defined once
 
     /// <summary>
     /// Caret position information
@@ -2237,20 +2127,7 @@ namespace ScottWisper
         public Dictionary<string, object> ApplicationSettings { get; set; } = new();
     }
 
-    /// <summary>
-    /// Categories of applications for compatibility handling
-    /// </summary>
-    public enum ApplicationCategory
-    {
-        Unknown,
-        Browser,
-        DevelopmentTool,
-        Office,
-        Communication,
-        TextEditor,
-        Terminal,
-        Gaming
-    }
+    // ApplicationCategory enum is defined in ApplicationDetector.cs - using that definition
 
     /// <summary>
     /// Target applications for cross-application validation
