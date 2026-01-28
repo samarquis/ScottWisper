@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Async;
 using ScottWisper.Services;
 
 namespace ScottWisper
@@ -34,8 +35,21 @@ namespace ScottWisper
     }
 
     /// <summary>
-    /// Test result for injection functionality
+    /// Helper method to safely get dictionary value
     /// </summary>
+    private static T? GetDictionaryValue<T>(Dictionary<string, object>? dictionary, string key)
+    {
+        if (dictionary != null && dictionary.TryGetValue(key, out var value) && value is T)
+        {
+            return (T)value;
+        }
+        return default(T);
+    }
+
+    /// <summary>
+    /// Result of injection test
+    /// </summary>
+
     public class InjectionTestResult
     {
         public bool Success { get; set; }
@@ -44,7 +58,7 @@ namespace ScottWisper
         public string[] Issues { get; set; } = Array.Empty<string>();
         public TimeSpan Duration { get; set; }
         public WindowInfo ApplicationInfo { get; set; } = new();
-        public ApplicationCompatibility Compatibility { get; set; }
+        public ApplicationCompatibility Compatibility { get; set; } = new();
     }
 
     /// <summary>
@@ -254,9 +268,9 @@ namespace ScottWisper
             
             try
             {
-                var compatibility = ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
+                var compatibility = TextInjectionService.ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
                     ? compat 
-                    : ApplicationCompatibilityMap[TargetApplication.Unknown];
+                    : TextInjectionService.ApplicationCompatibilityMap[TargetApplication.Unknown];
 
                 // Test with different injection strategies
                 for (int attempt = 0; attempt < 3; attempt++)
@@ -313,7 +327,7 @@ namespace ScottWisper
                 MethodUsed = attempt == 0 ? "SendInput" : attempt == 1 ? "ClipboardFallback" : "SlowUnicode",
                 Duration = stopwatch.Elapsed,
                 Issues = issues.ToArray(),
-                Compatibility = ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
+                Compatibility = TextInjectionService.ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
                     ? compat 
                     : new ApplicationCompatibility { Category = ApplicationCategory.Unknown, IsCompatible = false }
             };
@@ -341,7 +355,359 @@ namespace ScottWisper
         }
 
         /// <summary>
-        /// Create cross-application validation report
+        /// Enhanced browser validation with specific workarounds
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateBrowserInjection()
+        {
+            var results = new List<InjectionTestResult>();
+            var testText = "Test browser injection 123 @#$";
+
+            // Test Chrome with browser-specific workarounds
+            try
+            {
+                var chromeResult = await TestInjectionInApplication(TargetApplication.Chrome, testText);
+                chromeResult.TestText = "Chrome: " + testText;
+                results.Add(chromeResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Chrome: " + testText,
+                    Issues = new[] { $"Chrome test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            // Test Firefox with Firefox-specific handling
+            try
+            {
+                var firefoxResult = await TestInjectionInApplication(TargetApplication.Firefox, testText);
+                firefoxResult.TestText = "Firefox: " + testText;
+                results.Add(firefoxResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Firefox: " + testText,
+                    Issues = new[] { $"Firefox test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            // Test Edge with Edge-Chromium specific handling
+            try
+            {
+                var edgeResult = await TestInjectionInApplication(TargetApplication.Edge, testText);
+                edgeResult.TestText = "Edge: " + testText;
+                results.Add(edgeResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Edge: " + testText,
+                    Issues = new[] { $"Edge test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            var totalDuration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds));
+            var allSucceeded = results.All(r => r.Success);
+            var allIssues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray();
+
+            return new InjectionTestResult
+            {
+                Success = allSucceeded,
+                TestText = string.Join(" | ", results.Select(r => r.TestText)),
+                MethodUsed = "BrowserValidation",
+                Duration = totalDuration,
+                Issues = allIssues,
+                Compatibility = new ApplicationCompatibility
+                {
+                    Category = ApplicationCategory.Browser,
+                    IsCompatible = allSucceeded,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "web_forms" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["browser"] = "multi_browser_test",
+                        ["requires_unicode_fix"] = true,
+                        ["form_field_detection"] = true
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Enhanced IDE validation with code editor awareness
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateIDEInjection()
+        {
+            var testText = "public void TestMethod() { // IDE test\n    int value = 42;\n}";
+            
+            try
+            {
+                var vsResult = await TestInjectionInApplication(TargetApplication.VisualStudio, testText);
+                vsResult.TestText = "Visual Studio: " + testText;
+                
+                return new InjectionTestResult
+                {
+                    Success = vsResult.Success,
+                    TestText = vsResult.TestText,
+                    MethodUsed = vsResult.MethodUsed,
+                    Duration = vsResult.Duration,
+                    Issues = vsResult.Issues,
+                    Compatibility = new ApplicationCompatibility
+                    {
+                        Category = ApplicationCategory.DevelopmentTool,
+                        IsCompatible = vsResult.Success,
+                        PreferredMethod = InjectionMethod.SendInput,
+                        RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars", "intellisense_safe" },
+                        ApplicationSettings = new Dictionary<string, object>
+                        {
+                            ["ide"] = "visual_studio",
+                            ["editor_type"] = "rich_text",
+                            ["intellisense_compatible"] = true,
+                            ["syntax_highlighting_mode"] = true
+                        }
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Visual Studio: " + testText,
+                    MethodUsed = "SendInput",
+                    Issues = new[] { $"IDE test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero,
+                    Compatibility = new ApplicationCompatibility
+                    {
+                        Category = ApplicationCategory.DevelopmentTool,
+                        IsCompatible = false,
+                        PreferredMethod = InjectionMethod.SendInput,
+                        RequiresSpecialHandling = new[] { "unicode", "tab", "syntax_chars" },
+                        ApplicationSettings = new Dictionary<string, object>
+                        {
+                            ["ide"] = "visual_studio",
+                            ["error"] = ex.Message
+                        }
+                    }
+                };
+            }
+        }
+
+        /// <summary>
+        /// Enhanced Office application validation with formatting preservation
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateOfficeInjection()
+        {
+            var results = new List<InjectionTestResult>();
+            var wordTestText = "This is a test document for Word injection with unicode: αβγ";
+            var outlookTestText = "Test email injection with special chars: @#$%^&";
+
+            // Test Word with rich text handling
+            try
+            {
+                var wordResult = await TestInjectionInApplication(TargetApplication.Word, wordTestText);
+                wordResult.TestText = "Word: " + wordTestText;
+                results.Add(wordResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Word: " + wordTestText,
+                    Issues = new[] { $"Word test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            // Test Outlook with email formatting
+            try
+            {
+                var outlookResult = await TestInjectionInApplication(TargetApplication.Outlook, outlookTestText);
+                outlookResult.TestText = "Outlook: " + outlookTestText;
+                results.Add(outlookResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Outlook: " + outlookTestText,
+                    Issues = new[] { $"Outlook test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            var totalDuration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds));
+            var allSucceeded = results.All(r => r.Success);
+            var allIssues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray();
+
+            return new InjectionTestResult
+            {
+                Success = allSucceeded,
+                TestText = string.Join(" | ", results.Select(r => r.TestText)),
+                MethodUsed = "OfficeValidation",
+                Duration = totalDuration,
+                Issues = allIssues,
+                Compatibility = new ApplicationCompatibility
+                {
+                    Category = ApplicationCategory.Office,
+                    IsCompatible = allSucceeded,
+                    PreferredMethod = InjectionMethod.ClipboardFallback,
+                    RequiresSpecialHandling = new[] { "formatting", "unicode", "newline", "office_safe" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["office_app"] = "multi_office_test",
+                        ["rich_text_mode"] = true,
+                        ["formatting_preservation"] = true
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Enhanced terminal validation with shell command awareness
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateTerminalInjection()
+        {
+            var results = new List<InjectionTestResult>();
+            var testText = "echo 'Terminal test with unicode: αβγ' && ls -la";
+
+            // Test Windows Terminal with modern shell handling
+            try
+            {
+                var wtResult = await TestInjectionInApplication(TargetApplication.WindowsTerminal, testText);
+                wtResult.TestText = "Windows Terminal: " + testText;
+                results.Add(wtResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Windows Terminal: " + testText,
+                    Issues = new[] { $"Windows Terminal test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            // Test Command Prompt with DOS compatibility
+            try
+            {
+                var cmdResult = await TestInjectionInApplication(TargetApplication.CommandPrompt, testText);
+                cmdResult.TestText = "Command Prompt: " + testText;
+                results.Add(cmdResult);
+            }
+            catch (Exception ex)
+            {
+                results.Add(new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Command Prompt: " + testText,
+                    Issues = new[] { $"Command Prompt test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero
+                });
+            }
+
+            var totalDuration = TimeSpan.FromMilliseconds(results.Sum(r => r.Duration.TotalMilliseconds));
+            var allSucceeded = results.All(r => r.Success);
+            var allIssues = results.Where(r => !r.Success).SelectMany(r => r.Issues).ToArray();
+
+            return new InjectionTestResult
+            {
+                Success = allSucceeded,
+                TestText = string.Join(" | ", results.Select(r => r.TestText)),
+                MethodUsed = "TerminalValidation",
+                Duration = totalDuration,
+                Issues = allIssues,
+                Compatibility = new ApplicationCompatibility
+                {
+                    Category = ApplicationCategory.Terminal,
+                    IsCompatible = allSucceeded,
+                    PreferredMethod = InjectionMethod.SendInput,
+                    RequiresSpecialHandling = new[] { "unicode", "newline", "shell_commands" },
+                    ApplicationSettings = new Dictionary<string, object>
+                    {
+                        ["terminal"] = "multi_terminal_test",
+                        ["shell_mode"] = true,
+                        ["command_history"] = true
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Enhanced Notepad++ validation with syntax highlighting awareness
+        /// </summary>
+        public async Task<InjectionTestResult> ValidateNotepadPlusInjection()
+        {
+            var testText = "Notepad++ test with syntax chars: { [ ( ) ] } and unicode: αβγ";
+            
+            try
+            {
+                var nppResult = await TestInjectionInApplication(TargetApplication.NotepadPlus, testText);
+                nppResult.TestText = "Notepad++: " + testText;
+                
+                return new InjectionTestResult
+                {
+                    Success = nppResult.Success,
+                    TestText = nppResult.TestText,
+                    MethodUsed = nppResult.MethodUsed,
+                    Duration = nppResult.Duration,
+                    Issues = nppResult.Issues,
+                    Compatibility = new ApplicationCompatibility
+                    {
+                        Category = ApplicationCategory.TextEditor,
+                        IsCompatible = nppResult.Success,
+                        PreferredMethod = InjectionMethod.SendInput,
+                        RequiresSpecialHandling = new[] { "unicode", "newline", "tab", "syntax_highlighting" },
+                        ApplicationSettings = new Dictionary<string, object>
+                        {
+                            ["text_editor"] = "notepad_plus",
+                            ["syntax_mode"] = true,
+                            ["scintilla_based"] = true,
+                            ["plugin_safe"] = true
+                        }
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new InjectionTestResult
+                {
+                    Success = false,
+                    TestText = "Notepad++: " + testText,
+                    MethodUsed = "SendInput",
+                    Issues = new[] { $"Notepad++ test failed: {ex.Message}" },
+                    Duration = TimeSpan.Zero,
+                    Compatibility = new ApplicationCompatibility
+                    {
+                        Category = ApplicationCategory.TextEditor,
+                        IsCompatible = false,
+                        PreferredMethod = InjectionMethod.SendInput,
+                        RequiresSpecialHandling = new[] { "unicode", "newline", "tab" },
+                        ApplicationSettings = new Dictionary<string, object>
+                        {
+                            ["text_editor"] = "notepad_plus",
+                            ["error"] = ex.Message
+                        }
+                    }
+                };
+            }
+        }
+
+        /// <summary>
+        /// Create enhanced cross-application validation report
         /// </summary>
         public CrossApplicationValidationReport CreateCrossApplicationValidationReport()
         {
@@ -591,7 +957,7 @@ namespace ScottWisper
 
             var recentLatencyValues = recentAttempts.Where(a => a.Success)
                 .Select(a => a.Duration.TotalMilliseconds)
-                .DefaultIfEmpty(new double[] { 0 })
+                .DefaultIfEmpty(Enumerable.Empty<double>())
                 .ToArray();
             
             var recentLatency = recentLatencyValues.Length > 0 
@@ -1154,7 +1520,7 @@ namespace ScottWisper
                     {
                         var commApp = compatibility.ApplicationSettings?.ContainsKey("comm_app") == true ? 
                             compatibility.ApplicationSettings?["comm_app"]?.ToString() : "";
-                        if (commApp?.ContainsKey("emoji_support") == true)
+                        if (commApp?.ToString().Contains("emoji") == true)
                         {
                             // Enhanced emoji support
                             inputs.Add(CreateUnicodeInput(c));
@@ -1830,6 +2196,32 @@ namespace ScottWisper
         public int Bottom { get; set; } = 0;
         public int Width => Right - Left;
         public int Height => Bottom - Top;
+    }
+
+    // ApplicationCategory enum
+    public enum ApplicationCategory
+    {
+        Unknown,
+        Browser,
+        DevelopmentTool,
+        Office,
+        Communication,
+        TextEditor,
+        Terminal,
+        Gaming
+    }
+
+    // Missing ApplicationCategory values
+    public enum ApplicationCategory
+    {
+        Unknown,
+        Browser,
+        DevelopmentTool,
+        Office,
+        Communication,
+        TextEditor,
+        Terminal,
+        Gaming
     }
 
     /// <summary>
