@@ -1083,7 +1083,7 @@ namespace ScottWisper
         /// <summary>
         /// Application compatibility map with all supported apps
         /// </summary>
-        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap { get; private set; } = new();
+        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap { get; }
 
         /// <summary>
         /// Initialize application compatibility mapping
@@ -3002,7 +3002,15 @@ namespace ScottWisper
                         Y = point.Y,
                         WindowHandle = GetForegroundWindow(),
                         HasCaret = true
-            };
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to get caret position: {ex.Message}");
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -3109,14 +3117,11 @@ namespace ScottWisper
                 System.Diagnostics.Debug.WriteLine($"Error in automated browser navigation: {ex.Message}");
                 return false;
             }
-        }
-            }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to get caret position: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error in automated browser navigation: {ex.Message}");
+                return false;
             }
-
-            return null;
         }
 
         public void Dispose()
@@ -3233,8 +3238,186 @@ namespace ScottWisper
 
 
 
-    /// <summary>
+/// <summary>
     /// Result of injection test
     /// </summary>
+
+    #region Application Validation Classes
+
+    /// <summary>
+    /// Browser workaround configuration
+    /// </summary>
+    public class BrowserWorkaround
+    {
+        public bool RequiresUnicodeFix { get; set; } = true;
+        public int DelayMs { get; set; } = 100;
+        public string[] SpecialCharacters { get; set; } = { "@", "#", "$", "%" };
+        public bool UseClipboardFallback { get; set; } = false;
+    }
+
+    /// <summary>
+    /// Browser field type information
+    /// </summary>
+    public class BrowserFieldType
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public bool Compatible { get; set; }
+        public string[] Attributes { get; set; } = Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Browser injection metrics
+    /// </summary>
+    public class BrowserInjectionMetrics
+    {
+        public int TotalBrowsersTested { get; set; }
+        public int SuccessfulInjections { get; set; }
+        public int FailedInjections { get; set; }
+        public double SuccessRate { get; set; }
+        public double AverageLatency { get; set; }
+        public double TextAccuracy { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Code editor information
+    /// </summary>
+    public class CodeEditorInfo
+    {
+        public string Editor { get; set; } = string.Empty;
+        public string FileType { get; set; } = string.Empty;
+        public string Language { get; set; } = string.Empty;
+        public bool SyntaxHighlighting { get; set; }
+        public bool IntelliSense { get; set; }
+        public bool IsCompatible { get; set; }
+    }
+
+    /// <summary>
+    /// Syntax injection result
+    /// </summary>
+    public class SyntaxInjectionResult
+    {
+        public string OriginalCode { get; set; } = string.Empty;
+        public string Language { get; set; } = string.Empty;
+        public string InjectedCode { get; set; } = string.Empty;
+        public bool Success { get; set; }
+        public bool SyntaxPreserved { get; set; }
+        public List<int> SafeInjectionPoints { get; set; } = new();
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Cursor position validation result
+    /// </summary>
+    public class CursorPositionValidation
+    {
+        public int StartPosition { get; set; }
+        public int ExpectedPosition { get; set; }
+        public int ActualPosition { get; set; }
+        public int PositionAccuracy { get; set; }
+        public bool IsValid { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Office document type information
+    /// </summary>
+    public class OfficeDocumentType
+    {
+        public string Application { get; set; } = string.Empty;
+        public string Format { get; set; } = string.Empty;
+        public bool RichText { get; set; }
+        public bool FormattingPreserved { get; set; }
+        public bool IsCompatible { get; set; }
+    }
+
+    /// <summary>
+    /// Formatting validation result
+    /// </summary>
+    public class FormattingValidation
+    {
+        public string OriginalFormatting { get; set; } = string.Empty;
+        public string PreservedFormatting { get; set; } = string.Empty;
+        public bool FormattingPreserved { get; set; }
+        public bool TextPreserved { get; set; }
+        public double Accuracy { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Template test result
+    /// </summary>
+    public class TemplateTestResult
+    {
+        public string TemplateName { get; set; } = string.Empty;
+        public string Application { get; set; } = string.Empty;
+        public bool Success { get; set; }
+        public int TestedFields { get; set; }
+        public int CompatibleFields { get; set; }
+    }
+
+    /// <summary>
+    /// Shell environment information
+    /// </summary>
+    public class ShellEnvironment
+    {
+        public string Shell { get; set; } = string.Empty;
+        public string Version { get; set; } = string.Empty;
+        public string Profile { get; set; } = string.Empty;
+        public bool UnicodeSupport { get; set; }
+        public bool AnsiSupport { get; set; }
+        public bool IsCompatible { get; set; }
+    }
+
+    /// <summary>
+    /// Prompt validation result
+    /// </summary>
+    public class PromptValidation
+    {
+        public string ExpectedPrompt { get; set; } = string.Empty;
+        public string ActualPrompt { get; set; } = string.Empty;
+        public double ContextAccuracy { get; set; }
+        public bool IsValid { get; set; }
+        public PromptType[] PromptTypes { get; set; } = Array.Empty<PromptType>();
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Prompt type information
+    /// </summary>
+    public class PromptType
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Pattern { get; set; } = string.Empty;
+        public bool Compatible { get; set; }
+    }
+
+    /// <summary>
+    /// Path completion result
+    /// </summary>
+    public class PathCompletionResult
+    {
+        public string TestPath { get; set; } = string.Empty;
+        public string CompletedPath { get; set; } = string.Empty;
+        public bool Success { get; set; }
+        public int CompletionsFound { get; set; }
+        public bool IsAccessible { get; set; }
+    }
+
+    /// <summary>
+    /// Generic application result
+    /// </summary>
+    public class GenericApplicationResult
+    {
+        public string ApplicationName { get; set; } = string.Empty;
+        public ApplicationCategory Category { get; set; }
+        public bool IsCompatible { get; set; }
+        public bool SupportUnicode { get; set; }
+        public bool HasRichText { get; set; }
+        public InjectionTestResult TestResult { get; set; } = new();
+    }
+
+    #endregion
 
 }

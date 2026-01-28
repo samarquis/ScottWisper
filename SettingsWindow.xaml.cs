@@ -1882,7 +1882,7 @@ namespace ScottWisper
         /// <summary>
         /// Shows device test results with audio quality visualization
         /// </summary>
-        private async Task ShowDeviceTestResultsAsync(AudioDeviceTestResult testResult)
+        private async Task ShowDeviceTestResultsAsync(Services.AudioDeviceTestResult testResult)
         {
             await Task.Run(() =>
             {
@@ -2452,7 +2452,7 @@ namespace ScottWisper
     /// </summary>
     public class AudioQualityMeter : Window
     {
-        public AudioDeviceTestResult TestResult { get; set; } = new();
+        public Services.AudioDeviceTestResult TestResult { get; set; } = new();
         
         public AudioQualityMeter()
         {
