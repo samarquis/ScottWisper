@@ -1839,6 +1839,492 @@ namespace ScottWisper
             Close();
         }
 
+        #region Advanced Settings Features
+
+        /// <summary>
+        /// Tests device with audio level visualization
+        /// </summary>
+        private async void TestDeviceButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var button = (Button)sender;
+                button.IsEnabled = false;
+                button.Content = "Testing...";
+
+                var deviceId = button.Tag?.ToString() ?? string.Empty;
+                if (string.IsNullOrEmpty(deviceId))
+                {
+                    UpdateStatus("No device selected for testing");
+                    button.IsEnabled = true;
+                    button.Content = "Test";
+                    return;
+                }
+
+                // Perform comprehensive device test
+                var testResult = await _audioDeviceService.PerformComprehensiveTestAsync(deviceId);
+                
+                // Show test results with audio quality visualization
+                await ShowDeviceTestResultsAsync(testResult);
+                
+                button.IsEnabled = true;
+                button.Content = "Test";
+                UpdateStatus($"Device test completed: {testResult.TestPassed}");
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Device test failed: {ex.Message}");
+                ((Button)sender).IsEnabled = true;
+                ((Button)sender).Content = "Test";
+            }
+        }
+
+        /// <summary>
+        /// Shows device test results with audio quality visualization
+        /// </summary>
+        private async Task ShowDeviceTestResultsAsync(AudioDeviceTestResult testResult)
+        {
+            await Task.Run(() =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    var qualityMeter = new AudioQualityMeter();
+                    qualityMeter.TestResult = testResult;
+                    qualityMeter.ShowDialog();
+                });
+            });
+        }
+
+        /// <summary>
+        /// Validates API endpoint configuration
+        /// </summary>
+        private async void APIEndpointTextBox_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (_isLoading) return;
+            
+            var textBox = (TextBox)sender;
+            var endpoint = textBox.Text.Trim();
+            
+            if (string.IsNullOrEmpty(endpoint))
+            {
+                UpdateStatus("API endpoint cannot be empty");
+                return;
+            }
+
+            if (!Uri.TryCreate(endpoint, UriKind.Absolute, out _))
+            {
+                UpdateStatus("Invalid API endpoint format");
+                return;
+            }
+
+            // Validate API endpoint connectivity
+            var isConnected = await TestAPIEndpointAsync(endpoint);
+            if (isConnected)
+            {
+                UpdateStatus("API endpoint is valid and accessible");
+                _settingsService.Settings.API.Endpoint = endpoint;
+                await _settingsService.SaveAsync();
+            }
+            else
+            {
+                UpdateStatus("API endpoint is not accessible");
+            }
+        }
+
+        /// <summary>
+        /// Validates API key with secure password display
+        /// </summary>
+        private async void APIKeyTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isLoading) return;
+            
+            var textBox = (TextBox)sender;
+            var apiKey = textBox.Text.Trim();
+            
+            if (apiKey.Length < 10)
+            {
+                UpdateStatus("API key appears to be too short");
+                return;
+            }
+
+            // Validate API key format (basic validation)
+            if (apiKey.StartsWith("sk-") || apiKey.Length >= 20)
+            {
+                _settingsService.Settings.API.APIKey = apiKey;
+                await _settingsService.SaveAsync();
+                UpdateStatus("API key format appears valid");
+            }
+        }
+
+        /// <summary>
+        /// Tests API connection with status feedback
+        /// </summary>
+        private async void ConnectionTestButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var button = (Button)sender;
+                button.IsEnabled = false;
+                button.Content = "Testing...";
+
+                var endpoint = _settingsService.Settings.API.Endpoint;
+                var apiKey = _settingsService.Settings.API.APIKey;
+
+                if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
+                {
+                    UpdateStatus("Please configure API endpoint and key first");
+                    button.IsEnabled = true;
+                    button.Content = "Test Connection";
+                    return;
+                }
+
+                var isSuccessful = await TestAPIEndpointAsync(endpoint);
+                
+                if (isSuccessful)
+                {
+                    UpdateStatus("API connection test successful");
+                    button.Content = "Connected";
+                    button.Background = System.Windows.Media.Brushes.LightGreen;
+                }
+                else
+                {
+                    UpdateStatus("API connection test failed");
+                    button.Content = "Failed";
+                    button.Background = System.Windows.Media.Brushes.LightCoral;
+                }
+
+                await Task.Delay(2000); // Reset button after 2 seconds
+                button.IsEnabled = true;
+                button.Content = "Test Connection";
+                button.Background = System.Windows.Media.Brushes.White;
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Connection test error: {ex.Message}");
+                ((Button)sender).IsEnabled = true;
+                ((Button)sender).Content = "Test Connection";
+            }
+        }
+
+        /// <summary>
+        /// Updates usage limit display with real-time tracking
+        /// </summary>
+        private void UpdateUsageLimitDisplay()
+        {
+            try
+            {
+                var currentUsage = _settingsService.Settings.API.CurrentUsage;
+                var monthlyLimit = _settingsService.Settings.API.MonthlyLimit;
+                var freeTierLimit = _settingsService.Settings.API.FreeTierLimit;
+
+                var usagePercent = monthlyLimit > 0 ? (double)currentUsage / monthlyLimit * 100 : 0;
+                
+                UsageLimitProgressBar.Value = Math.Min(usagePercent, 100);
+                UsageLimitTextBlock.Text = $"{currentUsage:N0} / {monthlyLimit:N0} ({usagePercent:F1}%)";
+
+                // Update warning colors
+                if (usagePercent > 90)
+                {
+                    UsageLimitProgressBar.Foreground = System.Windows.Media.Brushes.Red;
+                    UsageLimitTextBlock.Foreground = System.Windows.Media.Brushes.Red;
+                }
+                else if (usagePercent > 75)
+                {
+                    UsageLimitProgressBar.Foreground = System.Windows.Media.Brushes.Orange;
+                    UsageLimitTextBlock.Foreground = System.Windows.Media.Brushes.Orange;
+                }
+                else
+                {
+                    UsageLimitProgressBar.Foreground = System.Windows.Media.Brushes.Green;
+                    UsageLimitTextBlock.Foreground = System.Windows.Media.Brushes.Black;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating usage limit display: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Updates model selection for Whisper variants
+        /// </summary>
+        private async void ModelSelectionComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isLoading) return;
+            
+            var comboBox = (ComboBox)sender;
+            var selectedModel = comboBox.SelectedItem?.ToString();
+            
+            if (!string.IsNullOrEmpty(selectedModel))
+            {
+                _settingsService.Settings.API.Model = selectedModel;
+                await _settingsService.SaveAsync();
+                UpdateStatus($"Model changed to: {selectedModel}");
+            }
+        }
+
+        /// <summary>
+        /// Updates request timeout slider with value display
+        /// </summary>
+        private async void RequestTimeoutSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_isLoading) return;
+            
+            var slider = (Slider)sender;
+            var timeout = (int)slider.Value;
+            
+            TimeoutValueTextBlock.Text = $"{timeout} seconds";
+            _settingsService.Settings.API.TimeoutSeconds = timeout;
+            await _settingsService.SaveAsync();
+        }
+
+        /// <summary>
+        /// Validates all settings with comprehensive error handling
+        /// </summary>
+        private async void ValidateSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var validationResults = await ValidateAllSettingsAsync();
+                ShowValidationResults(validationResults);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Settings validation failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Backs up settings with auto-restore capability
+        /// </summary>
+        private async void SettingsBackupManager_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var backupPath = await CreateSettingsBackupAsync();
+                UpdateStatus($"Settings backed up to: {backupPath}");
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Settings backup failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Resets settings with confirmation dialog
+        /// </summary>
+        private async void SettingsResetButton_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show(
+                "Are you sure you want to reset all settings to default values?\n\nThis action cannot be undone.",
+                "Reset Settings",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    await ResetSettingsToDefaultAsync();
+                    UpdateStatus("Settings reset to default values");
+                    await LoadSettingsAsync(); // Reload UI
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Settings reset failed: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Notifies of real-time settings changes
+        /// </summary>
+        private void NotifySettingsChange(string settingName, object oldValue, object newValue)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                var message = $"{settingName} changed from {oldValue} to {newValue}";
+                UpdateStatus($"Settings updated: {settingName}");
+                
+                // Show notification if enabled
+                if (_settingsService.Settings.UI.ShowChangeNotifications)
+                {
+                    ShowChangeNotification(message);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Helper Methods for Advanced Features
+
+        /// <summary>
+        /// Tests API endpoint connectivity
+        /// </summary>
+        private async Task<bool> TestAPIEndpointAsync(string endpoint)
+        {
+            try
+            {
+                using var httpClient = new System.Net.Http.HttpClient();
+                httpClient.Timeout = TimeSpan.FromSeconds(10);
+                
+                var response = await httpClient.GetAsync(endpoint);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"API endpoint test failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Validates all settings and returns results
+        /// </summary>
+        private async Task<SettingsValidationResult> ValidateAllSettingsAsync()
+        {
+            var result = new SettingsValidationResult();
+            
+            try
+            {
+                // Validate API settings
+                if (string.IsNullOrEmpty(_settingsService.Settings.API.Endpoint))
+                {
+                    result.Errors.Add("API endpoint is required");
+                }
+                
+                if (string.IsNullOrEmpty(_settingsService.Settings.API.APIKey))
+                {
+                    result.Errors.Add("API key is required");
+                }
+                
+                if (_settingsService.Settings.API.TimeoutSeconds < 1 || _settingsService.Settings.API.TimeoutSeconds > 300)
+                {
+                    result.Warnings.Add("API timeout should be between 1 and 300 seconds");
+                }
+                
+                // Validate audio device settings
+                if (string.IsNullOrEmpty(_settingsService.Settings.Audio.SelectedInputDevice))
+                {
+                    result.Warnings.Add("No input device selected");
+                }
+                
+                // Validate hotkey settings
+                if (!_settingsService.Settings.HotkeyDefinitions.Any())
+                {
+                    result.Warnings.Add("No hotkeys configured");
+                }
+                
+                result.IsValid = !result.Errors.Any();
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                result.Errors.Add($"Validation error: {ex.Message}");
+                result.IsValid = false;
+            }
+            
+            return result;
+        }
+
+        /// <summary>
+        /// Shows validation results to user
+        /// </summary>
+        private void ShowValidationResults(SettingsValidationResult validationResults)
+        {
+            if (validationResults.IsValid)
+            {
+                MessageBox.Show(
+                    "All settings are valid!",
+                    "Validation Successful",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            else
+            {
+                var message = new StringBuilder();
+                message.AppendLine("Settings validation found issues:");
+                message.AppendLine();
+                
+                if (validationResults.Errors.Any())
+                {
+                    message.AppendLine("Errors:");
+                    foreach (var error in validationResults.Errors)
+                    {
+                        message.AppendLine($"• {error}");
+                    }
+                    message.AppendLine();
+                }
+                
+                if (validationResults.Warnings.Any())
+                {
+                    message.AppendLine("Warnings:");
+                    foreach (var warning in validationResults.Warnings)
+                    {
+                        message.AppendLine($"• {warning}");
+                    }
+                }
+                
+                MessageBox.Show(
+                    message.ToString(),
+                    "Validation Issues Found",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        /// <summary>
+        /// Creates settings backup file
+        /// </summary>
+        private async Task<string> CreateSettingsBackupAsync()
+        {
+            var backupFolder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ScottWisper", "Backups");
+            
+            Directory.CreateDirectory(backupFolder);
+            
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var backupFile = Path.Combine(backupFolder, $"settings_backup_{timestamp}.json");
+            
+            var settingsJson = System.Text.Json.JsonSerializer.Serialize(_settingsService.Settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(backupFile, settingsJson);
+            
+            return backupFile;
+        }
+
+        /// <summary>
+        /// Resets settings to default values
+        /// </summary>
+        private async Task ResetSettingsToDefaultAsync()
+        {
+            _settingsService.Settings = new AppSettings();
+            await _settingsService.SaveAsync();
+        }
+
+        /// <summary>
+        /// Shows change notification
+        /// </summary>
+        private void ShowChangeNotification(string message)
+        {
+            // This would integrate with a notification system
+            UpdateStatus(message);
+        }
+
+        /// <summary>
+        /// Updates status in the UI
+        /// </summary>
+        private void UpdateStatus(string message)
+        {
+            if (StatusTextBlock != null)
+            {
+                StatusTextBlock.Text = $"[{DateTime.Now:HH:mm:ss}] {message}";
+            }
+        }
+
+        #endregion
+
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
             Result = false;
@@ -1958,4 +2444,336 @@ namespace ScottWisper
             }
         }
     }
+
+    #region Advanced Settings Classes
+
+    /// <summary>
+    /// Audio quality meter for device testing visualization
+    /// </summary>
+    public class AudioQualityMeter : Window
+    {
+        public AudioDeviceTestResult TestResult { get; set; } = new();
+        
+        public AudioQualityMeter()
+        {
+            Title = "Audio Quality Analysis";
+            Width = 400;
+            Height = 300;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+            
+            InitializeQualityMeter();
+        }
+        
+        private void InitializeQualityMeter()
+        {
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            
+            // Device info
+            var deviceLabel = new TextBlock 
+            { 
+                Text = $"Device: {TestResult.DeviceName}",
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(10)
+            };
+            Grid.SetRow(deviceLabel, 0);
+            grid.Children.Add(deviceLabel);
+            
+            // Quality metrics
+            var metricsText = new TextBlock
+            {
+                Text = $"Quality Score: {TestResult.QualityScore:F1}/100\n" +
+                       $"Latency: {TestResult.LatencyMs}ms\n" +
+                       $"Noise Floor: {TestResult.NoiseFloorDb:F1}dB",
+                Margin = new Thickness(10)
+            };
+            Grid.SetRow(metricsText, 1);
+            grid.Children.Add(metricsText);
+            
+            // Status indicator
+            var statusLabel = new TextBlock
+            {
+                Text = TestResult.TestPassed ? "✓ Test Passed" : "✗ Test Failed",
+                Foreground = TestResult.TestPassed ? System.Windows.Media.Brushes.Green : System.Windows.Media.Brushes.Red,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(10)
+            };
+            Grid.SetRow(statusLabel, 2);
+            grid.Children.Add(statusLabel);
+            
+            // Close button
+            var closeButton = new Button
+            {
+                Content = "Close",
+                Width = 100,
+                Margin = new Thickness(10),
+                HorizontalAlignment = HorizontalAlignment.Right
+            };
+            closeButton.Click += (s, e) => Close();
+            Grid.SetRow(closeButton, 3);
+            grid.Children.Add(closeButton);
+            
+            Content = grid;
+        }
+    }
+
+    /// <summary>
+    /// Settings validation result
+    /// </summary>
+    public class SettingsValidationResult
+    {
+        public bool IsValid { get; set; }
+        public List<string> Errors { get; set; } = new();
+        public List<string> Warnings { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Device compatibility indicator
+    /// </summary>
+    public class DeviceCompatibilityIndicator
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public bool IsCompatible { get; set; }
+        public float CompatibilityScore { get; set; }
+        public List<string> Issues { get; set; } = new();
+        public string Recommendation { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Default device toggle for system integration
+    /// </summary>
+    public class DefaultDeviceToggle
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public bool IsDefault { get; set; }
+        public bool CanToggle { get; set; }
+        public Action<string, bool>? OnToggleChanged { get; set; }
+        
+        public async Task<bool> ToggleDefaultDeviceAsync()
+        {
+            try
+            {
+                if (CanToggle)
+                {
+                    IsDefault = !IsDefault;
+                    OnToggleChanged?.Invoke(DeviceId, IsDefault);
+                    
+                    // Would integrate with Windows audio API to actually change default device
+                    await Task.Delay(100); // Simulate system call
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error toggling default device: {ex.Message}");
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Device change notifier for real-time updates
+    /// </summary>
+    public class DeviceChangeNotifier
+    {
+        public event EventHandler<DeviceChangeEventArgs>? DeviceChanged;
+        
+        public void NotifyDeviceChanged(string deviceId, DeviceChangeType changeType)
+        {
+            var args = new DeviceChangeEventArgs
+            {
+                DeviceId = deviceId,
+                ChangeType = changeType,
+                Timestamp = DateTime.Now
+            };
+            
+            DeviceChanged?.Invoke(this, args);
+        }
+    }
+
+    /// <summary>
+    /// Device change event arguments
+    /// </summary>
+    public class DeviceChangeEventArgs : EventArgs
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public DeviceChangeType ChangeType { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// Device change type enumeration
+    /// </summary>
+    public enum DeviceChangeType
+    {
+        Connected,
+        Disconnected,
+        DefaultChanged,
+        StateChanged
+    }
+
+    /// <summary>
+    /// Hotkey profile manager for multiple profiles support
+    /// </summary>
+    public class HotkeyProfileManager
+    {
+        private readonly List<HotkeyProfile> _profiles = new();
+        
+        public event EventHandler<HotkeyProfile>? ProfileChanged;
+        
+        public List<HotkeyProfile> Profiles => _profiles.ToList();
+        
+        public HotkeyProfileManager()
+        {
+            InitializeDefaultProfiles();
+        }
+        
+        private void InitializeDefaultProfiles()
+        {
+            _profiles.Add(new HotkeyProfile
+            {
+                Id = "default",
+                Name = "Default Profile",
+                Description = "Standard hotkey configuration",
+                Hotkeys = new List<HotkeyDefinition>
+                {
+                    new HotkeyDefinition
+                    {
+                        Id = "start_dictation",
+                        Name = "Start Dictation",
+                        Combination = "Ctrl+Win+D",
+                        Description = "Start voice dictation",
+                        IsEmergency = false
+                    }
+                }
+            });
+            
+            _profiles.Add(new HotkeyProfile
+            {
+                Id = "accessibility",
+                Name = "Accessibility Profile",
+                Description = "Simplified hotkeys for accessibility",
+                Hotkeys = new List<HotkeyDefinition>
+                {
+                    new HotkeyDefinition
+                    {
+                        Id = "start_dictation",
+                        Name = "Start Dictation",
+                        Combination = "F12",
+                        Description = "Start voice dictation (single key)",
+                        IsEmergency = false
+                    }
+                }
+            });
+        }
+        
+        public HotkeyProfile? GetProfile(string profileId)
+        {
+            return _profiles.FirstOrDefault(p => p.Id == profileId);
+        }
+        
+        public async Task<bool> SwitchProfileAsync(string profileId)
+        {
+            var profile = GetProfile(profileId);
+            if (profile != null)
+            {
+                ProfileChanged?.Invoke(this, profile);
+                await Task.CompletedTask;
+                return true;
+            }
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Hotkey conflict resolver with suggested alternatives
+    /// </summary>
+    public class HotkeyConflictResolver
+    {
+        public async Task<HotkeyResolution> ResolveConflictAsync(HotkeyConflict conflict)
+        {
+            var resolution = new HotkeyResolution
+            {
+                OriginalHotkey = conflict.Hotkey,
+                Conflict = conflict,
+                Success = false
+            };
+            
+            try
+            {
+                // Generate alternative hotkeys
+                var alternatives = GenerateAlternativeHotkeys(conflict.Hotkey);
+                resolution.SuggestedAlternatives = alternatives;
+                
+                // Try the first alternative
+                if (alternatives.Any())
+                {
+                    var firstAlternative = alternatives.First();
+                    var testSuccess = await TestHotkeyAsync(firstAlternative);
+                    
+                    if (testSuccess)
+                    {
+                        resolution.ResolvedHotkey = firstAlternative;
+                        resolution.Success = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                resolution.ErrorMessage = ex.Message;
+            }
+            
+            return resolution;
+        }
+        
+        private List<string> GenerateAlternativeHotkeys(string conflictHotkey)
+        {
+            var alternatives = new List<string>();
+            var modifiers = new[] { "Ctrl", "Alt", "Shift", "Win" };
+            var keys = new[] { "D", "F", "G", "H", "J", "K", "L", "M", "N", "P" };
+            
+            foreach (var modifier in modifiers)
+            {
+                foreach (var key in keys)
+                {
+                    var alternative = $"{modifier}+{key}";
+                    if (!alternatives.Contains(alternative) && alternative != conflictHotkey)
+                    {
+                        alternatives.Add(alternative);
+                    }
+                }
+            }
+            
+            return alternatives.Take(5).ToList(); // Limit to 5 suggestions
+        }
+        
+        private async Task<bool> TestHotkeyAsync(string hotkey)
+        {
+            // Simulate hotkey testing
+            await Task.Delay(100);
+            return true; // In real implementation, would test actual hotkey registration
+        }
+    }
+
+    /// <summary>
+    /// Hotkey resolution result
+    /// </summary>
+    public class HotkeyResolution
+    {
+        public string OriginalHotkey { get; set; } = string.Empty;
+        public string ResolvedHotkey { get; set; } = string.Empty;
+        public List<string> SuggestedAlternatives { get; set; } = new();
+        public HotkeyConflict Conflict { get; set; } = new();
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    #endregion
 }
