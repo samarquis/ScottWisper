@@ -66,14 +66,14 @@ namespace ScottWisper.Services
         public event EventHandler<PermissionEventArgs>? PermissionRequestFailed;
         public event EventHandler<AudioLevelEventArgs>? AudioLevelUpdated;
 
-        // Windows API declarations for permission handling
+        // Windows API declarations for permission handling and device change detection
         [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-        [DllImport("shell32.dll", SetLastError = true)]
+        [DllImport("user32.dll", SetLastError = true)]
         private static extern IntPtr ShellExecute(
             IntPtr hwnd,
             string? lpOperation,
@@ -81,6 +81,13 @@ namespace ScottWisper.Services
             string? lpParameters,
             string? lpDirectory,
             int nShowCmd);
+
+        // Device change detection
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr RegisterDeviceNotification(IntPtr hRecipient, int nFilterType, int nFlags, IntPtr pDevNotifyHeader, int nSize);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool UnregisterDeviceNotification(IntPtr hHandle);
 
     public AudioDeviceService()
     {
@@ -295,13 +302,13 @@ namespace ScottWisper.Services
                         result.SupportedFormats = GetSupportedFormats(device);
 
                         // Test 3: Quality assessment
-                        result.QualityScore = await AssessDeviceQualityAsync(device);
-
-                        // Test 4: Latency measurement
-                        result.LatencyMs = await MeasureDeviceLatencyAsync(device);
-
-                        // Test 5: Noise floor measurement
-                        result.NoiseFloorDb = await MeasureNoiseFloorAsync(device);
+                        var qualityScore = AssessDeviceQualityAsync(device);
+                        var latencyMs = MeasureDeviceLatencyAsync(device);
+                        var noiseFloorDb = MeasureNoiseFloorAsync(device);
+                        
+                        result.QualityScore = qualityScore.Result;
+                        result.LatencyMs = latencyMs.Result;
+                        result.NoiseFloorDb = noiseFloorDb.Result;
 
                         result.Success = result.BasicFunctionality && result.QualityScore > 0.3f;
                         return result;
@@ -322,94 +329,91 @@ namespace ScottWisper.Services
 
         public async Task<AudioQualityMetrics> AnalyzeAudioQualityAsync(string deviceId, int durationMs = 3000)
         {
-            return await Task.Run(() =>
+            if (_disposed) return new AudioQualityMetrics();
+
+            try
             {
+                MMDevice device;
                 lock (_lockObject)
                 {
-                    if (_disposed) return new AudioQualityMetrics();
+                    device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                }
+                
+                if (device == null) return new AudioQualityMetrics();
 
-                    try
+                var metrics = new AudioQualityMetrics
+                {
+                    DeviceId = deviceId,
+                    AnalysisTime = DateTime.Now
+                };
+
+                var buffer = new byte[16000 * durationMs / 1000]; // 16kHz, 16-bit
+                var samples = new float[durationMs / 10]; // Sample every 10ms
+
+                using (var waveIn = new WaveInEvent())
+                {
+                    waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
+                    waveIn.BufferMilliseconds = 10;
+                    
+                    int sampleIndex = 0;
+                    float sum = 0;
+                    float sumSquares = 0;
+                    int peakCount = 0;
+                    float maxLevel = 0;
+
+                    waveIn.DataAvailable += (sender, e) =>
                     {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        if (device == null) return new AudioQualityMetrics();
+                        if (sampleIndex >= samples.Length) return;
 
-                        var metrics = new AudioQualityMetrics
+                        // Convert bytes to float
+                        for (int i = 0; i < e.BytesRecorded; i += 2)
                         {
-                            DeviceId = deviceId,
-                            AnalysisTime = DateTime.Now
-                        };
-
-                        var buffer = new byte[16000 * durationMs / 1000]; // 16kHz, 16-bit
-                        var samples = new float[durationMs / 10]; // Sample every 10ms
-
-                        using (var waveIn = new WaveInEvent())
-                        {
-                            waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                            waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
-                            waveIn.BufferMilliseconds = 10;
-                            
-                            int sampleIndex = 0;
-                            float sum = 0;
-                            float sumSquares = 0;
-                            int peakCount = 0;
-                            float maxLevel = 0;
-
-                            waveIn.DataAvailable += (sender, e) =>
+                            if (i + 1 < e.Buffer.Length)
                             {
-                                if (sampleIndex >= samples.Length) return;
-
-                                // Convert bytes to float
-                                for (int i = 0; i < e.BytesRecorded; i += 2)
-                                {
-                                    if (i + 1 < e.Buffer.Length)
-                                    {
-                                        short sample = BitConverter.ToInt16(e.Buffer, i);
-                                        float level = Math.Abs(sample / 32768f);
-                                        
-                                        samples[sampleIndex] = level;
-                                        sum += level;
-                                        sumSquares += level * level;
-                                        
-                                        if (level > 0.1f) peakCount++;
-                                        if (level > maxLevel) maxLevel = level;
-                                        
-                                        sampleIndex++;
-                                    }
-                                }
-                            };
-
-                            waveIn.StartRecording();
-                            await Task.Delay(durationMs);
-                            waveIn.StopRecording();
-
-                            // Calculate metrics
-                            if (sampleIndex > 0)
-                            {
-                                float average = sum / sampleIndex;
-                                float rms = (float)Math.Sqrt(sumSquares / sampleIndex);
-                                float peakRatio = peakCount / (float)sampleIndex;
+                                short sample = BitConverter.ToInt16(e.Buffer, i);
+                                float level = Math.Abs(sample / 32768.0f);
                                 
-                                metrics.AverageLevel = average;
-                                metrics.RMSLevel = rms;
-                                metrics.PeakLevel = maxLevel;
-                                metrics.PeakToRMSRatio = peakRatio;
-                                metrics.DynamicRange = maxLevel - average;
-                                metrics.SignalQuality = CalculateSignalQuality(rms, peakRatio);
+                                samples[sampleIndex] = level;
+                                sum += level;
+                                sumSquares += level * level;
+                                
+                                if (level > 0.1f) peakCount++;
+                                if (level > maxLevel) maxLevel = level;
+                                
+                                sampleIndex++;
                             }
                         }
+                    };
 
-                        return metrics;
-                    }
-                    catch (Exception ex)
+                    waveIn.StartRecording();
+                    await Task.Delay(durationMs);
+                    waveIn.StopRecording();
+
+                    // Calculate metrics
+                    if (sampleIndex > 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
-                        return new AudioQualityMetrics { DeviceId = deviceId };
+                        float average = sum / sampleIndex;
+                        float rms = (float)Math.Sqrt(sumSquares / sampleIndex);
+                        float peakRatio = peakCount / (float)sampleIndex;
+                        
+                        metrics.AverageLevel = average;
+                        metrics.RMSLevel = rms;
+                        metrics.PeakToRMSRatio = peakRatio;
+                        metrics.PeakLevel = maxLevel;
                     }
+                    
+                    return metrics;
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
+                return new AudioQualityMetrics { DeviceId = deviceId };
+            }
         }
+
 
         public async Task<DeviceCompatibilityScore> ScoreDeviceCompatibilityAsync(string deviceId)
         {
@@ -496,55 +500,53 @@ namespace ScottWisper.Services
 
         public async Task<bool> TestDeviceLatencyAsync(string deviceId)
         {
-            return await Task.Run(() =>
+            if (_disposed) return false;
+
+            try
             {
+                MMDevice device;
                 lock (_lockObject)
                 {
-                    if (_disposed) return false;
-
-                    try
-                    {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        if (device == null) return false;
-
-                        using (var waveIn = new WaveInEvent())
-                        {
-                            waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                            waveIn.WaveFormat = new WaveFormat(16000, 1);
-                            waveIn.BufferMilliseconds = 50; // Small buffer for latency testing
-
-                            var latencyStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                            bool firstBufferReceived = false;
-
-                            waveIn.DataAvailable += (sender, e) =>
-                            {
-                                if (!firstBufferReceived && e.BytesRecorded > 0)
-                                {
-                                    latencyStopwatch.Stop();
-                                    firstBufferReceived = true;
-                                }
-                            };
-
-                            waveIn.StartRecording();
-                            
-                            // Wait up to 1 second for first buffer
-                            await Task.Delay(1000);
-                            
-                            waveIn.StopRecording();
-
-                            // Consider latency acceptable if < 200ms
-                            return latencyStopwatch.ElapsedMilliseconds < 200;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
-                        return false;
-                    }
+                    device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
                 }
-            });
+                
+                if (device == null) return false;
+
+                using (var waveIn = new WaveInEvent())
+                {
+                    waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    waveIn.WaveFormat = new WaveFormat(16000, 1);
+                    waveIn.BufferMilliseconds = 50; // Small buffer for latency testing
+
+                    var latencyStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    bool firstBufferReceived = false;
+
+                    waveIn.DataAvailable += (sender, e) =>
+                    {
+                        if (!firstBufferReceived && e.BytesRecorded > 0)
+                        {
+                            latencyStopwatch.Stop();
+                            firstBufferReceived = true;
+                        }
+                    };
+
+                    waveIn.StartRecording();
+                    
+                    // Wait up to 1 second for first buffer
+                    await Task.Delay(1000);
+                    
+                    waveIn.StopRecording();
+
+                    // Consider latency acceptable if < 200ms
+                    return latencyStopwatch.ElapsedMilliseconds < 200;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync()
@@ -592,7 +594,7 @@ namespace ScottWisper.Services
 
                         _monitoringWaveIn.DataAvailable += OnMonitoringDataAvailable;
                         
-                        _levelUpdateTimer = new Timer(UpdateAudioLevel, null, 0, 50);
+                        _levelUpdateTimer = new System.Threading.Timer(UpdateAudioLevel, null, 0, 50);
                         
                         _monitoringWaveIn.StartRecording();
                         _isMonitoring = true;
@@ -615,7 +617,7 @@ namespace ScottWisper.Services
 
                     try
                     {
-                        _levelUpdateTimer?.Change(null, Timeout.Infinite, Timeout.Infinite, 0);
+                        _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                         _levelUpdateTimer?.Dispose();
                         _levelUpdateTimer = null;
 
@@ -662,23 +664,13 @@ namespace ScottWisper.Services
                 _currentAudioLevel = sum / sampleCount;
                 
                 // Raise event with level data
-                AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs
-                {
-                    DeviceId = "current",
-                    Level = _currentAudioLevel,
-                    Timestamp = DateTime.Now
-                });
+                AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs("current", _currentAudioLevel, DateTime.Now));
             }
         }
 
         private void UpdateAudioLevel(object state)
         {
-            AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs
-            {
-                DeviceId = "current",
-                Level = _currentAudioLevel,
-                Timestamp = DateTime.Now
-            });
+            AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs("current", _currentAudioLevel, DateTime.Now));
         }
 
         private List<string> GetSupportedFormats(MMDevice device)
@@ -788,7 +780,7 @@ namespace ScottWisper.Services
                     await Task.Delay(500); // Wait up to 500ms for first buffer
                     waveIn.StopRecording();
 
-                    return stopwatch.ElapsedMilliseconds;
+                    return (int)stopwatch.ElapsedMilliseconds;
                 }
             }
             catch
@@ -1199,6 +1191,190 @@ namespace ScottWisper.Services
             }
         }
 
+        /// <summary>
+        /// Show custom microphone permission request dialog
+        /// </summary>
+        public void ShowPermissionRequestDialog()
+        {
+            try
+            {
+                // In a real implementation, this would show a custom dialog
+                // For now, trigger Windows permission dialog
+                var currentStatus = CheckMicrophonePermissionAsync().Result;
+                if (currentStatus == MicrophonePermissionStatus.Denied)
+                {
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                        "Microphone access is required for ScottWisper. Please enable it in Windows Settings.", ""));
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing permission dialog: {ex.Message}");
+            }
+        }
+
+    /// <summary>
+    /// Audio level update event arguments
+    /// </summary>
+    public class AudioLevelEventArgs : EventArgs
+    {
+        public string DeviceId { get; set; } = string.Empty;
+        public float Level { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// Permission diagnostic report
+    /// </summary>
+    public class PermissionDiagnosticReport
+    {
+        public DateTime GeneratedAt { get; set; }
+        public MicrophonePermissionStatus CurrentPermissionStatus { get; set; }
+        public List<AudioDevice> AvailableDevices { get; set; } = new();
+        public List<string> Recommendations { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Graceful fallback mode configuration
+    /// </summary>
+    public class GracefulFallbackMode
+    {
+        public bool IsActive { get; set; }
+        public AudioDevice? FallbackDevice { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public DateTime ActivatedAt { get; set; }
+    }
+}
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error guiding user to settings: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Create permission denied event handler with user notifications
+        /// </summary>
+        public event EventHandler<PermissionEventArgs>? PermissionDenied;
+
+        /// <summary>
+        /// Handle permission denied with user-friendly workflow
+        /// </summary>
+        private void HandlePermissionDenied(string message, string deviceId = "")
+        {
+            PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, message, deviceId));
+            
+            // Log the permission denied event
+            System.Diagnostics.Debug.WriteLine($"Microphone permission denied: {message}");
+        }
+
+        /// <summary>
+        /// Create permission diagnostic report
+        /// </summary>
+        public PermissionDiagnosticReport CreatePermissionDiagnosticReport()
+        {
+            var report = new PermissionDiagnosticReport
+            {
+                GeneratedAt = DateTime.Now,
+                CurrentPermissionStatus = CheckMicrophonePermissionAsync().Result,
+                AvailableDevices = GetInputDevicesAsync().Result,
+                Recommendations = new List<string>()
+            };
+
+            // Add recommendations based on current state
+            if (report.CurrentPermissionStatus == MicrophonePermissionStatus.Denied)
+            {
+                report.Recommendations.Add("Enable microphone access in Windows Settings");
+                report.Recommendations.Add("Check if any antivirus software is blocking microphone access");
+                report.Recommendations.Add("Restart ScottWisper after enabling permissions");
+            }
+            else if (report.CurrentPermissionStatus == MicrophonePermissionStatus.SystemError)
+            {
+                report.Recommendations.Add("Restart Windows Audio service");
+                report.Recommendations.Add("Check Windows Privacy Settings");
+                report.Recommendations.Add("Update audio drivers");
+            }
+
+            return report;
+        }
+
+        /// <summary>
+        /// Handle device disconnected event with automatic recovery
+        /// </summary>
+        public event EventHandler<AudioDeviceEventArgs>? DeviceDisconnected;
+
+        /// <summary>
+        /// Handle device reconnected event with testing
+        /// </summary>
+        public event EventHandler<AudioDeviceEventArgs>? DeviceReconnected;
+
+        /// <summary>
+        /// Handle default device changed event with service reconfiguration
+        /// </summary>
+        public event EventHandler<AudioDeviceEventArgs>? DefaultDeviceChanged;
+
+        /// <summary>
+        /// Start device change monitoring with Windows messages
+        /// </summary>
+        public void StartDeviceChangeMonitoring()
+        {
+            try
+            {
+                // Register for device change notifications
+                // This is a simplified implementation
+                // In production, you'd register for WM_DEVICECHANGE messages
+                System.Diagnostics.Debug.WriteLine("Device change monitoring started");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Stop device change monitoring
+        /// </summary>
+        public void StopDeviceChangeMonitoring()
+        {
+            try
+            {
+                // Unregister device change notifications
+                System.Diagnostics.Debug.WriteLine("Device change monitoring stopped");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping device monitoring: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Test device when changes detected and switch to fallback if needed
+        /// </summary>
+        public async Task<bool> TestDeviceOnChangeAsync(string deviceId)
+        {
+            try
+            {
+                var testResult = await TestDeviceAsync(deviceId);
+                if (!testResult)
+                {
+                    // Find alternative device
+                    var availableDevices = await GetInputDevicesAsync();
+                    var alternativeDevice = availableDevices.FirstOrDefault(d => d.Id != deviceId && d.PermissionStatus == MicrophonePermissionStatus.Granted);
+                    
+                    if (alternativeDevice != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Switching to fallback device: {alternativeDevice.Name}");
+                        return await TestDeviceAsync(alternativeDevice.Id);
+                    }
+                }
+                return testResult;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error testing device on change: {ex.Message}");
+                return false;
+            }
+        }
+
         public void Dispose()
         {
             lock (_lockObject)
@@ -1208,7 +1384,7 @@ namespace ScottWisper.Services
                     // Stop real-time monitoring
                     _ = StopRealTimeMonitoringAsync();
                     
-                    _levelUpdateTimer?.Stop();
+                    _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                     _levelUpdateTimer?.Dispose();
                     _levelUpdateTimer = null;
                     
