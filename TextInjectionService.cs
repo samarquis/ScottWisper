@@ -796,8 +796,13 @@ namespace ScottWisper
                             // VS Code Electron-based - careful injection
                             inputs.Add(CreateUnicodeInput(c));
                             await Task.Delay(handlingDelay * 4);
-                        }
-                        else if (editorType == "intellisense_safe")
+}
+                    
+                    // IDE-specific handling
+                    if (compatibility.ApplicationSettings?.ContainsKey("ide") == true)
+                    {
+                        var editorType = compatibility.ApplicationSettings?.ContainsKey("editor_type")?.ToString();
+                        if (editorType == "intellisense_safe")
                         {
                             // IDE with IntelliSense - extra care for special chars
                             if (IsSyntaxCharacter(c))
