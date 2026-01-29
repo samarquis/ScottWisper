@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using ScottWisper.Configuration;
 using ScottWisper.Services;
+using ScottWisper.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,7 +9,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -19,6 +19,7 @@ namespace ScottWisper
     {
         private readonly ISettingsService _settingsService;
         private readonly IAudioDeviceService _audioDeviceService;
+        private SettingsViewModel _viewModel;
         private readonly List<Services.AudioDevice> _inputDevices = new List<Services.AudioDevice>();
         private readonly List<Services.AudioDevice> _outputDevices = new List<Services.AudioDevice>();
         private bool _isLoading = true;
@@ -38,6 +39,10 @@ namespace ScottWisper
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
             _originalSettings = CloneSettings(_settingsService.Settings);
+            
+            // Initialize ViewModel and set as DataContext
+            _viewModel = new SettingsViewModel(settingsService, audioDeviceService);
+            DataContext = _viewModel;
             
             InitializeEventHandlers();
             _ = LoadDevicesAsync();
@@ -249,12 +254,16 @@ namespace ScottWisper
             try
             {
                 _isLoading = true;
+                OnPropertyChanged(nameof(IsLoading));
+                await _viewModel.LoadSettingsAsync();
                 await LoadDevicesAsync();
-                LoadCurrentSettings();
-                await LoadHotkeySettingsAsync();
-                LoadProfileSettings();
                 UpdateUsageStatistics();
             }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Failed to load settings: {ex.Message}");
+            }
+        }
             catch (Exception ex)
             {
                 UpdateStatus($"Failed to load settings: {ex.Message}");
@@ -267,24 +276,8 @@ namespace ScottWisper
 
         private void LoadCurrentSettings()
         {
-            // Audio settings
-            AutoSwitchDevicesCheckBox.IsChecked = _settingsService.Settings.Audio.AutoSwitchDevices;
-            PreferHighQualityCheckBox.IsChecked = _settingsService.Settings.Audio.PreferHighQualityDevices;
-            
-            // Transcription settings
-            PopulateTranscriptionControls();
-            
-            // Hotkey settings
-            LoadHotkeySettingsAsync();
-            
-            // UI settings
-            ShowVisualFeedbackCheckBox.IsChecked = _settingsService.Settings.UI.ShowVisualFeedback;
-            ShowTranscriptionWindowCheckBox.IsChecked = _settingsService.Settings.UI.ShowTranscriptionWindow;
-            MinimizeToTrayCheckBox.IsChecked = _settingsService.Settings.UI.MinimizeToTray;
-            StartWithWindowsCheckBox.IsChecked = _settingsService.Settings.UI.StartWithWindows;
-            
-            // Update usage statistics
-            UpdateUsageStatistics();
+            // ViewModel handles loading settings - just bind UI elements
+            // All property bindings are handled through DataContext
         }
 
         private void PopulateTranscriptionControls()
@@ -353,10 +346,15 @@ namespace ScottWisper
 
         private void UpdateUsageStatistics()
         {
-            // Mock implementation - would calculate from actual usage data
-            TotalRequestsText.Text = "0";
-            TotalMinutesText.Text = "0.0";
-            CurrentMonthUsageText.Text = "0.0 minutes";
+            // Usage statistics are handled by ViewModel
+            TotalRequestsText.Text = _viewModel.TotalRequests.ToString();
+            TotalMinutesText.Text = _viewModel.TotalMinutes.ToString("F1");
+            CurrentMonthUsageText.Text = $"{_viewModel.CurrentMonthUsage:F1} minutes";
+            
+            // Update usage progress bar
+            UsageLimitProgressBar.Value = _viewModel.UsageProgress;
+            UsageLimitTextBlock.Text = $"{_viewModel.CurrentMonthUsage:F1} / {_viewModel.UsageLimit} ({(int)_viewModel.UsageProgress}%)";
+            TimeoutValueTextBlock.Text = $"{_settingsService.Settings.Transcription.RequestTimeout} seconds";
         }
 
         private DateTime GetLastTestedTime(string deviceId)
@@ -378,6 +376,7 @@ namespace ScottWisper
         private void UpdateDeviceStatus(string status)
         {
             DeviceStatusText.Text = $"Device status: {status}";
+            _viewModel.StatusMessage = status;
         }
 
         private void UpdateDeviceDetails(Services.AudioDevice? device)
@@ -563,7 +562,7 @@ namespace ScottWisper
             var selectedItem = (ComboBoxItem?)InputDeviceComboBox.SelectedItem;
             if (selectedItem != null)
             {
-                await _settingsService.SetSelectedInputDeviceAsync(selectedItem.Tag.ToString()!);
+                _viewModel.SelectedInputDevice = selectedItem.Tag.ToString()!;
             }
         }
 
@@ -574,7 +573,7 @@ namespace ScottWisper
             var selectedItem = (ComboBoxItem?)FallbackInputDeviceComboBox.SelectedItem;
             if (selectedItem != null)
             {
-                await _settingsService.SetFallbackInputDeviceAsync(selectedItem.Tag.ToString()!);
+                _viewModel.FallbackInputDevice = selectedItem.Tag.ToString()!;
             }
         }
 
@@ -585,7 +584,7 @@ namespace ScottWisper
             var selectedItem = (ComboBoxItem?)OutputDeviceComboBox.SelectedItem;
             if (selectedItem != null)
             {
-                await _settingsService.SetSelectedOutputDeviceAsync(selectedItem.Tag.ToString()!);
+                _viewModel.SelectedOutputDevice = selectedItem.Tag.ToString()!;
             }
         }
 
@@ -596,22 +595,20 @@ namespace ScottWisper
             var selectedItem = (ComboBoxItem?)FallbackOutputDeviceComboBox.SelectedItem;
             if (selectedItem != null)
             {
-                await _settingsService.SetFallbackOutputDeviceAsync(selectedItem.Tag.ToString()!);
+                _viewModel.FallbackOutputDevice = selectedItem.Tag.ToString()!;
             }
         }
 
         private async void AutoSwitchDevices_Checked(object sender, RoutedEventArgs e)
         {
             if (_isLoading) return;
-            _settingsService.Settings.Audio.AutoSwitchDevices = AutoSwitchDevicesCheckBox.IsChecked ?? false;
-            await _settingsService.SaveAsync();
+            _viewModel.AutoSwitchDevices = AutoSwitchDevicesCheckBox.IsChecked ?? false;
         }
 
         private async void PreferHighQuality_Checked(object sender, RoutedEventArgs e)
         {
             if (_isLoading) return;
-            _settingsService.Settings.Audio.PreferHighQualityDevices = PreferHighQualityCheckBox.IsChecked ?? false;
-            await _settingsService.SaveAsync();
+            _viewModel.PreferHighQualityDevices = PreferHighQualityCheckBox.IsChecked ?? false;
         }
 
         #region Transcription Settings Event Handlers
@@ -1119,20 +1116,19 @@ namespace ScottWisper
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            // Revert changes
-            _ = RevertSettingsAsync();
+            // Cancel and close - ViewModel handles state
             Close();
         }
 
         private async void ApplyButton_Click(object sender, RoutedEventArgs e)
         {
-            await _settingsService.SaveAsync();
+            await _viewModel.SaveSettingsAsync();
             UpdateDeviceStatus("Settings applied");
         }
 
         private async void OKButton_Click(object sender, RoutedEventArgs e)
         {
-            await _settingsService.SaveAsync();
+            await _viewModel.SaveSettingsAsync();
             UpdateDeviceStatus("Settings saved");
             Close();
         }
@@ -2348,7 +2344,7 @@ namespace ScottWisper
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)
         {
-            Result = false;
+            // Cancel and close - ViewModel handles state
             Close();
         }
     }
