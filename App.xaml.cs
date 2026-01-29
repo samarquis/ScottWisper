@@ -1364,7 +1364,7 @@ namespace ScottWisper
         }
 
         // Enhanced Permission Event Handlers with comprehensive user guidance
-        private async Task OnPermissionDenied(object? sender, Services.PermissionEventArgs e)
+        private async Task OnPermissionDenied(object? sender, PermissionEventArgs e)
         {
             try
             {
@@ -1398,7 +1398,7 @@ namespace ScottWisper
             }
         }
 
-        private async Task OnPermissionGranted(object? sender, Services.PermissionEventArgs e)
+        private async Task OnPermissionGranted(object? sender, PermissionEventArgs e)
         {
             try
             {
@@ -1433,7 +1433,7 @@ namespace ScottWisper
             }
         }
 
-        private async Task OnPermissionRequestFailed(object? sender, Services.PermissionEventArgs e)
+        private async Task OnPermissionRequestFailed(object? sender, PermissionEventArgs e)
         {
             try
             {
@@ -1985,12 +1985,6 @@ namespace ScottWisper
         public bool Supported { get; set; }
         public string InjectionMethod { get; set; } = string.Empty;
         public bool TestRequired { get; set; }
-    }
-
-    public class PermissionEventArgs : EventArgs
-    {
-        public string Message { get; set; } = string.Empty;
-        public Exception? Exception { get; set; }
     }
 
     public class DeviceEventArgs : EventArgs

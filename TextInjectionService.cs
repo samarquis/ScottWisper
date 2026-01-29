@@ -1622,6 +1622,11 @@ namespace ScottWisper
         private readonly Stopwatch _performanceStopwatch = new();
         private bool _debugMode = false;
         
+        /// <summary>
+        /// Application compatibility map for cross-application validation (instance property)
+        /// </summary>
+        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap => ApplicationCompatibilityMapStatic;
+        
         // Windows API imports for text injection
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
@@ -2449,7 +2454,7 @@ namespace ScottWisper
         /// <summary>
         /// Application compatibility map for cross-application validation
         /// </summary>
-        public static readonly Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap = new()
+        public static readonly Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMapStatic = new()
         {
             [TargetApplication.Chrome] = new ApplicationCompatibility 
             {

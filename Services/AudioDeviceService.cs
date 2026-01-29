@@ -1684,28 +1684,25 @@ namespace ScottWisper.Services
         }
 
         /// <summary>
-        /// Opens Windows microphone settings directly
+        /// Guides user to Windows microphone settings
         /// </summary>
-        public void OpenWindowsMicrophoneSettings()
+        public void GuideUserToSettings()
         {
             try
             {
+                // Open Windows Privacy & Security -> Microphone settings
                 const string settingsPath = "ms-settings:privacy-microphone";
-                var result = ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
-                
-                if (result.ToInt32() <= 32)
-                {
-                    System.Diagnostics.Debug.WriteLine("Failed to open Windows microphone settings");
-                }
+                ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
+                System.Diagnostics.Debug.WriteLine("Guided user to Windows microphone settings");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error guiding user to settings: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Enters graceful fallback mode when permissions are revoked
+        /// Enters graceful fallback mode when permission or device issues occur
         /// </summary>
         public async Task EnterGracefulFallbackModeAsync(string reason)
         {
@@ -1715,16 +1712,15 @@ namespace ScottWisper.Services
                 {
                     System.Diagnostics.Debug.WriteLine($"Entering graceful fallback mode: {reason}");
                     
-                    // Disable audio monitoring
-                    StopAudioLevelMonitoring();
+                    // Stop any active monitoring
+                    StopRealTimeMonitoringAsync().Wait();
                     
-                    // Notify user about fallback mode
-                    _ = Task.Run(async () => await ShowPermissionStatusNotifierAsync(
-                        MicrophonePermissionStatus.Denied, 
-                        "Operating in fallback mode - Some features may be limited"));
-
-                    // Try to find fallback device
-                    _ = Task.Run(async () => await FallbackDeviceSelectionAsync());
+                    // Notify about fallback mode
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, reason)
+                    {
+                        RequiresUserAction = true,
+                        GuidanceAction = "Check Windows Settings > Privacy > Microphone"
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -1734,78 +1730,63 @@ namespace ScottWisper.Services
         }
 
         /// <summary>
-        /// Selects fallback device when primary device is unavailable
-        /// </summary>
-        private async Task FallbackDeviceSelectionAsync()
-        {
-            try
-            {
-                var devices = await GetInputDevicesAsync();
-                var compatibleDevice = devices.FirstOrDefault(d => IsDeviceCompatible(d.DeviceId));
-
-                if (compatibleDevice != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Fallback device selected: {compatibleDevice.DeviceName}");
-                    DeviceRecoveryAttempted?.Invoke(this, new DeviceRecoveryEventArgs(
-                        compatibleDevice.DeviceId, true, true, "Fallback device selection successful"));
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("No compatible fallback device found");
-                    DeviceRecoveryAttempted?.Invoke(this, new DeviceRecoveryEventArgs(
-                        "", false, false, "No compatible fallback device available"));
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in fallback device selection: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Handles device change recovery for transient failures
+        /// Handles device change recovery operations
         /// </summary>
         public async Task<bool> HandleDeviceChangeRecoveryAsync(string deviceId, bool isConnected)
         {
             try
             {
-                var maxRetries = 3;
-                var retryDelay = 1000;
-
-                for (int attempt = 1; attempt <= maxRetries; attempt++)
+                var recoveryEventArgs = new DeviceRecoveryEventArgs
                 {
-                    try
+                    DeviceId = deviceId,
+                    DeviceName = deviceId,
+                    RecoveryAction = isConnected ? "Reconnection" : "Disconnection",
+                    Status = "InProgress"
+                };
+
+                DeviceRecoveryAttempted?.Invoke(this, recoveryEventArgs);
+
+                if (isConnected)
+                {
+                    // Attempt to recover device functionality
+                    var device = await GetDeviceByIdAsync(deviceId);
+                    if (device != null)
                     {
-                        if (isConnected)
+                        var testResult = await PerformComprehensiveTestAsync(deviceId);
+                        recoveryEventArgs.Status = testResult.Success ? "Success" : "Failed";
+                        
+                        if (!testResult.Success)
                         {
-                            // Test the device
-                            var testResult = await TestDeviceAsync(deviceId);
-                            if (testResult)
-                            {
-                                DeviceRecoveryCompleted?.Invoke(this, new DeviceRecoveryEventArgs(
-                                    deviceId, true, true, $"Device recovered successfully on attempt {attempt}"));
-                                return true;
-                            }
+                            recoveryEventArgs.Exception = new Exception($"Device test failed: {string.Join(", ", testResult.Errors)}");
                         }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Device recovery attempt {attempt} failed: {ex.Message}");
-                    }
-
-                    if (attempt < maxRetries)
-                    {
-                        await Task.Delay(retryDelay * attempt); // Incremental delay
+                        recoveryEventArgs.Status = "Failed";
+                        recoveryEventArgs.Exception = new Exception("Device not found");
                     }
                 }
+                else
+                {
+                    recoveryEventArgs.Status = "Success"; // Disconnection is not a failure
+                }
 
-                DeviceRecoveryCompleted?.Invoke(this, new DeviceRecoveryEventArgs(
-                    deviceId, isConnected, false, "Device recovery failed after all attempts"));
-                return false;
+                DeviceRecoveryCompleted?.Invoke(this, recoveryEventArgs);
+                return recoveryEventArgs.Success;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error in device change recovery: {ex.Message}");
+                var errorEventArgs = new DeviceRecoveryEventArgs
+                {
+                    DeviceId = deviceId,
+                    DeviceName = deviceId,
+                    RecoveryAction = "Recovery",
+                    Status = "Failed",
+                    Exception = ex
+                };
+
+                DeviceRecoveryCompleted?.Invoke(this, errorEventArgs);
+                System.Diagnostics.Debug.WriteLine($"Device change recovery failed: {ex.Message}");
                 return false;
             }
         }
@@ -1815,459 +1796,59 @@ namespace ScottWisper.Services
         /// </summary>
         public async Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null)
         {
-            await Task.Run(() =>
-            {
-                try
-                {
-                    var message = error != null 
-                        ? $"Microphone permission denied. Error: {error.Message}" 
-                        : "Microphone permission denied. Please check Windows Privacy Settings.";
-
-                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, message));
-
-                    // Show guidance to user
-                    _ = Task.Run(async () =>
-                    {
-                        await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, message);
-                        await Task.Delay(2000); // Wait before showing dialog
-                        await ShowPermissionRequestDialogAsync();
-                    });
-
-                    // Enter fallback mode
-                    _ = Task.Run(async () => await EnterGracefulFallbackModeAsync("Permission denied"));
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Guides user to Windows settings for manual permission setup
-        /// </summary>
-        public void GuideUserToSettings()
-        {
             try
             {
-                OpenWindowsMicrophoneSettings();
+                var permissionEventArgs = new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                    "Microphone permission was denied. Please enable access in Windows Settings.", deviceId)
+                {
+                    Exception = error,
+                    RequiresUserAction = true,
+                    GuidanceAction = "Open Windows Settings > Privacy > Microphone"
+                };
+
+                PermissionDenied?.Invoke(this, permissionEventArgs);
+
+                // Auto-open settings for user convenience
+                await ShowPermissionRequestDialogAsync();
                 
-                System.Diagnostics.Debug.WriteLine("User guided to Windows microphone settings");
+                // Show status notification
+                await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, 
+                    "Microphone access denied. Please check Windows Settings.");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error guiding user to settings: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Shows permission status notifier in system tray
+        /// Disposes of resources
         /// </summary>
-        public async Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message)
-        {
-            await Task.Run(() =>
-            {
-                try
-                {
-                    // This would integrate with system tray service
-                    // For now, just log the notification
-                    var statusMessage = $"Microphone Permission: {status} - {message}";
-                    System.Diagnostics.Debug.WriteLine(statusMessage);
-                    
-                    // Fire permission status event
-                    switch (status)
-                    {
-                        case MicrophonePermissionStatus.Denied:
-                            PermissionDenied?.Invoke(this, new PermissionEventArgs(status, message));
-                            break;
-                        case MicrophonePermissionStatus.Granted:
-                            PermissionGranted?.Invoke(this, new PermissionEventArgs(status, message));
-                            break;
-                        case MicrophonePermissionStatus.SystemError:
-                            PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(status, message));
-                            break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error showing permission status notifier: {ex.Message}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Implements retry mechanism for permission requests with exponential backoff
-        /// </summary>
-        public async Task<bool> RetryPermissionRequestAsync(int maxAttempts = 3, int baseDelayMs = 1000)
-        {
-            for (int attempt = 1; attempt <= maxAttempts; attempt++)
-            {
-                try
-                {
-                    var status = await CheckMicrophonePermissionAsync();
-                    if (status == MicrophonePermissionStatus.Granted)
-                    {
-                        await ShowPermissionStatusNotifierAsync(status, "Permission granted successfully");
-                        return true;
-                    }
-
-                    if (attempt < maxAttempts)
-                    {
-                        var delayMs = baseDelayMs * (int)Math.Pow(2, attempt - 1); // Exponential backoff
-                        await ShowPermissionStatusNotifierAsync(status, $"Permission denied, retrying in {delayMs/1000} seconds... (Attempt {attempt}/{maxAttempts})");
-                        await Task.Delay(delayMs);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error during permission retry {attempt}: {ex.Message}");
-                }
-            }
-
-            await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, "Permission request failed after all retries");
-            return false;
-        }
-
-        /// <summary>
-        /// Generates a permission diagnostic report
-        /// </summary>
-        public async Task<string> GeneratePermissionDiagnosticReportAsync()
-        {
-            return await Task.Run(async () =>
-            {
-                var report = new System.Text.StringBuilder();
-                report.AppendLine("=== Microphone Permission Diagnostic Report ===");
-                report.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                report.AppendLine();
-
-                try
-                {
-                    // Check current permission status
-                    var status = await CheckMicrophonePermissionAsync();
-                    report.AppendLine($"Current Permission Status: {status}");
-                    report.AppendLine();
-
-                    // List available input devices
-                    var devices = await GetInputDevicesAsync();
-                    report.AppendLine($"Available Input Devices: {devices.Count}");
-                    
-                    foreach (var device in devices)
-                    {
-                        report.AppendLine($"  - {device.Name}");
-                        report.AppendLine($"    ID: {device.Id}");
-                        report.AppendLine($"    Status: {device.State}");
-                        report.AppendLine($"    Permission: {device.PermissionStatus}");
-                        report.AppendLine($"    Compatible: {IsDeviceCompatible(device.Id)}");
-                        report.AppendLine();
-                    }
-
-                    // Test device access
-                    if (devices.Any())
-                    {
-                        report.AppendLine("Testing device access...");
-                        var testResult = await TestDeviceAsync(devices.First().Id);
-                        report.AppendLine($"Device Test Result: {(testResult ? "SUCCESS" : "FAILED")}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    report.AppendLine($"Diagnostic Error: {ex.Message}");
-                    report.AppendLine($"Stack Trace: {ex.StackTrace}");
-                }
-
-                report.AppendLine("=== End Report ===");
-                return report.ToString();
-            });
-        }
-
-        // Note: OpenWindowsMicrophoneSettings method implemented above
-
-        /// <summary>
-        /// Enters graceful fallback mode when permissions are denied
-        /// </summary>
-        public async Task EnterGracefulFallbackModeAsync(string reason)
-        {
-            await Task.Run(async () =>
-            {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine($"Entering graceful fallback mode: {reason}");
-                    
-                    // Fire permission denied event with guidance
-                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                        $"Microphone access denied: {reason}. Follow these steps:\n" +
-                        "1. Open Windows Settings (Win+I)\n" +
-                        "2. Go to Privacy & Security -> Microphone\n" +
-                        "3. Enable 'Microphone access' and 'Let desktop apps access your microphone'\n" +
-                        "4. Restart ScottWisper"));
-                    
-                    // Try to guide user to settings
-                    await Task.Delay(2000); // Brief delay before opening settings
-                    await ShowPermissionRequestDialogAsync();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error entering fallback mode: {ex.Message}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Handles device change recovery for transient failures
-        /// </summary>
-        public async Task<bool> HandleDeviceChangeRecoveryAsync(string deviceId, bool isConnected)
-        {
-            return await Task.Run(async () =>
-            {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine($"Handling device change recovery: {deviceId}, Connected: {isConnected}");
-                    
-                    if (isConnected)
-                    {
-                        // Device reconnected - test functionality
-                        await Task.Delay(1000); // Wait for device to stabilize
-                        
-                        var testResult = await TestDeviceAsync(deviceId);
-                        if (testResult)
-                        {
-                            DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(new AudioDevice
-                            {
-                                Id = deviceId,
-                                Name = $"Device {deviceId}",
-                                State = AudioDeviceState.Active
-                            }));
-                            
-                            return true;
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Device reconnected but failed functionality test: {deviceId}");
-                        }
-                    }
-                    else
-                    {
-                        // Device disconnected
-                        DeviceDisconnected?.Invoke(this, new AudioDeviceEventArgs(new AudioDevice
-                        {
-                            Id = deviceId,
-                            Name = $"Device {deviceId}",
-                            State = AudioDeviceState.Unplugged
-                        }));
-                    }
-                    
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error in device change recovery: {ex.Message}");
-                    return false;
-                }
-            });
-        }
-
-        /// <summary>
-        /// Handles permission denied event with user guidance
-        /// </summary>
-        public async Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null)
-        {
-            await Task.Run(async () =>
-            {
-                try
-                {
-                    var message = error != null 
-                        ? $"Permission denied for device {deviceId}: {error.Message}"
-                        : $"Permission denied for device {deviceId}";
-                    
-                    System.Diagnostics.Debug.WriteLine(message);
-                    
-                    // Show user-friendly guidance
-                    await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, message);
-                    
-                    // Try automatic recovery
-                    var recoverySuccess = await RetryPermissionRequestAsync();
-                    if (!recoverySuccess)
-                    {
-                        await EnterGracefulFallbackModeAsync("Automatic recovery failed");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
-                }
-            });
-        }
-
         public void Dispose()
         {
-            lock (_lockObject)
+            try
             {
                 if (!_disposed)
                 {
-                    // Stop device change monitoring
-                    StopDeviceChangeMonitoring();
-                    
-                    // Stop real-time monitoring
-                    try
-                    {
-                        var stopTask = StopRealTimeMonitoringAsync();
-                        stopTask.Wait(5000); // Wait max 5 seconds for cleanup
-                    }
-                    catch
-                    {
-                        // Ignore cleanup errors
-                    }
-                    
-                    _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-                    _levelUpdateTimer?.Dispose();
-                    _levelUpdateTimer = null;
-                    
-                    _monitoringWaveIn?.Dispose();
-                    _monitoringWaveIn = null;
-                    
-                    _enumerator?.Dispose();
                     _disposed = true;
+                    
+                    // Stop monitoring
+                    StopDeviceChangeMonitoring();
+                    StopRealTimeMonitoringAsync().Wait();
+                    
+                    // Dispose timer
+                    _levelUpdateTimer?.Dispose();
+                    
+                    // Dispose wave input
+                    _monitoringWaveIn?.Dispose();
+                    
+                    System.Diagnostics.Debug.WriteLine("AudioDeviceService disposed successfully");
                 }
             }
-        }
-    }
-
-    // Supporting classes
-    public class AudioDevice
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public DeviceType DataFlow { get; set; }
-        public AudioDeviceState State { get; set; }
-        public bool IsDefault { get; set; }
-        public MicrophonePermissionStatus PermissionStatus { get; set; } = MicrophonePermissionStatus.NotDetermined;
-    }
-
-    public enum DeviceType
-    {
-        Input,
-        Output
-    }
-
-    public enum AudioDeviceState
-    {
-        Active,
-        Disabled,
-        Unplugged,
-        NotPresent
-    }
-
-    public enum MicrophonePermissionStatus
-    {
-        NotDetermined,
-        Granted,
-        Denied,
-        SystemError
-    }
-
-    public class AudioDeviceCapabilities
-    {
-        public int SampleRate { get; set; } = 44100;
-        public int Channels { get; set; } = 2;
-        public int BitsPerSample { get; set; } = 16;
-        public string DeviceFriendlyName { get; set; } = string.Empty;
-        public string DeviceDescription { get; set; } = string.Empty;
-        public List<WaveFormat> SupportedFormats { get; set; } = new List<WaveFormat>();
-    }
-
-    public class AudioDeviceEventArgs : EventArgs
-    {
-        public AudioDevice Device { get; }
-
-        public AudioDeviceEventArgs(AudioDevice device)
-        {
-            Device = device;
-        }
-    }
-
-    public class PermissionEventArgs : EventArgs
-    {
-        public MicrophonePermissionStatus Status { get; }
-        public string Message { get; }
-        public string DeviceId { get; }
-
-        public PermissionEventArgs(MicrophonePermissionStatus status, string message, string deviceId = "")
-        {
-            Status = status;
-            Message = message;
-            DeviceId = deviceId;
-        }
-    }
-
-    // Enhanced testing and monitoring classes
-    public class AudioDeviceTestResult
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public string DeviceName { get; set; } = string.Empty;
-        public DateTime TestTime { get; set; }
-        public bool Success { get; set; }
-        public string ErrorMessage { get; set; } = string.Empty;
-        public bool BasicFunctionality { get; set; }
-        public List<string> SupportedFormats { get; set; } = new List<string>();
-        public float QualityScore { get; set; }
-        public int LatencyMs { get; set; }
-        public float NoiseFloorDb { get; set; }
-    }
-
-    public class DeviceCompatibilityScore
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public DateTime ScoreTime { get; set; }
-        public float SampleRateScore { get; set; }
-        public float ChannelScore { get; set; }
-        public float BitDepthScore { get; set; }
-        public float DeviceTypeScore { get; set; }
-        public float OverallScore { get; set; }
-        public string Recommendation { get; set; } = string.Empty;
-    }
-
-    public class DeviceRecommendation
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public string DeviceName { get; set; } = string.Empty;
-        public float Score { get; set; }
-        public string Recommendation { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
-        public int Priority { get; set; }
-    }
-
-    public class AudioLevelEventArgs : EventArgs
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public float Level { get; set; }
-        public DateTime Timestamp { get; set; }
-
-        public AudioLevelEventArgs(string deviceId, float level, DateTime timestamp)
-        {
-            DeviceId = deviceId;
-            Level = level;
-            Timestamp = timestamp;
-        }
-    }
-
-    public class DeviceRecoveryEventArgs : EventArgs
-    {
-        public string DeviceId { get; set; } = string.Empty;
-        public bool IsConnected { get; set; }
-        public bool RecoverySuccess { get; set; }
-        public string RecoveryMessage { get; set; } = string.Empty;
-        public DateTime RecoveryTime { get; set; } = DateTime.Now;
-        public Exception? RecoveryException { get; set; }
-
-        public DeviceRecoveryEventArgs(string deviceId, bool isConnected, bool success, string message, Exception? ex = null)
-        {
-            DeviceId = deviceId;
-            IsConnected = isConnected;
-            RecoverySuccess = success;
-            RecoveryMessage = message;
-            RecoveryException = ex;
-            RecoveryTime = DateTime.Now;
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing AudioDeviceService: {ex.Message}");
+            }
         }
     }
 }
