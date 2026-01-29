@@ -732,5 +732,221 @@ namespace ScottWisper.Services
                 _ => 5
             };
         }
+
+        /// <summary>
+        /// Validates cross-application text injection compatibility
+        /// </summary>
+        public async Task<CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync()
+        {
+            var result = new CrossApplicationValidationResult
+            {
+                StartTime = DateTime.UtcNow,
+                ApplicationResults = new List<ApplicationValidationResult>()
+            };
+
+            try
+            {
+                _logger?.LogInformation("Starting cross-application injection validation");
+                
+                // Test each target application
+                var targetApplications = new[]
+                {
+                    TargetApplication.Chrome, TargetApplication.Firefox, TargetApplication.Edge,
+                    TargetApplication.VisualStudio, TargetApplication.Word, TargetApplication.Outlook,
+                    TargetApplication.NotepadPlus, TargetApplication.WindowsTerminal, 
+                    TargetApplication.CommandPrompt, TargetApplication.Notepad
+                };
+
+                foreach (var app in targetApplications)
+                {
+                    _logger?.LogDebug("Testing application: {Application}", app);
+                    
+                    var appResult = await ValidateApplicationCompatibilityAsync(app);
+                    result.ApplicationResults.Add(appResult);
+                    
+                    // Small delay between applications
+                    await Task.Delay(500);
+                }
+
+                // Calculate overall results
+                result.EndTime = DateTime.UtcNow;
+                result.Duration = result.EndTime - result.StartTime;
+                result.TotalApplicationsTested = result.ApplicationResults.Count;
+                result.SuccessfulApplications = result.ApplicationResults.Count(r => r.IsSuccess);
+                result.OverallSuccessRate = result.TotalApplicationsTested > 0 
+                    ? (double)result.SuccessfulApplications / result.TotalApplicationsTested 
+                    : 0.0;
+                result.CompatibilityScore = CalculateOverallCompatibilityScore(result.ApplicationResults);
+
+                _logger?.LogInformation("Cross-application validation completed. Success: {Success:P2}", 
+                    result.OverallSuccessRate);
+            }
+            catch (Exception ex)
+            {
+                result.ErrorMessage = ex.Message;
+                _logger?.LogError(ex, "Cross-application validation failed");
+            }
+
+            return result;
+        }
+
+        private async Task<ApplicationValidationResult> ValidateApplicationCompatibilityAsync(TargetApplication app)
+        {
+            var result = new ApplicationValidationResult
+            {
+                Application = app,
+                ApplicationName = app.ToString(),
+                TestResults = new List<InjectionTestResult>()
+            };
+
+            try
+            {
+                // Check if application is running
+                var processes = Process.GetProcessesByName(app.ToString().ToLowerInvariant());
+                if (processes.Length == 0)
+                {
+                    result.IsSuccess = false;
+                    result.ErrorMessage = $"Application {app} is not running";
+                    return result;
+                }
+
+                var process = processes[0];
+                result.ProcessId = process.Id;
+                result.WindowTitle = process.MainWindowTitle ?? "Unknown";
+
+                // Test different text scenarios
+                var testScenarios = new[]
+                {
+                    new { Name = "Basic ASCII", Text = "Hello World 123", Expected = true },
+                    new { Name = "Unicode Characters", Text = "Test with unicode: αβγδεζ", Expected = true },
+                    new { Name = "Special Characters", Text = "Special chars: @#$%^&*()[]{}|\\", Expected = true }
+                };
+
+                foreach (var scenario in testScenarios)
+                {
+                    var testResult = await TestInjectionScenarioAsync(app, scenario.Text, scenario.Name);
+                    result.TestResults.Add(testResult);
+                    
+                    if (!testResult.Success)
+                    {
+                        _logger?.LogWarning("Test scenario {Scenario} failed for {Application}: {Error}", 
+                            scenario.Name, app, testResult.ErrorMessage);
+                    }
+                }
+
+                // Calculate application-specific metrics
+                result.IsSuccess = result.TestResults.All(t => t.Success);
+                result.SuccessRate = (double)result.TestResults.Count(t => t.Success) / result.TestResults.Count;
+                result.AccuracyScore = CalculateApplicationAccuracyScore(result.TestResults);
+                
+                _logger?.LogDebug("Application {Application} validation: Success={Success}, Rate={Rate:P2}", 
+                    app, result.IsSuccess, result.SuccessRate);
+            }
+            catch (Exception ex)
+            {
+                result.IsSuccess = false;
+                result.ErrorMessage = ex.Message;
+                _logger?.LogError(ex, "Application validation failed for {Application}", app);
+            }
+
+            return result;
+        }
+
+        private async Task<InjectionTestResult> TestInjectionScenarioAsync(TargetApplication app, string testText, string scenarioName)
+        {
+            var result = new InjectionTestResult
+            {
+                TestText = testText,
+                ScenarioName = scenarioName,
+                Application = app
+            };
+
+            try
+            {
+                var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+                
+                // Test injection with application-specific options
+                var options = new InjectionOptions
+                {
+                    UseClipboardFallback = ShouldUseClipboardFallback(app),
+                    DelayBetweenCharsMs = GetDelayForApplication(app)
+                };
+
+                var success = await InjectTextAsync(testText, options);
+                
+                stopwatch.Stop();
+                result.Success = success;
+                result.Duration = stopwatch.Elapsed;
+                result.MethodUsed = options.UseClipboardFallback ? "ClipboardFallback" : "SendInput";
+                
+                _logger?.LogDebug("Test {Scenario} for {Application}: Success={Success}, Duration={Duration}ms", 
+                    scenarioName, app, success, result.Duration.TotalMilliseconds);
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+                result.Issues = new[] { ex.Message };
+            }
+
+            return result;
+        }
+
+        private bool ShouldUseClipboardFallback(TargetApplication app)
+        {
+            return app switch
+            {
+                TargetApplication.Word => true,
+                TargetApplication.Outlook => true,
+                TargetApplication.Excel => true,
+                _ => false
+            };
+        }
+
+        private double CalculateApplicationAccuracyScore(List<InjectionTestResult> testResults)
+        {
+            if (testResults.Count == 0)
+                return 0.0;
+
+            var successfulTests = testResults.Count(t => t.Success);
+            return (double)successfulTests / testResults.Count;
+        }
+
+        private double CalculateOverallCompatibilityScore(List<ApplicationValidationResult> applicationResults)
+        {
+            if (applicationResults.Count == 0)
+                return 0.0;
+
+            var totalScore = 0.0;
+            var totalWeight = 0.0;
+
+            foreach (var appResult in applicationResults)
+            {
+                var weight = GetApplicationWeight(appResult.Application);
+                var score = appResult.AccuracyScore * weight;
+                totalScore += score;
+                totalWeight += weight;
+            }
+
+            return totalWeight > 0 ? totalScore / totalWeight : 0.0;
+        }
+
+        private double GetApplicationWeight(TargetApplication app)
+        {
+            return app switch
+            {
+                TargetApplication.Chrome => 1.0,
+                TargetApplication.Firefox => 0.9,
+                TargetApplication.Edge => 0.9,
+                TargetApplication.VisualStudio => 0.95,
+                TargetApplication.Word => 0.85,
+                TargetApplication.Outlook => 0.8,
+                TargetApplication.NotepadPlus => 0.7,
+                TargetApplication.WindowsTerminal => 0.6,
+                TargetApplication.CommandPrompt => 0.5,
+                TargetApplication.Notepad => 0.4,
+                _ => 0.3
+            };
+        }
     }
 }
