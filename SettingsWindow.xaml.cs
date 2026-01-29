@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -262,15 +263,6 @@ namespace ScottWisper
             catch (Exception ex)
             {
                 UpdateStatus($"Failed to load settings: {ex.Message}");
-            }
-        }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Failed to load settings: {ex.Message}");
-            }
-            finally
-            {
-                _isLoading = false;
             }
         }
 

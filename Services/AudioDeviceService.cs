@@ -41,6 +41,9 @@ namespace ScottWisper.Services
         Task<MicrophonePermissionStatus> CheckMicrophonePermissionAsync();
         Task<bool> RequestMicrophonePermissionAsync();
         
+        // Device switching
+        Task<bool> SwitchDeviceAsync(string deviceId);
+        
         // Enhanced testing and monitoring
         Task<AudioDeviceTestResult> PerformComprehensiveTestAsync(string deviceId);
         Task<AudioQualityMetrics> AnalyzeAudioQualityAsync(string deviceId, int durationMs = 3000);
@@ -1818,6 +1821,94 @@ namespace ScottWisper.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Switches to the specified audio device with validation and error handling
+        /// </summary>
+        public async Task<bool> SwitchDeviceAsync(string deviceId)
+        {
+            return await Task.Run(async () =>
+            {
+                lock (_lockObject)
+                {
+                    if (_disposed) return false;
+
+                    try
+                    {
+                        // Get the target device
+                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                            .FirstOrDefault(d => d.ID == deviceId);
+                        
+                        if (device == null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Device with ID {deviceId} not found");
+                            return false;
+                        }
+
+                        // Test device compatibility
+                        if (!IsDeviceCompatible(deviceId))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Device {deviceId} is not compatible");
+                            return false;
+                        }
+
+                        // Test device functionality
+                        using (var waveIn = new WaveInEvent())
+                        {
+                            waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                            waveIn.WaveFormat = new WaveFormat(16000, 1);
+                            
+                            // Test if device can be configured and started
+                            waveIn.StartRecording();
+                            Thread.Sleep(100); // Brief test
+                            waveIn.StopRecording();
+                        }
+
+                        // Check microphone permission for the device
+                        var permissionStatus = CheckMicrophonePermissionForDevice(deviceId).Result;
+                        if (permissionStatus != MicrophonePermissionStatus.Granted)
+                        {
+                            // Try to request permission
+                            var permissionGranted = RequestMicrophonePermissionAsync().Result;
+                            if (!permissionGranted)
+                            {
+                                PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                                    MicrophonePermissionStatus.Denied, 
+                                    "Cannot switch to device - microphone permission denied", 
+                                    deviceId));
+                                return false;
+                            }
+                        }
+
+                        // Device switch successful
+                        System.Diagnostics.Debug.WriteLine($"Successfully switched to device: {device.FriendlyName}");
+                        
+                        // Raise device connected event for UI updates
+                        var audioDevice = CreateAudioDevice(device);
+                        if (audioDevice != null)
+                        {
+                            DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(audioDevice));
+                        }
+
+                        return true;
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                            MicrophonePermissionStatus.Denied, 
+                            "Access to device denied - check Windows Privacy Settings", 
+                            deviceId, ex));
+                        System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                        return false;
+                    }
+                }
+            });
         }
 
         /// <summary>
