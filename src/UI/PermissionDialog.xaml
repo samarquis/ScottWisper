@@ -1,0 +1,162 @@
+<Window x:Class="ScottWisper.UI.PermissionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Microphone Permission Required"
+        Height="500" 
+        Width="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+    
+    <Window.Resources>
+        <!-- Status indicator colors -->
+        <SolidColorBrush x:Key="StatusRed" Color="#FF4444"/>
+        <SolidColorBrush x:Key="StatusYellow" Color="#FFA500"/>
+        <SolidColorBrush x:Key="StatusGreen" Color="#4CAF50"/>
+        
+        <!-- Button styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#0078D4"/>
+            <Setter Property="BorderBrush" Value="#0078D4"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header Section -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,0,10">
+            <!-- Status Indicator -->
+            <Ellipse Width="12" Height="12" Margin="5,0,10,0" Fill="{StaticResource StatusRed}"/>
+            <TextBlock Text="Microphone Access Required" 
+                       FontSize="18" 
+                       FontWeight="SemiBold" 
+                       VerticalAlignment="Center"/>
+        </StackPanel>
+        
+        <!-- Main Content -->
+        <Border Grid.Row="1" 
+                Background="White" 
+                CornerRadius="8" 
+                BorderBrush="#E0E0E0" 
+                BorderThickness="1">
+            <StackPanel Margin="30">
+                <!-- Permission Status -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,0,20">
+                    <TextBlock Text="Current Status:" 
+                               FontSize="14" 
+                               FontWeight="SemiBold" 
+                               VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="16" Height="16" Margin="5,0,10,0" 
+                                 x:Name="StatusIndicator" 
+                                 Fill="{StaticResource StatusRed}"/>
+                        <TextBlock x:Name="StatusText" 
+                                   Text="Checking..." 
+                                   FontSize="14" 
+                                   VerticalAlignment="Center"
+                                   Margin="5,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+                
+                <!-- Instruction Text -->
+                <TextBlock x:Name="InstructionText" 
+                           TextWrapping="Wrap" 
+                           FontSize="13" 
+                           LineHeight="20"
+                           Margin="0,20,0,0"
+                           Text="ScottWisper needs access to your microphone to provide voice dictation functionality. Please grant permission to continue."/>
+                
+                <!-- Step-by-Step Guide -->
+                <Border Background="#F5F5F5" 
+                        CornerRadius="6" 
+                        Margin="0,20,0,0">
+                    <StackPanel Margin="20">
+                        <TextBlock Text="Step-by-Step Guide:" 
+                                   FontSize="14" 
+                                   FontWeight="SemiBold" 
+                                   Margin="0,10,0,10"/>
+                        
+                        <StackPanel Margin="0,10,0,0">
+                            <TextBlock Text="1. Click 'Request Permission' button below" 
+                                       FontSize="12" 
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="2. If Windows permission dialog appears, click 'Yes'" 
+                                       FontSize="12" 
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="3. If denied, click 'Open Settings' button" 
+                                       FontSize="12" 
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="4. Enable microphone access for ScottWisper" 
+                                       FontSize="12" 
+                                       Margin="0,0,0,5"/>
+                            <TextBlock Text="5. Restart ScottWisper when finished" 
+                                       FontSize="12" 
+                                       Margin="0,0,0,5"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Help Links -->
+                <StackPanel Margin="0,20,0,0">
+                    <TextBlock Text="Need Help?" 
+                               FontSize="12" 
+                               FontWeight="SemiBold" 
+                               Margin="0,0,0,10"/>
+                    <StackPanel Margin="0,5,0,0">
+                        <TextBlock Text="• Windows Privacy Settings: Settings &gt; Privacy &amp; Security &gt; Microphone" 
+                                   FontSize="11" 
+                                   Margin="0,0,0,5"/>
+                        <TextBlock Text="• ScottWisper Documentation: Available in Help menu" 
+                                   FontSize="11" 
+                                   Margin="0,0,0,5"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Margin="0,20,0,0,10">
+            <Button x:Name="RequestPermissionButton" 
+                    Content="Request Permission" 
+                    Style="{StaticResource PrimaryButton}"
+                    Click="RequestPermissionButtonClick"/>
+            <Button x:Name="OpenSettingsButton" 
+                    Content="Open Settings" 
+                    Style="{StaticResource SecondaryButton}"
+                    Click="OpenSettingsButtonClick"/>
+            <Button x:Name="RetryButton" 
+                    Content="Retry" 
+                    Style="{StaticResource SecondaryButton}"
+                    Click="RetryButtonClick"
+                    Visibility="Collapsed"/>
+        </StackPanel>
+    </Grid>
+</Window>
