@@ -27,6 +27,132 @@
         <!-- Main Content -->
         <TabControl Grid.Row="1" Margin="16,16,16,8" Background="Transparent">
             
+            <!-- General Settings Tab -->
+            <TabItem Header="General">
+                <Grid Margin="16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Startup Options -->
+                    <GroupBox Grid.Row="0" Header="Startup Options" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="StartWithWindowsCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Start with Windows" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="StartWithWindows_Checked"/>
+                            
+                            <CheckBox x:Name="StartMinimizedCheckBox" Grid.Row="0" Grid.Column="1" 
+                                      Content="Start minimized" VerticalAlignment="Center" 
+                                      Margin="20,0,0,8" Checked="StartMinimized_Checked"/>
+                            
+                            <CheckBox x:Name="CheckForUpdatesCheckBox" Grid.Row="1" Grid.Column="0" 
+                                      Content="Check for updates on startup" VerticalAlignment="Center" 
+                                      Margin="0,8,0,0" Checked="CheckForUpdates_Checked"/>
+                            
+                            <CheckBox x:Name="AutoStartDictationCheckBox" Grid.Row="1" Grid.Column="1" 
+                                      Content="Auto-start dictation" VerticalAlignment="Center" 
+                                      Margin="20,8,0,0" Checked="AutoStartDictation_Checked"/>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                <Label Content="Startup delay:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Slider x:Name="StartupDelaySlider" Minimum="0" Maximum="30" Value="3" 
+                                         Width="120" ValueChanged="StartupDelay_ValueChanged"/>
+                                <TextBlock x:Name="StartupDelayText" Text="3 seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Update Settings -->
+                    <GroupBox Grid.Row="1" Header="Update Settings" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="AutoUpdateCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Automatic updates" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="AutoUpdate_Checked"/>
+                            
+                            <CheckBox x:Name="BetaUpdatesCheckBox" Grid.Row="0" Grid.Column="1" 
+                                      Content="Include beta updates" VerticalAlignment="Center" 
+                                      Margin="20,0,0,8" Checked="BetaUpdates_Checked"/>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
+                                <Button x:Name="CheckUpdatesButton" Content="Check for Updates" Width="140" 
+                                        Margin="0,0,8,0" Click="CheckUpdates_Click"/>
+                                <Button x:Name="UpdateHistoryButton" Content="Update History" Width="140" 
+                                        Margin="0,0,8,0" Click="UpdateHistory_Click"/>
+                            </StackPanel>
+                            
+                            <TextBlock x:Name="CurrentVersionText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                                       Text="Current version: 1.0.0.0" VerticalAlignment="Center" 
+                                       Margin="0,12,0,0" FontWeight="Bold"/>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Application Behavior -->
+                    <GroupBox Grid.Row="2" Header="Application Behavior" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="SingleInstanceCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Allow only one instance" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="SingleInstance_Checked"/>
+                            
+                            <CheckBox x:Name="MinimizeToTrayCheckBox" Grid.Row="0" Grid.Column="1" 
+                                      Content="Minimize to system tray" VerticalAlignment="Center" 
+                                      Margin="20,0,0,8" Checked="MinimizeToTray_Checked"/>
+                            
+                            <CheckBox x:Name="ShowNotificationsCheckBox" Grid.Row="1" Grid.Column="0" 
+                                      Content="Show notifications" VerticalAlignment="Center" 
+                                      Margin="0,8,0,0" Checked="ShowNotifications_Checked"/>
+                            
+                            <CheckBox x:Name="RememberWindowPositionCheckBox" Grid.Row="1" Grid.Column="1" 
+                                      Content="Remember window position" VerticalAlignment="Center" 
+                                      Margin="20,8,0,0" Checked="RememberWindowPosition_Checked"/>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                <Label Content="Theme:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="ThemeComboBox" Width="150" SelectionChanged="Theme_SelectionChanged">
+                                    <ComboBoxItem Content="System Default" Tag="system"/>
+                                    <ComboBoxItem Content="Light" Tag="light"/>
+                                    <ComboBoxItem Content="Dark" Tag="dark"/>
+                                    <ComboBoxItem Content="High Contrast" Tag="contrast"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            
             <!-- Audio Device Settings Tab -->
             <TabItem Header="Audio Devices">
                 <Grid Margin="16,16">
@@ -179,6 +305,153 @@
                 </Grid>
             </TabItem>
 
+<!-- API Settings Tab -->
+            <TabItem Header="API">
+                <Grid Margin="16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- API Configuration -->
+                    <GroupBox Grid.Row="0" Header="API Configuration" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Provider:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="ApiProviderComboBox" Grid.Row="0" Grid.Column="0" 
+                                      Width="200" HorizontalAlignment="Left" Margin="80,0,0,0" 
+                                      SelectionChanged="ApiProvider_SelectionChanged"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="API Key:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <PasswordBox x:Name="ApiPasswordBox" Grid.Row="1" Grid.Column="0" 
+                                         Width="250" HorizontalAlignment="Left" Margin="80,8,0,0" 
+                                         PasswordChanged="ApiPassword_PasswordChanged"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Endpoint URL:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <TextBox x:Name="ApiEndpointTextBox" Grid.Row="2" Grid.Column="0" 
+                                     Width="250" HorizontalAlignment="Left" Margin="80,8,0,0" 
+                                     TextChanged="ApiEndpoint_TextChanged"/>
+                            
+                            <Label Grid.Row="3" Grid.Column="0" Content="Request Timeout:" VerticalAlignment="Center" Margin="0,8,8,0"/>
+                            <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Horizontal" Margin="80,8,0,0">
+                                <TextBox x:Name="ApiTimeoutTextBox" Text="30" Width="60" 
+                                         TextChanged="ApiTimeout_TextChanged"/>
+                                <TextBlock Text="seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            
+                            <Button x:Name="TestApiButton" Grid.Row="0" Grid.Column="1" 
+                                    Content="Test API Key" Width="120" HorizontalAlignment="Left" 
+                                    Margin="20,0,0,0" Click="TestApi_Click"/>
+                            
+                            <Button x:Name="ValidateEndpointButton" Grid.Row="1" Grid.Column="1" 
+                                    Content="Validate Endpoint" Width="120" HorizontalAlignment="Left" 
+                                    Margin="20,8,0,0" Click="ValidateEndpoint_Click"/>
+                            
+                            <TextBlock x:Name="ApiConfigStatusText" Grid.Row="2" Grid.Column="1" 
+                                       Text="API status: Not tested" VerticalAlignment="Center" 
+                                       Margin="20,8,0,0" Foreground="Gray"/>
+                            
+                            <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Margin="20,8,0,0">
+                                <CheckBox x:Name="UseProxyCheckBox" Content="Use proxy" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Usage Statistics -->
+                    <GroupBox Grid.Row="1" Header="Usage Statistics" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Total Requests:"/>
+                            <TextBlock x:Name="ApiTotalRequestsText" Grid.Row="0" Grid.Column="1" 
+                                       Text="0" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Total Minutes:"/>
+                            <TextBlock x:Name="ApiTotalMinutesText" Grid.Row="1" Grid.Column="1" 
+                                       Text="0.0" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Current Month Usage:"/>
+                            <TextBlock x:Name="ApiCurrentMonthUsageText" Grid.Row="2" Grid.Column="1" 
+                                       Text="0.0 minutes" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="3" Grid.Column="0" Content="Usage Limit Progress:"/>
+                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+                                <ProgressBar x:Name="ApiUsageLimitProgressBar" Height="20" Margin="0,4,0,8"/>
+                                <TextBlock x:Name="ApiUsageLimitTextBlock" Text="0 / 1000 (0%)" Margin="0,0,0,12"/>
+                            </StackPanel>
+                            
+                            <Label Grid.Row="5" Grid.Column="0" Content="Request Timeout:"/>
+                            <TextBlock x:Name="ApiTimeoutValueTextBlock" Grid.Row="5" Grid.Column="1" 
+                                       Text="30 seconds" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Button x:Name="ResetApiUsageButton" Grid.Row="3" Grid.Column="0" 
+                                    Content="Reset Usage Statistics" Width="150" HorizontalAlignment="Left" 
+                                    Margin="0,12,0,0" Click="ResetApiUsage_Click"/>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- API Tier Information -->
+                    <GroupBox Grid.Row="2" Header="API Tier Information" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Label Grid.Row="0" Grid.Column="0" Content="Current Tier:"/>
+                            <TextBlock x:Name="CurrentTierText" Grid.Row="0" Grid.Column="1" 
+                                       Text="Free" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="1" Grid.Column="0" Content="Monthly Limit:"/>
+                            <TextBlock x:Name="MonthlyLimitText" Grid.Row="1" Grid.Column="1" 
+                                       Text="1000 minutes" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="2" Grid.Column="0" Content="Remaining This Month:"/>
+                            <TextBlock x:Name="RemainingMinutesText" Grid.Row="2" Grid.Column="1" 
+                                       Text="1000 minutes" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="3" Grid.Column="0" Content="Next Reset Date:"/>
+                            <TextBlock x:Name="NextResetDateText" Grid.Row="3" Grid.Column="1" 
+                                       Text="2026-02-01" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Button x:Name="UpgradeTierButton" Grid.Row="0" Grid.Column="1" 
+                                    Content="Upgrade Tier" Width="120" HorizontalAlignment="Right" 
+                                    Margin="0,0,0,0" Click="UpgradeTier_Click"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            
             <!-- Transcription Settings Tab -->
             <TabItem Header="Transcription">
                 <Grid Margin="16,16">
@@ -592,6 +865,159 @@
                 </Grid>
             </TabItem>
 
+<!-- Advanced Settings Tab -->
+            <TabItem Header="Advanced">
+                <Grid Margin="16,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Debug Logging -->
+                    <GroupBox Grid.Row="0" Header="Debug Logging" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="EnableDebugLoggingCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Enable debug logging" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="EnableDebugLogging_Checked"/>
+                            
+                            <CheckBox x:Name="EnableVerboseLoggingCheckBox" Grid.Row="0" Grid.Column="1" 
+                                      Content="Verbose logging" VerticalAlignment="Center" 
+                                      Margin="20,0,0,8" Checked="EnableVerboseLogging_Checked"/>
+                            
+                            <CheckBox x:Name="LogToFileCheckBox" Grid.Row="1" Grid.Column="0" 
+                                      Content="Log to file" VerticalAlignment="Center" 
+                                      Margin="0,8,0,0" Checked="LogToFile_Checked"/>
+                            
+                            <CheckBox x:Name="LogApiCallsCheckBox" Grid.Row="1" Grid.Column="1" 
+                                      Content="Log API calls" VerticalAlignment="Center" 
+                                      Margin="20,8,0,0" Checked="LogApiCalls_Checked"/>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                <Label Content="Log level:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <ComboBox x:Name="LogLevelComboBox" Width="120" SelectionChanged="LogLevel_SelectionChanged">
+                                    <ComboBoxItem Content="Error" Tag="error"/>
+                                    <ComboBoxItem Content="Warning" Tag="warning"/>
+                                    <ComboBoxItem Content="Info" Tag="info"/>
+                                    <ComboBoxItem Content="Debug" Tag="debug"/>
+                                    <ComboBoxItem Content="Trace" Tag="trace"/>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button x:Name="ViewLogsButton" Content="View Logs" Width="100" 
+                                        Margin="0,0,8,0" Click="ViewLogs_Click"/>
+                                <Button x:Name="ClearLogsButton" Content="Clear Logs" Width="100" 
+                                        Margin="0,0,8,0" Click="ClearLogs_Click"/>
+                                <Button x:Name="ExportLogsButton" Content="Export Logs" Width="100" 
+                                        Margin="0,0,8,0" Click="ExportLogs_Click"/>
+                                <TextBlock x:Name="LogFileSizeText" Text="Log file size: 0 KB" 
+                                           VerticalAlignment="Center" Margin="16,0,0,0" Foreground="Gray"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Performance Metrics -->
+                    <GroupBox Grid.Row="1" Header="Performance Metrics" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <CheckBox x:Name="EnablePerformanceMetricsCheckBox" Grid.Row="0" Grid.Column="0" 
+                                      Content="Enable performance metrics" VerticalAlignment="Center" 
+                                      Margin="0,0,0,8" Checked="EnablePerformanceMetrics_Checked"/>
+                            
+                            <CheckBox x:Name="ShowLatencyOverlayCheckBox" Grid.Row="0" Grid.Column="1" 
+                                      Content="Show latency overlay" VerticalAlignment="Center" 
+                                      Margin="20,0,0,8" Checked="ShowLatencyOverlay_Checked"/>
+                            
+                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
+                                <Label Content="Metrics interval:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <Slider x:Name="MetricsIntervalSlider" Minimum="1" Maximum="60" Value="5" 
+                                         Width="120" ValueChanged="MetricsInterval_ValueChanged"/>
+                                <TextBlock x:Name="MetricsIntervalText" Text="5 seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            
+                            <Button x:Name="ViewMetricsButton" Grid.Row="1" Grid.Column="1" 
+                                    Content="View Metrics" Width="100" HorizontalAlignment="Left" 
+                                    Margin="20,8,0,0" Click="ViewMetrics_Click"/>
+                            
+                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                <Button x:Name="ResetMetricsButton" Content="Reset Metrics" Width="100" 
+                                        Margin="0,0,8,0" Click="ResetMetrics_Click"/>
+                                <Button x:Name="ExportMetricsButton" Content="Export Metrics" Width="100" 
+                                        Margin="0,0,8,0" Click="ExportMetrics_Click"/>
+                                <TextBlock x:Name="CpuUsageText" Text="CPU: 0%" 
+                                           VerticalAlignment="Center" Margin="16,0,8,0" Foreground="Gray"/>
+                                <TextBlock x:Name="MemoryUsageText" Text="Memory: 0 MB" 
+                                           VerticalAlignment="Center" Margin="0,0,0,0" Foreground="Gray"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Reset Options -->
+                    <GroupBox Grid.Row="2" Header="Reset Options" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <Button x:Name="ResetAudioSettingsButton" Grid.Row="0" Grid.Column="0" 
+                                    Content="Reset Audio Settings" Width="140" HorizontalAlignment="Left" 
+                                    Margin="0,0,8,0" Click="ResetAudioSettings_Click"/>
+                            
+                            <Button x:Name="ResetHotkeySettingsButton" Grid.Row="0" Grid.Column="1" 
+                                    Content="Reset Hotkey Settings" Width="140" HorizontalAlignment="Left" 
+                                    Margin="20,0,0,0" Click="ResetHotkeySettings_Click"/>
+                            
+                            <Button x:Name="AdvancedResetUISettingsButton" Grid.Row="1" Grid.Column="0" 
+                                    Content="Reset UI Settings" Width="140" HorizontalAlignment="Left" 
+                                    Margin="0,8,0,0" Click="AdvancedResetUISettings_Click"/>
+                            
+                            <Button x:Name="AdvancedResetAPISettingsButton" Grid.Row="1" Grid.Column="1" 
+                                    Content="Reset API Settings" Width="140" HorizontalAlignment="Left" 
+                                    Margin="20,8,0,0" Click="AdvancedResetAPISettings_Click"/>
+                            
+                            <Button x:Name="AdvancedResetAllSettingsButton" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                                    Content="Reset ALL Settings to Defaults" Width="200" HorizontalAlignment="Left" 
+                                    Margin="0,12,0,0" Click="AdvancedResetAllSettings_Click" 
+                                    Background="#FFFF5252" Foreground="White"/>
+                            
+                            <TextBlock x:Name="ResetWarningText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                                       Text="⚠️ Warning: Resetting all settings cannot be undone!" 
+                                       VerticalAlignment="Center" Margin="220,12,0,0" Foreground="Red" FontWeight="Bold"/>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            
             <!-- UI Settings Tab -->
             <TabItem Header="Interface">
                 <Grid Margin="16,16">
@@ -623,13 +1049,13 @@
                                       Content="Show transcription window" VerticalAlignment="Center" 
                                       Margin="20,0,0,8" Checked="ShowTranscriptionWindow_Checked"/>
                             
-                            <CheckBox x:Name="MinimizeToTrayCheckBox" Grid.Row="1" Grid.Column="0" 
+                            <CheckBox x:Name="InterfaceMinimizeToTrayCheckBox" Grid.Row="1" Grid.Column="0" 
                                       Content="Minimize to system tray" VerticalAlignment="Center" 
-                                      Margin="0,8,0,0" Checked="MinimizeToTray_Checked"/>
+                                      Margin="0,8,0,0" Checked="InterfaceMinimizeToTray_Checked"/>
                             
-                            <CheckBox x:Name="StartWithWindowsCheckBox" Grid.Row="1" Grid.Column="1" 
+                            <CheckBox x:Name="InterfaceStartWithWindowsCheckBox" Grid.Row="1" Grid.Column="1" 
                                       Content="Start with Windows" VerticalAlignment="Center" 
-                                      Margin="20,8,0,0" Checked="StartWithWindows_Checked"/>
+                                      Margin="20,8,0,0" Checked="InterfaceStartWithWindows_Checked"/>
                             
                             <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
                                 <Label Content="Window opacity:" VerticalAlignment="Center"/>
@@ -686,13 +1112,13 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
-                            <Button x:Name="ResetUISettingsButton" Grid.Row="0" Grid.Column="0" 
+                            <Button x:Name="InterfaceResetUISettingsButton" Grid.Row="0" Grid.Column="0" 
                                     Content="Reset UI Settings" Width="140" HorizontalAlignment="Left" 
-                                    Margin="0,0,8,0" Click="ResetUISettings_Click"/>
+                                    Margin="0,0,8,0" Click="InterfaceResetUISettings_Click"/>
                             
-                            <Button x:Name="ResetAllSettingsButton" Grid.Row="0" Grid.Column="1" 
+                            <Button x:Name="InterfaceResetAllSettingsButton" Grid.Row="0" Grid.Column="1" 
                                     Content="Reset All Settings" Width="140" HorizontalAlignment="Left" 
-                                    Margin="20,0,0,0" Click="ResetAllSettings_Click"/>
+                                    Margin="20,0,0,0" Click="InterfaceResetAllSettings_Click"/>
                         </Grid>
                     </GroupBox>
                 </Grid>
