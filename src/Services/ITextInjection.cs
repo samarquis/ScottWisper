@@ -72,9 +72,14 @@ namespace ScottWisper.Services
         WindowInfo GetCurrentWindowInfo();
         
         /// <summary>
-        /// Detect currently active target application
+        /// Detects currently active target application
         /// </summary>
         TargetApplication DetectActiveApplication();
+        
+        /// <summary>
+        /// Validates cross-application text injection compatibility
+        /// </summary>
+        Task<CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync();
     }
 
     /// <summary>
@@ -117,6 +122,11 @@ namespace ScottWisper.Services
         public InjectionMethod PreferredMethod { get; set; }
         public string[] RequiresSpecialHandling { get; set; } = Array.Empty<string>();
         public Dictionary<string, object> ApplicationSettings { get; set; } = new();
+        public bool SupportsUnicode { get; set; } = true;
+        public bool SupportsLineBreaks { get; set; } = true;
+        public bool SupportsTabs { get; set; } = true;
+        public int RecommendedDelayBetweenChars { get; set; } = 5;
+        public int MaxTextLength { get; set; } = 1000;
     }
 
     /// <summary>

@@ -4,6 +4,23 @@ using System.Collections.Generic;
 namespace ScottWisper
 {
     /// <summary>
+    /// Target applications for text injection (reference from ApplicationDetector)
+    /// </summary>
+    public enum TargetApplication
+    {
+        Unknown = 0,
+        Chrome = 1,
+        Firefox = 2,
+        Edge = 3,
+        VisualStudio = 4,
+        Word = 5,
+        Outlook = 6,
+        NotepadPlus = 7,
+        WindowsTerminal = 8,
+        CommandPrompt = 9,
+        Notepad = 10
+    }
+    /// <summary>
     /// Performance metrics for injection operations
     /// </summary>
     public class InjectionMetrics
@@ -50,5 +67,61 @@ namespace ScottWisper
         public string FailureReason { get; set; } = string.Empty;
         public TimeSpan Duration { get; set; }
         public string TargetApplication { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Cross-application validation result data
+    /// </summary>
+    public class CrossApplicationValidationResult
+    {
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+        public TimeSpan Duration { get; set; }
+        public int TotalApplicationsTested { get; set; }
+        public int SuccessfulApplications { get; set; }
+        public double OverallSuccessRate { get; set; }
+        public double CompatibilityScore { get; set; }
+        public List<ApplicationValidationResult> ApplicationResults { get; set; } = new();
+        public string ErrorMessage { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets summary of validation results
+        /// </summary>
+        public string GetSummary()
+        {
+            var successful = ApplicationResults.Count(r => r.IsSuccess);
+            var total = ApplicationResults.Count;
+            var rate = total > 0 ? (double)successful / total * 100 : 0;
+            
+            return $"Cross-application validation: {successful}/{total} applications passed ({rate:F1}%)";
+        }
+    }
+
+    /// <summary>
+    /// Result of validation for a specific application
+    /// </summary>
+    public class ApplicationValidationResult
+    {
+        public TargetApplication Application { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string ProcessName { get; set; } = string.Empty;
+        public int ProcessId { get; set; }
+        public string WindowTitle { get; set; } = string.Empty;
+        public bool IsSuccess { get; set; }
+        public double SuccessRate { get; set; }
+        public double AccuracyScore { get; set; }
+        public TimeSpan AverageLatency { get; set; }
+        public TimeSpan Duration { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
+        public List<InjectionTestResult> TestResults { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Extended injection test result for validation
+    /// </summary>
+    public class InjectionTestResultExtended : InjectionTestResult
+    {
+        public string ScenarioName { get; set; } = string.Empty;
+        public TargetApplication Application { get; set; }
     }
 }
