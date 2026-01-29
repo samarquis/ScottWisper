@@ -363,73 +363,72 @@ namespace ScottWisper.Services
 
         public async Task<AudioDeviceTestResult> PerformComprehensiveTestAsync(string deviceId)
         {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) return new AudioDeviceTestResult { Success = false, ErrorMessage = "Service disposed" };
+            if (_disposed) return new AudioDeviceTestResult { Success = false, ErrorMessage = "Service disposed" };
 
+            try
+            {
+                var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                    .FirstOrDefault(d => d.ID == deviceId);
+                
+                if (device == null)
+                    return new AudioDeviceTestResult { Success = false, ErrorMessage = "Device not found" };
+
+                var result = new AudioDeviceTestResult
+                {
+                    DeviceId = deviceId,
+                    DeviceName = device.FriendlyName,
+                    TestStarted = DateTime.Now,
+                    TestCompleted = DateTime.Now
+                };
+
+                // Test 1: Basic functionality (sync, no lock needed)
+                using (var waveIn = new WaveInEvent())
+                {
+                    waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    waveIn.WaveFormat = new WaveFormat(16000, 1);
+                    
                     try
                     {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        if (device == null)
-                            return new AudioDeviceTestResult { Success = false, ErrorMessage = "Device not found" };
-
-                        var result = new AudioDeviceTestResult
-                        {
-                            DeviceId = deviceId,
-                            DeviceName = device.FriendlyName,
-                            TestTime = DateTime.Now
-                        };
-
-                        // Test 1: Basic functionality
-                        using (var waveIn = new WaveInEvent())
-                        {
-                            waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                            waveIn.WaveFormat = new WaveFormat(16000, 1);
-                            
-                            try
-                            {
-                                waveIn.StartRecording();
-                                Thread.Sleep(200);
-                                waveIn.StopRecording();
-                                result.BasicFunctionality = true;
-                            }
-                            catch
-                            {
-                                result.BasicFunctionality = false;
-                            }
-                        }
-
-                        // Test 2: Format support
-                        result.SupportedFormats = GetSupportedFormats(device);
-
-// Test 3: Quality assessment
-                        result.QualityScore = await Task.Run(() => AssessDeviceQualityAsync(device));
-
-                        // Test 4: Latency measurement
-                        result.LatencyMs = await Task.Run(() => MeasureDeviceLatencyAsync(device));
-
-                        // Test 5: Noise floor measurement
-                        result.NoiseFloorDb = await Task.Run(() => MeasureNoiseFloorAsync(device));
-
-                        result.Success = result.BasicFunctionality && result.QualityScore > 0.3f;
-                        return result;
+                        waveIn.StartRecording();
+                        Thread.Sleep(200);
+                        waveIn.StopRecording();
+                        result.BasicFunctionality = true;
                     }
-                    catch (Exception ex)
+                    catch
                     {
-                        return new AudioDeviceTestResult
-                        {
-                            Success = false,
-                            ErrorMessage = ex.Message,
-                            DeviceId = deviceId,
-                            TestTime = DateTime.Now
-                        };
+                        result.BasicFunctionality = false;
                     }
                 }
-            });
+
+                // Test 2: Format support (sync, no lock needed)
+                result.SupportedFormats = GetSupportedFormats(device);
+
+                // Test 3: Quality assessment (async, no lock needed)
+                result.QualityScore = await Task.Run(() => AssessDeviceQualityAsync(device));
+
+                // Test 4: Latency measurement (async, no lock needed)
+                result.LatencyMs = await Task.Run(() => MeasureDeviceLatencyAsync(device));
+
+                // Test 5: Noise floor measurement (async, no lock needed)
+                result.NoiseFloorDb = await Task.Run(() => MeasureNoiseFloorAsync(device));
+
+                result.Success = result.BasicFunctionality && result.QualityScore > 0.3f;
+                result.TestCompleted = DateTime.Now;
+                result.TestTime = result.TestCompleted - result.TestStarted;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return new AudioDeviceTestResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    DeviceId = deviceId,
+                    TestStarted = DateTime.Now,
+                    TestCompleted = DateTime.Now,
+                    TestTime = TimeSpan.Zero
+                };
+            }
         }
 
         public async Task<AudioQualityMetrics> AnalyzeAudioQualityAsync(string deviceId, int durationMs = 3000)
@@ -727,7 +726,7 @@ namespace ScottWisper.Services
 
                     try
                     {
-                        _levelUpdateTimer?.Change(null, Timeout.Infinite, Timeout.Infinite, 0);
+                        _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
                         _levelUpdateTimer?.Dispose();
                         _levelUpdateTimer = null;
 

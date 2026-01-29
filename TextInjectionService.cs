@@ -172,9 +172,9 @@ namespace ScottWisper
             
             try
             {
-                var compatibility = TextInjectionService.ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
+                var compatibility = ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
                     ? compat 
-                    : TextInjectionService.ApplicationCompatibilityMap[TargetApplication.Unknown];
+                    : ApplicationCompatibilityMap[TargetApplication.Unknown];
 
                 // Test with different injection strategies
                 for (int attempt = 0; attempt < 3; attempt++)
@@ -231,7 +231,7 @@ namespace ScottWisper
                 MethodUsed = attempt == 0 ? "SendInput" : attempt == 1 ? "ClipboardFallback" : "SlowUnicode",
                 Duration = stopwatch.Elapsed,
                 Issues = issues.ToArray(),
-                Compatibility = TextInjectionService.ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
+                Compatibility = ApplicationCompatibilityMap.TryGetValue(targetApp, out var compat) 
                     ? compat 
                     : new ApplicationCompatibility { Category = ApplicationCategory.Unknown, IsCompatible = false }
             };
@@ -1083,7 +1083,7 @@ namespace ScottWisper
         /// <summary>
         /// Application compatibility map with all supported apps
         /// </summary>
-        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap { get; }
+        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap { get; set; }
 
         /// <summary>
         /// Initialize application compatibility mapping
@@ -1625,7 +1625,11 @@ namespace ScottWisper
         /// <summary>
         /// Application compatibility map for cross-application validation (instance property)
         /// </summary>
-        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap => ApplicationCompatibilityMapStatic;
+        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap 
+        { 
+            get => ApplicationCompatibilityMapStatic; 
+            set => ApplicationCompatibilityMapStatic = value; 
+        }
         
         // Windows API imports for text injection
         [DllImport("user32.dll", SetLastError = true)]
@@ -3214,7 +3218,14 @@ namespace ScottWisper
         NotepadPlus,
         WindowsTerminal,
         CommandPrompt,
-        Notepad
+        Notepad,
+        TextEditor,
+        Browser,
+        Office,
+        DevelopmentTool,
+        Terminal,
+        Excel,
+        PowerShell
     }
 
     /// <summary>

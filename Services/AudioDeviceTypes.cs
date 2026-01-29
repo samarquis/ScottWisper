@@ -16,6 +16,11 @@ namespace ScottWisper.Services
         public DeviceType DeviceType { get; set; }
         public string DriverVersion { get; set; } = string.Empty;
         public string DeviceState { get; set; } = string.Empty;
+        
+        // Missing properties
+        public AudioDeviceState State { get; set; } = AudioDeviceState.Active;
+        public MicrophonePermissionStatus PermissionStatus { get; set; } = MicrophonePermissionStatus.Unknown;
+        public AudioDataFlow DataFlow { get; set; } = AudioDataFlow.Capture;
     }
 
     /// <summary>
@@ -35,6 +40,13 @@ namespace ScottWisper.Services
         public bool IsRecommended { get; set; }
         public int QualityScore { get; set; }
         public string[] SupportedFeatures { get; set; } = Array.Empty<string>();
+        
+        // Missing properties
+        public int SampleRate { get; set; } = 16000;
+        public int Channels { get; set; } = 1;
+        public int BitsPerSample { get; set; } = 16;
+        public string DeviceFriendlyName { get; set; } = string.Empty;
+        public string DeviceDescription { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -58,7 +70,16 @@ namespace ScottWisper.Services
         public float LeftLevel { get; set; }
         public float RightLevel { get; set; }
         public float PeakLevel { get; set; }
+        public float Level { get; set; } // Missing property
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        // Constructor with 3 arguments
+        public AudioLevelEventArgs(string deviceId, float level, DateTime timestamp)
+        {
+            DeviceId = deviceId;
+            Level = level;
+            Timestamp = timestamp;
+        }
     }
 
     /// <summary>
@@ -83,12 +104,27 @@ namespace ScottWisper.Services
         public string DeviceId { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
-        public bool Success => Status == "Success";
+        private bool _success = false;
+        public bool Success 
+        { 
+            get => _success;
+            set => _success = value;
+        }
+        
         public List<string> Warnings { get; set; } = new List<string>();
         public List<string> Errors { get; set; } = new List<string>();
         public Dictionary<string, object> Metrics { get; set; } = new Dictionary<string, object>();
         public DateTime TestStarted { get; set; } = DateTime.UtcNow;
         public DateTime TestCompleted { get; set; } = DateTime.UtcNow;
+        
+        // Missing properties
+        public TimeSpan TestTime { get; set; } = TimeSpan.Zero;
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string SupportedFormats { get; set; } = string.Empty;
+        public bool BasicFunctionality { get; set; }
+        public double NoiseFloorDb { get; set; }
+        public bool TestPassed { get; set; }
+        
         public TimeSpan TestDuration => TestCompleted - TestStarted;
         public double LatencyMs { get; set; }
         public int SampleRate { get; set; }
@@ -106,5 +142,39 @@ namespace ScottWisper.Services
         Input,
         Output,
         InputOutput
+    }
+
+    /// <summary>
+    /// Audio device state enumeration
+    /// </summary>
+    public enum AudioDeviceState
+    {
+        Active,
+        Disabled,
+        Unplugged,
+        NotPresent,
+        PresentWithNoDriver
+    }
+
+    /// <summary>
+    /// Audio data flow enumeration
+    /// </summary>
+    public enum AudioDataFlow
+    {
+        Render,
+        Capture,
+        All
+    }
+
+    /// <summary>
+    /// Microphone permission status enumeration
+    /// </summary>
+    public enum MicrophonePermissionStatus
+    {
+        Unknown,
+        Denied,
+        Granted,
+        NotRequested,
+        SystemError
     }
 }

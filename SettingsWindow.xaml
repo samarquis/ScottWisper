@@ -290,6 +290,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             
                             <Label Grid.Row="0" Grid.Column="0" Content="Total Requests:"/>
@@ -303,6 +305,16 @@
                             <Label Grid.Row="2" Grid.Column="0" Content="Current Month Usage:"/>
                             <TextBlock x:Name="CurrentMonthUsageText" Grid.Row="2" Grid.Column="1" 
                                        Text="0.0 minutes" FontWeight="Bold" Margin="4,2"/>
+                            
+                            <Label Grid.Row="3" Grid.Column="0" Content="Usage Limit Progress:"/>
+                            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
+                                <ProgressBar x:Name="UsageLimitProgressBar" Height="20" Margin="0,4,0,8"/>
+                                <TextBlock x:Name="UsageLimitTextBlock" Text="0 / 1000 (0%)" Margin="0,0,0,12"/>
+                            </StackPanel>
+                            
+                            <Label Grid.Row="5" Grid.Column="0" Content="Request Timeout:"/>
+                            <TextBlock x:Name="TimeoutValueTextBlock" Grid.Row="5" Grid.Column="1" 
+                                       Text="30 seconds" FontWeight="Bold" Margin="4,2"/>
                             
                             <Button x:Name="ResetUsageButton" Grid.Row="3" Grid.Column="0" 
                                     Content="Reset Usage Statistics" Width="150" HorizontalAlignment="Left" 

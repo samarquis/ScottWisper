@@ -14,5 +14,32 @@ namespace ScottWisper.Services
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public bool RequiresUserAction { get; set; }
         public string? GuidanceAction { get; set; }
+
+        // Default constructor
+        public PermissionEventArgs() { }
+
+        // 2-argument constructor
+        public PermissionEventArgs(string message, Exception? exception = null)
+        {
+            Message = message;
+            Exception = exception;
+        }
+
+        // 3-argument constructor
+        public PermissionEventArgs(string message, string? deviceId, Exception? exception = null)
+        {
+            Message = message;
+            DeviceId = deviceId;
+            Exception = exception;
+        }
+
+        // Constructor for permission status
+        public PermissionEventArgs(MicrophonePermissionStatus status, string message, string? deviceId = null, Exception? exception = null)
+        {
+            Message = message;
+            DeviceId = deviceId;
+            Exception = exception;
+            RequiresUserAction = status == MicrophonePermissionStatus.Denied;
+        }
     }
 }

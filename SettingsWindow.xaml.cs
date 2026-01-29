@@ -244,6 +244,27 @@ namespace ScottWisper
             }
         }
 
+        private async Task LoadSettingsAsync()
+        {
+            try
+            {
+                _isLoading = true;
+                await LoadDevicesAsync();
+                LoadCurrentSettings();
+                await LoadHotkeySettingsAsync();
+                LoadProfileSettings();
+                UpdateUsageStatistics();
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Failed to load settings: {ex.Message}");
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
         private void LoadCurrentSettings()
         {
             // Audio settings

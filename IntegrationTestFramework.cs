@@ -747,6 +747,10 @@ namespace ScottWisper
         public Dictionary<string, List<TestResult>> ResultsByCategory { get; set; } = new Dictionary<string, List<TestResult>>();
         public DateTime ReportGeneratedAt { get; set; }
         public TimeSpan Duration { get; set; }
+        
+        // Missing properties
+        public string TestSuiteName { get; set; } = string.Empty;
+        public bool AllPassed => PassedTests == TotalTests && TotalTests > 0;
     }
 
     public class TestResult
