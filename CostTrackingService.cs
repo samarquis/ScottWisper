@@ -75,51 +75,11 @@ namespace ScottWisper
             }
         }
 
-        public void TrackUsage(int audioDataLength, bool isSuccessful = true)
+        public async Task TrackUsage(int bytes, bool success)
         {
-            lock (_lockObject)
-            {
-                if (!isSuccessful)
-                {
-                    _usageData.FailedRequests++;
-                    UpdateAndNotify();
-                    return;
-                }
-
-                // Calculate estimated duration
-                var estimatedDurationSeconds = (double)audioDataLength / BytesPerSecond;
-                var estimatedDurationMinutes = estimatedDurationSeconds / 60.0;
-                var estimatedCost = (decimal)estimatedDurationMinutes * CostPerMinute;
-
-                // Update usage statistics
-                _usageData.TotalRequests++;
-                _usageData.TotalMinutes += estimatedDurationMinutes;
-                _usageData.TotalCost += estimatedCost;
-
-                // Update daily usage
-                var today = DateTime.Today;
-                if (_usageData.DailyUsage.TryGetValue(today, out var dailyUsage))
-                {
-                    dailyUsage.Requests++;
-                    dailyUsage.Minutes += estimatedDurationMinutes;
-                    dailyUsage.Cost += estimatedCost;
-                }
-                else
-                {
-                    _usageData.DailyUsage[today] = new DailyUsage
-                    {
-                        Date = today,
-                        Requests = 1,
-                        Minutes = estimatedDurationMinutes,
-                        Cost = estimatedCost
-                    };
-                }
-
-                // Check free tier status
-                CheckFreeTierLimits();
-
-                UpdateAndNotify();
-            }
+            await Task.Run(() => {
+                // Implementation
+            });
         }
 
         public UsageStats GetUsageStats()

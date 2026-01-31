@@ -32,6 +32,7 @@ namespace ScottWisper
         /// </summary>
         public async Task<TestSuiteResult> RunGapClosureValidationTestsAsync()
         {
+            await Task.Yield();
             _testResults.Clear();
             var startTime = DateTime.Now;
 
@@ -96,6 +97,7 @@ namespace ScottWisper
 
         private async Task TestCrossApplicationValidation()
         {
+            await Task.Yield();
             try
             {
                 var startTime = DateTime.Now;
@@ -226,6 +228,7 @@ namespace ScottWisper
 
         private async Task TestSettingsUI()
         {
+            await Task.Yield();
             try
             {
                 var startTime = DateTime.Now;
@@ -299,6 +302,7 @@ namespace ScottWisper
 
         private async Task TestIntegrationFramework()
         {
+            await Task.Yield();
             try
             {
                 var startTime = DateTime.Now;
@@ -412,6 +416,7 @@ namespace ScottWisper
 
         private async Task TestPerformanceMetrics()
         {
+            await Task.Yield();
             try
             {
                 var startTime = DateTime.Now;
@@ -498,6 +503,7 @@ namespace ScottWisper
 
         private async Task TestEndToEndWorkflows()
         {
+            await Task.Yield();
             try
             {
                 var startTime = DateTime.Now;

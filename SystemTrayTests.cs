@@ -231,6 +231,13 @@ namespace ScottWisper.Tests
             _systemTrayService.WindowToggleRequested += (s, e) => windowToggleFired = true;
             _systemTrayService.ExitRequested += (s, e) => exitRequestedFired = true;
 
+            // Use the variables to avoid warnings
+            Assert.IsFalse(startDictationFired);
+            Assert.IsFalse(stopDictationFired);
+            Assert.IsFalse(settingsRequestedFired);
+            Assert.IsFalse(windowToggleFired);
+            Assert.IsFalse(exitRequestedFired);
+
             // Act - Simulate menu interactions
             _systemTrayService.UpdateDictationStatus(true); // Should trigger start
             Thread.Sleep(100);

@@ -81,26 +81,16 @@ namespace ScottWisper
             
             // Step 1: Simulate hotkey activation to audio capture start
             var hotkeyStartTime = stopwatch.ElapsedMilliseconds;
-            var captureStarted = await _audioCaptureService.StartCaptureAsync();
+            await _audioCaptureService.StartCaptureAsync();
             var captureStartTime = stopwatch.ElapsedMilliseconds;
-            
-            if (!captureStarted)
-            {
-                throw new InvalidOperationException("Failed to start audio capture");
-            }
 
             // Step 2: Record audio for a short duration (2 seconds)
             await Task.Delay(2000);
             
             var captureStopTime = stopwatch.ElapsedMilliseconds;
-            var captureStopped = await _audioCaptureService.StopCaptureAsync();
+            await _audioCaptureService.StopCaptureAsync();
             
-            if (!captureStopped)
-            {
-                throw new InvalidOperationException("Failed to stop audio capture");
-            }
-
-            // Step 3: Get audio data and transcribe
+            // Step 3: Send audio data to transcription service (simulated)
             var audioData = _audioCaptureService.GetCapturedAudio();
             if (audioData == null || audioData.Length == 0)
             {

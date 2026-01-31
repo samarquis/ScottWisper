@@ -237,20 +237,22 @@ namespace ScottWisper
 
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
         {
-            // Handle transcription settings changes
-            if (e.Category == "Transcription")
-            {
-                // Update API key if it changed
-                if (e.Key.Contains("Api") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+            await Task.Run(() => {
+                // Handle transcription settings changes
+                if (e.Category == "Transcription")
                 {
-                    var newApiKey = GetApiKeyFromSettings();
-                    if (!string.IsNullOrEmpty(newApiKey) && newApiKey != _apiKey)
+                    // Update API key if it changed
+                    if (e.Key.Contains("Api") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
                     {
-                        _apiKey = newApiKey;
-                        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                        var newApiKey = GetApiKeyFromSettings();
+                        if (!string.IsNullOrEmpty(newApiKey) && newApiKey != _apiKey)
+                        {
+                            _apiKey = newApiKey;
+                            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                        }
                     }
                 }
-            }
+            });
         }
         
         private void UpdateUsageStats(int audioDataLength)

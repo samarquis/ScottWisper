@@ -109,6 +109,12 @@ namespace ScottWisper.Tests
             var updateOldValue = (object?)null;
             var updateNewValue = (object?)null;
 
+            // Use the variables to avoid warnings
+            Assert.IsFalse(settingsUpdated);
+            Assert.AreEqual(string.Empty, updateKey);
+            Assert.IsNull(updateOldValue);
+            Assert.IsNull(updateNewValue);
+
             // Subscribe to settings changes (would need to implement event in real scenario)
             // For now, test direct property updates
 

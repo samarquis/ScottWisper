@@ -95,19 +95,16 @@ namespace ScottWisper
 
         private void OnPermissionDenied(object? sender, EventArgs e)
         {
-            var message = "Microphone access is denied. Please check Windows Privacy Settings to enable microphone access for ScottWisper.";
             PermissionRequired?.Invoke(this, EventArgs.Empty);
         }
 
         private void OnPermissionGranted(object? sender, EventArgs e)
         {
-            var message = "Microphone access has been granted. You can now use voice dictation.";
             PermissionRetry?.Invoke(this, EventArgs.Empty);
         }
 
         private void OnPermissionRequestFailed(object? sender, EventArgs e)
         {
-            var message = "Microphone permission request failed. Please try again or enable manually in Windows Settings.";
             PermissionRequired?.Invoke(this, EventArgs.Empty);
         }
 
@@ -179,52 +176,26 @@ namespace ScottWisper
             }
         }
 
-        public async Task<bool> StopCaptureAsync()
+        public async Task StopCaptureAsync()
         {
-            try
-            {
-                if (!_isCapturing || _waveIn == null)
-                {
-                    return false; // Not capturing
-                }
-                
-                // Stop recording
-                _waveIn.StopRecording();
+            await Task.Run(() => {
+                _waveIn?.StopRecording();
                 _isCapturing = false;
-                
-                return true;
-            }
-            catch (Exception ex)
-            {
-                CaptureError?.Invoke(this, ex);
-                return false;
-            }
+            });
         }
 
         private void ShowPermissionErrorMessage()
         {
-            var message = @"Microphone access is required for voice dictation.
-
-To enable microphone access:
-1. Click 'Open Settings' below
-2. Go to Privacy & Security -> Microphone
-3. Enable 'Microphone access' and allow ScottWisper to access your microphone
-4. Restart the application
-
-After enabling microphone access, voice dictation will work normally.";
-            
             PermissionRequired?.Invoke(this, EventArgs.Empty);
         }
 
         private void HandleUnauthorizedAccessException(Exception ex)
         {
-            var message = $"Access to microphone was denied. Please check Windows Privacy Settings to enable microphone access for ScottWisper. Error: {ex.Message}";
             PermissionRequired?.Invoke(this, EventArgs.Empty);
         }
 
         private void HandleSecurityException(Exception ex)
         {
-            var message = $"Security error accessing microphone. Please ensure ScottWisper has permission to access audio devices. Error: {ex.Message}";
             PermissionRequired?.Invoke(this, EventArgs.Empty);
         }
 

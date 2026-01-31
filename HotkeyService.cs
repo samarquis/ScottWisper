@@ -75,6 +75,7 @@ namespace ScottWisper
 
         private async void InitializeAsync()
         {
+            await Task.Yield();
             await LoadCurrentProfileAsync();
             RegisterCurrentProfileHotkeys();
             StartConflictMonitoring();

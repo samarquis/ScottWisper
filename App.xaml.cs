@@ -390,6 +390,7 @@ namespace ScottWisper
 
         private async Task InitializeTextInjectionService()
         {
+            await Task.Yield();
             if (_textInjectionService == null) return;
 
             try
@@ -940,6 +941,7 @@ namespace ScottWisper
 
         private async Task ValidateServiceHealth()
         {
+            await Task.Yield();
             try
             {
                 var healthResults = new List<string>();
@@ -979,6 +981,7 @@ namespace ScottWisper
 
         private async Task InitializeCrossApplicationValidation()
         {
+            await Task.Yield();
             try
             {
                 // Initialize application compatibility matrix
@@ -1024,6 +1027,7 @@ namespace ScottWisper
 
         private async Task ValidateSettingsUI()
         {
+            await Task.Yield();
             try
             {
                 // Validate that all settings categories are properly configured
@@ -1065,6 +1069,7 @@ namespace ScottWisper
 
         private async Task ValidateAdvancedSettingsUI()
         {
+            await Task.Yield();
             try
             {
                 // Validate advanced settings UI components
@@ -1842,6 +1847,7 @@ namespace ScottWisper
         
         private async Task SetupAutoRecoveryMechanisms()
         {
+            await Task.Yield();
             try
             {
                 // Set up automatic recovery for transient failures
@@ -1874,6 +1880,7 @@ namespace ScottWisper
         
         private async Task ResolveServiceDependencies()
         {
+            await Task.Yield();
             try
             {
                 // Resolve and validate all service dependencies

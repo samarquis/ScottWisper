@@ -8,6 +8,7 @@ namespace ScottWisper
     {
         public static async Task<bool> RunVerificationAsync()
         {
+            await Task.Yield();
             Console.WriteLine("=== ScottWisper Verification Tests ===");
             
             try
@@ -31,7 +32,7 @@ namespace ScottWisper
                 Console.WriteLine($"✓ Initial stats: {initialStats.RequestCount} requests, ${initialStats.EstimatedCost:F4}");
                 
                 // Simulate usage tracking
-                costTrackingService.TrackUsage(32000); // 1 second of audio
+                await costTrackingService.TrackUsage(32000, true); // 1 second of audio
                 var updatedStats = costTrackingService.GetUsageStats();
                 Console.WriteLine($"✓ After tracking: {updatedStats.RequestCount} requests, ${updatedStats.EstimatedCost:F4}");
                 
@@ -57,7 +58,7 @@ namespace ScottWisper
                 costTrackingService.UsageUpdated += (s, stats) => costTrackingUpdatedFired = true;
                 
                 // Trigger events
-                costTrackingService.TrackUsage(16000); // Should trigger UsageUpdated
+                await costTrackingService.TrackUsage(16000, true); // Should trigger UsageUpdated
                 
                 if (costTrackingUpdatedFired)
                 {
