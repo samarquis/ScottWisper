@@ -4,8 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NAudio.Wave;
 using ScottWisper.Configuration;
 using ScottWisper.Models;
+using Whisper.net;
+using Whisper.net.Ggml;
 
 namespace ScottWisper.Services
 {
@@ -72,7 +75,7 @@ namespace ScottWisper.Services
     
     /// <summary>
     /// Enhanced service for local offline transcription using Whisper models.
-    /// Implements PRIV-01 for privacy-focused processing.
+    /// Implements PRIV-01 for privacy-focused processing using Whisper.net.
     /// </summary>
     public class LocalInferenceService : ILocalInferenceService, IDisposable
     {
@@ -86,6 +89,10 @@ namespace ScottWisper.Services
         private LocalInferenceStatistics _statistics = new();
         private LocalInferenceSettings _settings = new();
         private readonly object _lock = new();
+        
+        // Whisper.net components
+        private WhisperFactory? _whisperFactory;
+        private WhisperProcessor? _whisperProcessor;
         
         public bool IsModelLoaded => _isModelLoaded;
         public LocalInferenceStatus Status => _status;
@@ -108,7 +115,7 @@ namespace ScottWisper.Services
             _settings.SelectedModelId = _settingsService.Settings.Transcription.LocalModelPath;
             _settings.EnableGpuAcceleration = false; // Default to CPU for compatibility
             
-            _logger?.LogInformation("LocalInferenceService initialized");
+            _logger?.LogInformation("LocalInferenceService initialized with Whisper.net");
         }
 
         /// <summary>
@@ -160,11 +167,16 @@ namespace ScottWisper.Services
                     return false;
                 }
                 
-                _logger?.LogInformation("Loading local Whisper model from {Path}...", modelPath);
+                // Verify model file exists
+                if (!File.Exists(modelPath))
+                {
+                    _logger?.LogError("Model file does not exist at {Path}", modelPath);
+                    _status.LoadingState = ModelLoadingState.Error;
+                    _status.ErrorMessage = "Model file not found on disk";
+                    return false;
+                }
                 
-                // Simulate model loading
-                // In real implementation, this would initialize whisper.cpp or Whisper.net
-                await Task.Delay(500);
+                _logger?.LogInformation("Loading local Whisper model from {Path}...", modelPath);
                 
                 // Check available RAM
                 var availableRam = GetAvailableRamMb();
@@ -177,6 +189,30 @@ namespace ScottWisper.Services
                         targetModelId, modelInfo.RequiredRamMb, availableRam);
                     _status.LoadingState = ModelLoadingState.Error;
                     _status.ErrorMessage = $"Insufficient RAM. Model requires {modelInfo.RequiredRamMb}MB but only {availableRam}MB is available.";
+                    return false;
+                }
+                
+                // Initialize Whisper.net
+                try
+                {
+                    _logger?.LogInformation("Initializing Whisper.net with model: {ModelPath}", modelPath);
+                    
+                    // Create the factory from the model file
+                    _whisperFactory = WhisperFactory.FromPath(modelPath);
+                    
+                    // Build the processor with default settings
+                    // Language will be set per-transcription
+                    _whisperProcessor = _whisperFactory.CreateBuilder()
+                        .WithLanguage("auto") // Auto-detect language
+                        .Build();
+                    
+                    _logger?.LogInformation("Whisper.net processor created successfully");
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to initialize Whisper.net");
+                    _status.LoadingState = ModelLoadingState.Error;
+                    _status.ErrorMessage = $"Failed to initialize Whisper.net: {ex.Message}";
                     return false;
                 }
                 
@@ -209,7 +245,7 @@ namespace ScottWisper.Services
         }
 
         /// <summary>
-        /// Transcribes audio data locally.
+        /// Transcribes audio data locally using Whisper.net.
         /// </summary>
         public async Task<LocalTranscriptionResult> TranscribeAudioAsync(byte[] audioData, string? language = null)
         {
@@ -221,7 +257,7 @@ namespace ScottWisper.Services
                 TranscriptionStarted?.Invoke(this, EventArgs.Empty);
                 
                 // Ensure model is loaded
-                if (!_isModelLoaded)
+                if (!_isModelLoaded || _whisperProcessor == null)
                 {
                     var initialized = await InitializeAsync();
                     if (!initialized)
@@ -246,64 +282,121 @@ namespace ScottWisper.Services
                 // Report initial progress
                 TranscriptionProgress?.Invoke(this, 10);
 
-                // Simulate transcription processing
-                // In real implementation:
-                // 1. Convert audio to format expected by whisper (16kHz, mono, 16-bit PCM)
-                // 2. Run inference using whisper.cpp / Whisper.net
-                // 3. Process results into segments
+                // Convert audio to WAV format if needed and get duration
+                float audioDurationSeconds;
+                byte[] wavData;
                 
-                await Task.Delay(100); // Initial processing
+                try
+                {
+                    // Try to detect format and convert to 16kHz mono PCM if needed
+                    wavData = ConvertToWhisperFormat(audioData, out audioDurationSeconds);
+                    _logger?.LogInformation("Audio converted successfully. Duration: {Duration:F2}s", audioDurationSeconds);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogError(ex, "Failed to convert audio format");
+                    throw new InvalidOperationException("Failed to convert audio to compatible format", ex);
+                }
+
                 TranscriptionProgress?.Invoke(this, 30);
+
+                // Create memory stream from audio data
+                using var memoryStream = new MemoryStream(wavData);
                 
-                await Task.Delay(200); // Main inference (would be actual model inference)
-                TranscriptionProgress?.Invoke(this, 70);
+                // Collect transcription results
+                var fullText = new System.Text.StringBuilder();
+                var segments = new List<TranscriptionSegment>();
+                var detectedLanguage = language ?? "en";
+                var totalConfidence = 0.0f;
+                var segmentCount = 0;
                 
-                await Task.Delay(100); // Post-processing
+                // Rebuild processor with specific language if provided
+                if (!string.IsNullOrEmpty(language) && language != "auto")
+                {
+                    _whisperProcessor?.Dispose();
+                    _whisperProcessor = _whisperFactory?.CreateBuilder()
+                        .WithLanguage(language)
+                        .Build();
+                }
+                
+                if (_whisperProcessor == null)
+                {
+                    throw new InvalidOperationException("Whisper processor is not initialized");
+                }
+
+                TranscriptionProgress?.Invoke(this, 50);
+
+                // Process audio through Whisper.net
+                var progressStep = 0;
+                var totalSteps = 10;
+                
+                await foreach (var result in _whisperProcessor.ProcessAsync(memoryStream))
+                {
+                    if (result?.Text != null)
+                    {
+                        fullText.Append(result.Text);
+                        
+                        // Create segment
+                        var segment = new TranscriptionSegment
+                        {
+                            Text = result.Text.Trim(),
+                            StartTime = (float)result.Start.TotalSeconds,
+                            EndTime = (float)result.End.TotalSeconds,
+                            Confidence = 0.85f // Whisper doesn't provide per-segment confidence directly
+                        };
+                        segments.Add(segment);
+                        
+                        totalConfidence += 0.85f;
+                        segmentCount++;
+                        
+                        _logger?.LogDebug("Segment: {Start:F2}s - {End:F2}s: {Text}", 
+                            segment.StartTime, segment.EndTime, segment.Text);
+                    }
+                    
+                    // Update progress (50-90% range)
+                    progressStep++;
+                    if (progressStep % 2 == 0) // Update every few segments
+                    {
+                        var progress = 50 + (int)((progressStep / (float)totalSteps) * 40);
+                        TranscriptionProgress?.Invoke(this, Math.Min(progress, 90));
+                    }
+                }
+
                 TranscriptionProgress?.Invoke(this, 90);
 
-                // Generate simulated result
-                // In real implementation, this would come from the actual model
-                var result = new LocalTranscriptionResult
+                // Calculate average confidence
+                var avgConfidence = segmentCount > 0 ? totalConfidence / segmentCount : 0.85f;
+                var finalText = fullText.ToString().Trim();
+                
+                if (string.IsNullOrWhiteSpace(finalText))
                 {
-                    Text = $"[Local Whisper - {_currentModelId}] This is simulated local transcription output. " +
-                           $"In production, this would contain the actual transcribed text from the audio.",
-                    Language = language ?? "en",
-                    Confidence = 0.85f,
-                    ModelId = _currentModelId,
-                    UsedGpu = _settings.EnableGpuAcceleration && _status.GpuAccelerationAvailable,
-                    IsCached = false,
-                    Segments = new List<TranscriptionSegment>
-                    {
-                        new TranscriptionSegment
-                        {
-                            Text = "Simulated transcription segment 1",
-                            StartTime = 0.0f,
-                            EndTime = 3.5f,
-                            Confidence = 0.90f
-                        },
-                        new TranscriptionSegment
-                        {
-                            Text = "Simulated transcription segment 2",
-                            StartTime = 3.5f,
-                            EndTime = 7.0f,
-                            Confidence = 0.80f
-                        }
-                    }
-                };
+                    finalText = "[No speech detected]";
+                }
 
                 // Calculate processing metrics
                 var processingDuration = DateTime.UtcNow - startTime;
-                result.ProcessingDuration = processingDuration;
-                
-                // Estimate real-time factor (assume 10 seconds of audio)
-                var assumedAudioDuration = TimeSpan.FromSeconds(10);
-                result.RealTimeFactor = assumedAudioDuration.TotalSeconds / processingDuration.TotalSeconds;
+                var audioDuration = TimeSpan.FromSeconds(audioDurationSeconds);
+                var realTimeFactor = processingDuration.TotalSeconds / audioDuration.TotalSeconds;
+
+                // Create result
+                var transcriptionResult = new LocalTranscriptionResult
+                {
+                    Text = finalText,
+                    Language = detectedLanguage,
+                    Confidence = avgConfidence,
+                    ModelId = _currentModelId,
+                    UsedGpu = false, // CPU-only for now
+                    IsCached = false,
+                    Segments = segments,
+                    ProcessingDuration = processingDuration,
+                    RealTimeFactor = realTimeFactor
+                };
 
                 // Update statistics
                 lock (_lock)
                 {
                     _statistics.TotalTranscriptions++;
-                    _statistics.TotalAudioDuration += assumedAudioDuration;
+                    _statistics.TotalAudioDuration += audioDuration;
                     _statistics.TotalProcessingTime += processingDuration;
                     _statistics.LastTranscriptionAt = DateTime.UtcNow;
                     _statistics.AverageRealTimeFactor = _statistics.TotalTranscriptions > 0 
@@ -318,12 +411,12 @@ namespace ScottWisper.Services
 
                 // Report completion
                 TranscriptionProgress?.Invoke(this, 100);
-                TranscriptionCompleted?.Invoke(this, result);
+                TranscriptionCompleted?.Invoke(this, transcriptionResult);
 
-                _logger?.LogInformation("Local transcription completed in {Duration:F2}s with RTF {RTF:F2}",
-                    processingDuration.TotalSeconds, result.RealTimeFactor);
+                _logger?.LogInformation("Local transcription completed in {Duration:F2}s (RTF: {RTF:F2}). Text length: {Length} chars",
+                    processingDuration.TotalSeconds, realTimeFactor, finalText.Length);
 
-                return result;
+                return transcriptionResult;
             }
             catch (Exception ex)
             {
@@ -341,6 +434,92 @@ namespace ScottWisper.Services
         }
 
         /// <summary>
+        /// Converts audio data to Whisper-compatible format (16kHz, mono, 16-bit PCM WAV).
+        /// </summary>
+        private byte[] ConvertToWhisperFormat(byte[] audioData, out float durationSeconds)
+        {
+            durationSeconds = 0;
+            
+            try
+            {
+                using var inputStream = new MemoryStream(audioData);
+                
+                // Try to read as WAV first
+                WaveStream? waveStream = null;
+                try
+                {
+                    waveStream = new WaveFileReader(inputStream);
+                }
+                catch
+                {
+                    // Not a valid WAV, try to rewind and use raw PCM assumption
+                    inputStream.Position = 0;
+                }
+                
+                if (waveStream == null)
+                {
+                    // Assume raw PCM 16-bit stereo at 44.1kHz (common microphone format)
+                    // This is a fallback - in production, you'd want better format detection
+                    waveStream = new RawSourceWaveStream(
+                        inputStream, 
+                        new WaveFormat(44100, 16, 2));
+                }
+                
+                // Calculate duration
+                var totalBytes = waveStream.Length;
+                var bytesPerSecond = waveStream.WaveFormat.AverageBytesPerSecond;
+                durationSeconds = bytesPerSecond > 0 ? (float)totalBytes / bytesPerSecond : 0;
+                
+                _logger?.LogInformation("Input audio format: {SampleRate}Hz, {Channels} channels, {BitsPerSample}-bit", 
+                    waveStream.WaveFormat.SampleRate,
+                    waveStream.WaveFormat.Channels,
+                    waveStream.WaveFormat.BitsPerSample);
+                
+                // Convert to 16kHz mono 16-bit PCM
+                var targetFormat = new WaveFormat(16000, 16, 1);
+                
+                using var finalStream = new MemoryStream();
+                
+                // If format is already correct, just copy
+                if (waveStream.WaveFormat.SampleRate == 16000 && 
+                    waveStream.WaveFormat.Channels == 1 &&
+                    waveStream.WaveFormat.BitsPerSample == 16)
+                {
+                    // Already in correct format, just write to WAV
+                    using (var writer = new WaveFileWriter(finalStream, targetFormat))
+                    {
+                        waveStream.CopyTo(writer);
+                    }
+                }
+                else
+                {
+                    // Resample using MediaFoundationResampler
+                    using var resampler = new MediaFoundationResampler(waveStream, targetFormat);
+                    resampler.ResamplerQuality = 60; // High quality
+                    
+                    // Write resampled audio to WAV file writer
+                    using (var writer = new WaveFileWriter(finalStream, targetFormat))
+                    {
+                        // Read from resampler and write to output
+                        var buffer = new byte[4096];
+                        int bytesRead;
+                        while ((bytesRead = resampler.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            writer.Write(buffer, 0, bytesRead);
+                        }
+                    }
+                }
+                
+                return finalStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Audio format conversion failed");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Unloads the current model and releases resources.
         /// </summary>
         public void UnloadModel()
@@ -351,8 +530,11 @@ namespace ScottWisper.Services
                 {
                     _logger?.LogInformation("Unloading local model {ModelId}...", _currentModelId);
                     
-                    // Real cleanup would happen here
-                    // For example: _whisperProcessor?.Dispose();
+                    // Dispose Whisper.net components
+                    _whisperProcessor?.Dispose();
+                    _whisperProcessor = null;
+                    _whisperFactory?.Dispose();
+                    _whisperFactory = null;
                     
                     _isModelLoaded = false;
                     _currentModelId = string.Empty;
