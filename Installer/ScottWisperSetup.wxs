@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ScottWisper Enterprise MSI Installer Configuration
+  
+  Usage:
+    Silent install: msiexec /i ScottWisper.msi /qn
+    Silent with logging: msiexec /i ScottWisper.msi /qn /l*v install.log
+    Uninstall: msiexec /x {PRODUCT-CODE-GUID} /qn
+    
+  Properties (can be set via command line):
+    INSTALLDIR - Installation directory (default: C:\Program Files\ScottWisper)
+    ALLUSERS - 1 for all users, 2 for per-user (default: 1)
+    DESKTOPSHORTCUT - 1 to create desktop shortcut (default: 0)
+    STARTMENUSHORTCUT - 1 to create Start Menu shortcut (default: 1)
+    APIKEY - Pre-configured API key for enterprise deployment
+    LICENSEKEY - Enterprise license key
+    ORGANIZATION - Organization name
+    WEBHOOKURL - Webhook endpoint URL
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+     
+  <?define ProductName = "ScottWisper" ?>
+  <?define ProductVersion = "1.0.0" ?>
+  <?define ProductManufacturer = "ScottWisper" ?>
+  <?define ProductCode = "*" ?>
+  <?define UpgradeCode = "12345678-1234-1234-1234-123456789012" ?>
+  <?define MinimumNetFramework = "461808" ?>
+  
+  <Product Id="$(var.ProductCode)" 
+           Name="$(var.ProductName)" 
+           Language="1033" 
+           Version="$(var.ProductVersion)" 
+           Manufacturer="$(var.ProductManufacturer)" 
+           UpgradeCode="$(var.UpgradeCode)">
+    
+    <Package InstallerVersion="500" 
+             Compressed="yes" 
+             InstallScope="perMachine" 
+             Platform="x64"
+             Description="ScottWisper Voice-to-Text Dictation Software"
+             Comments="Enterprise deployment package for ScottWisper"
+             Keywords="dictation,voice,text,transcription" />
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    
+    <MediaTemplate EmbedCab="yes" />
+    
+    <!-- Features -->
+    <Feature Id="ProductFeature" Title="ScottWisper" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="ApplicationShortcuts" />
+      <ComponentRef Id="RegistryEntries" />
+    </Feature>
+    
+    <!-- Properties -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon.ico" />
+    <Property Id="ARPHELPLINK" Value="https://scottwisper.com/support" />
+    <Property Id="ARPURLINFOABOUT" Value="https://scottwisper.com" />
+    <Property Id="ARPNOREPAIR" Value="yes" />
+    <Property Id="ARPNOMODIFY" Value="yes" />
+    
+    <!-- Silent Install Properties -->
+    <Property Id="DESKTOPSHORTCUT" Value="0" />
+    <Property Id="STARTMENUSHORTCUT" Value="1" />
+    <Property Id="APIKEY" Value="" />
+    <Property Id="LICENSEKEY" Value="" />
+    <Property Id="ORGANIZATION" Value="" />
+    <Property Id="WEBHOOKURL" Value="" />
+    <Property Id="ENABLEAUDITLOGGING" Value="1" />
+    <Property Id="COMPLIANCEFRAMEWORK" Value="General" />
+    
+    <!-- Check for .NET Framework 4.7.2 or higher -->
+    <PropertyRef Id="WIXNETFX4RELEASEINSTALLED" />
+    <Condition Message="This application requires .NET Framework 4.7.2 or higher. Please install the .NET Framework and then run this installer again.">
+      <![CDATA[Installed OR (WIXNETFX4RELEASEINSTALLED >= "#$(var.MinimumNetFramework)")]]>
+    </Condition>
+    
+    <!-- Check for Windows 10 or higher -->
+    <Condition Message="This application requires Windows 10 or higher.">
+      <![CDATA[Installed OR (VersionNT >= 603)]]>
+    </Condition>
+    
+    <!-- Custom Actions -->
+    <CustomAction Id="ConfigureEnterpriseSettings" 
+                  BinaryKey="CustomActionsDLL" 
+                  DllEntry="ConfigureEnterpriseSettings"
+                  Execute="deferred" 
+                  Return="check" 
+                  Impersonate="no" />
+    
+    <CustomAction Id="RollbackSettings" 
+                  BinaryKey="CustomActionsDLL" 
+                  DllEntry="RollbackSettings"
+                  Execute="rollback" 
+                  Return="check" 
+                  Impersonate="no" />
+    
+    <!-- Install Sequence -->
+    <InstallExecuteSequence>
+      <Custom Action="ConfigureEnterpriseSettings" After="InstallFiles">
+        <![CDATA[LICENSEKEY <> "" OR APIKEY <> ""]]>
+      </Custom>
+      <Custom Action="RollbackSettings" Before="ConfigureEnterpriseSettings">
+        <![CDATA[LICENSEKEY <> "" OR APIKEY <> ""]]>
+      </Custom>
+    </InstallExecuteSequence>
+    
+    <!-- Directory Structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="ScottWisper">
+          
+          <!-- Main Application Files -->
+          <Component Id="MainExecutable" Guid="*">
+            <File Id="ScottWisperEXE" Source="..\..\bin\Release\net8.0-windows\ScottWisper.exe" KeyPath="yes">
+              <Shortcut Id="StartMenuShortcut" 
+                        Directory="ProgramMenuFolder" 
+                        Name="ScottWisper" 
+                        Description="Voice-to-Text Dictation Software"
+                        WorkingDirectory="INSTALLFOLDER"
+                        Icon="ProductIcon.ico"
+                        Advertise="yes" />
+            </File>
+          </Component>
+          
+          <!-- Supporting Files -->
+          <Component Id="AppFiles" Guid="*">
+            <File Id="ScottWisperDLL" Source="..\..\bin\Release\net8.0-windows\ScottWisper.dll" />
+            <File Id="AppConfig" Source="..\..\bin\Release\net8.0-windows\ScottWisper.dll.config" />
+          </Component>
+          
+          <!-- Dependencies -->
+          <Directory Id="DependenciesFolder" Name="Dependencies">
+            <Component Id="Dependencies" Guid="*">
+              <File Id="NAudioDLL" Source="..\..\bin\Release\net8.0-windows\NAudio.dll" />
+              <File Id="MoqDLL" Source="..\..\bin\Release\net8.0-windows\Moq.dll" />
+              <File Id="NewtonsoftJsonDLL" Source="..\..\bin\Release\net8.0-windows\Newtonsoft.Json.dll" />
+            </Component>
+          </Directory>
+          
+          <!-- Enterprise Configuration Directory -->
+          <Directory Id="EnterpriseConfigFolder" Name="Enterprise">
+            <Component Id="EnterpriseConfig" Guid="*">
+              <CreateFolder />
+              <!-- Placeholder for enterprise configuration files -->
+            </Component>
+          </Directory>
+          
+        </Directory>
+      </Directory>
+      
+      <!-- Start Menu -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="ScottWisper">
+          <Component Id="ApplicationShortcuts" Guid="*">
+            <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+            <RegistryValue Root="HKCU" 
+                          Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper" 
+                          Name="StartMenuFolder" 
+                          Type="string" 
+                          Value="[ApplicationProgramsFolder]" 
+                          KeyPath="yes" />
+          </Component>
+        </Directory>
+      </Directory>
+      
+      <!-- Desktop Shortcut (optional) -->
+      <Directory Id="DesktopFolder">
+        <Component Id="DesktopShortcut" Guid="*" Condition="DESKTOPSHORTCUT=1">
+          <Shortcut Id="DesktopShortcut" 
+                    Directory="DesktopFolder" 
+                    Name="ScottWisper" 
+                    Target="[INSTALLFOLDER]ScottWisper.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="ProductIcon.ico" />
+          <RemoveFolder Id="DesktopFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" 
+                        Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper" 
+                        Name="DesktopShortcut" 
+                        Type="integer" 
+                        Value="1" 
+                        KeyPath="yes" />
+        </Component>
+      </Directory>
+      
+      <!-- ProgramData for shared settings -->
+      <Directory Id="CommonAppDataFolder">
+        <Directory Id="AppDataFolder" Name="ScottWisper">
+          <Component Id="SharedSettings" Guid="*">
+            <CreateFolder />
+            <PermissionEx Sddl="D:PAI(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;FA;;;AU)" />
+          </Component>
+        </Directory>
+      </Directory>
+    </Directory>
+    
+    <!-- Component Groups -->
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="AppFiles" />
+      <ComponentRef Id="Dependencies" />
+      <ComponentRef Id="EnterpriseConfig" />
+      <ComponentRef Id="SharedSettings" />
+    </ComponentGroup>
+    
+    <ComponentGroup Id="ApplicationShortcuts">
+      <ComponentRef Id="ApplicationShortcuts" />
+      <ComponentRef Id="DesktopShortcut" />
+    </ComponentGroup>
+    
+    <!-- Registry Entries -->
+    <DirectoryRef Id="TARGETDIR">
+      <Component Id="RegistryEntries" Guid="*">
+        <RegistryKey Root="HKLM" Key="Software\ScottWisper">
+          <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" />
+          <RegistryValue Type="string" Name="Version" Value="$(var.ProductVersion)" />
+          <RegistryValue Type="string" Name="Organization" Value="[ORGANIZATION]" />
+          <RegistryValue Type="integer" Name="EnableAuditLogging" Value="[ENABLEAUDITLOGGING]" />
+          <RegistryValue Type="string" Name="ComplianceFramework" Value="[COMPLIANCEFRAMEWORK]" />
+        </RegistryKey>
+        
+        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper">
+          <RegistryValue Type="string" Name="DisplayName" Value="$(var.ProductName)" />
+          <RegistryValue Type="string" Name="DisplayVersion" Value="$(var.ProductVersion)" />
+          <RegistryValue Type="string" Name="Publisher" Value="$(var.ProductManufacturer)" />
+          <RegistryValue Type="string" Name="InstallLocation" Value="[INSTALLFOLDER]" />
+          <RegistryValue Type="integer" Name="NoModify" Value="1" />
+          <RegistryValue Type="integer" Name="NoRepair" Value="1" />
+          <RegistryValue Type="string" Name="UninstallString" Value="[SystemFolder]msiexec.exe /x {$(var.ProductCode)} /qn" />
+        </RegistryKey>
+      </Component>
+    </DirectoryRef>
+    
+    <!-- Icons -->
+    <Icon Id="ProductIcon.ico" SourceFile="..\..\Resources\ScottWisper.ico" />
+    
+    <!-- UI -->
+    <UIRef Id="WixUI_InstallDir" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+    
+    <!-- WixUI InstallDir customization -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    
+    <!-- License file -->
+    <WixVariable Id="WixUILicenseRtf" Value="..\..\LICENSE.rtf" />
+    
+  </Product>
+</Wix>

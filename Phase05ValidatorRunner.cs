@@ -39,7 +39,7 @@ namespace ScottWisper.Testing
             );
 
             Console.WriteLine("Executing End-to-End Dictation Flow Validation...");
-            var results = await validator.RunAllScenariosAsync();
+            var results = await validator.RunComprehensiveValidationAsync();
 
             bool allPassed = true;
             Console.WriteLine("\nTest Results:");

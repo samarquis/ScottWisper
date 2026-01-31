@@ -73,8 +73,8 @@ namespace ScottWisper
                         TranscriptionProgress?.Invoke(this, 10);
                         var result = await _localInference.TranscribeAudioAsync(audioData, language);
                         TranscriptionProgress?.Invoke(this, 100);
-                        TranscriptionCompleted?.Invoke(this, result);
-                        return result;
+                        TranscriptionCompleted?.Invoke(this, result.Text);
+                        return result.Text;
                     }
                     catch (Exception ex)
                     {
