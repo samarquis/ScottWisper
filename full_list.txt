@@ -1,0 +1,18 @@
+○ ScottWisper-b8z [● P2] [task] - Plan Phase 6 Execution
+○ ScottWisper-af1 [● P2] [task] - Plan Phase 5 Execution
+○ ScottWisper-9ia [● P2] [task] - Plan Phase 4 Execution
+○ ScottWisper-ycv [● P2] [task] - Review TODOs in SettingsWindow.xaml.cs
+○ ScottWisper-t69 [● P2] [task] - Cleanup Unused Variables
+○ ScottWisper-5is [● P2] [task] - Async Optimization: Fix missing awaits
+○ ScottWisper-cgp [● P2] [task] - Validate Text Injection in External Apps
+○ ScottWisper-2w9 [● P2] [task] - Complete Settings UI: Audio Device Selection
+○ ScottWisper-q98 [● P2] [task] - Complete Settings UI: Hotkey Configuration
+○ ScottWisper-e17 [● P2] [task] - Implement Mic Permission Handling
+○ ScottWisper-dws [● P2] [task] - Final Compilation Fix
+○ ScottWisper-mzc [● P2] [task] - Fix Service Constructors DI parameters
+○ ScottWisper-t95 [● P2] [task] - Resolve Device Type Mismatches
+○ ScottWisper-13v [● P2] [task] - Resolve HotkeyConflict Namespace Issue
+○ ScottWisper-4hl [● P2] [task] - Fix Audio Service Contracts: Add missing events
+○ ScottWisper-68e [● P2] [task] - Fix IFeedbackService Contract: Add NotificationType enum
+○ ScottWisper-n4p [● P2] [task] - Fix ISettingsService Contract: Add SettingsChanged event
+○ ScottWisper-99a [● P2] [task] - Beads Verification Task

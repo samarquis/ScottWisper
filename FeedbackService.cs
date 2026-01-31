@@ -53,11 +53,11 @@ namespace ScottWisper
         public float Volume { get; set; } = 0.7f;
         public bool IsMuted { get; set; } = false;
         public FeedbackIntensity Intensity { get; set; } = FeedbackIntensity.Normal;
-        public List<NotificationType> EnabledNotifications { get; set; } = new List<NotificationType>
+        public List<IFeedbackService.NotificationType> EnabledNotifications { get; set; } = new List<IFeedbackService.NotificationType>
         {
-            NotificationType.StatusChange,
-            NotificationType.Error,
-            NotificationType.Completion
+            IFeedbackService.NotificationType.StatusChange,
+            IFeedbackService.NotificationType.Error,
+            IFeedbackService.NotificationType.Completion
         };
         public bool ShowStatusHistory { get; set; } = true;
         public int MaxHistoryItems { get; set; } = 10;
@@ -75,17 +75,7 @@ namespace ScottWisper
         Prominent
     }
 
-    /// <summary>
-    /// Types of notifications that can be enabled/disabled
-    /// </summary>
-    public enum NotificationType
-    {
-        StatusChange,
-        Error,
-        Completion,
-        Warning,
-        Info
-    }
+
 
     /// <summary>
     /// Status history entry for tracking and display
@@ -96,7 +86,7 @@ namespace ScottWisper
         public IFeedbackService.DictationStatus Status { get; set; }
         public string? Message { get; set; }
         public TimeSpan Duration { get; set; }
-        public NotificationType NotificationType { get; set; }
+        public IFeedbackService.NotificationType NotificationType { get; set; }
     }
 
     /// <summary>
@@ -248,7 +238,7 @@ namespace ScottWisper
             if (!string.IsNullOrEmpty(message) && _preferences.ToastEnabled)
             {
                 var notificationType = DetermineNotificationType(status);
-                if (_preferences.EnabledNotifications.Any(nt => nt.ToString() == notificationType.ToString()))
+                if (_preferences.EnabledNotifications.Any(nt => nt == notificationType))
                 {
                     await ShowNotificationAsync(GetStatusTitle(status), message, _preferences.ToastDuration);
                 }
@@ -291,7 +281,7 @@ namespace ScottWisper
 
         public async Task ShowToastNotificationAsync(string title, string message, IFeedbackService.NotificationType type = IFeedbackService.NotificationType.Info)
         {
-            if (!_preferences.ToastEnabled || !_preferences.EnabledNotifications.Any(nt => nt.ToString() == type.ToString()))
+            if (!_preferences.ToastEnabled || !_preferences.EnabledNotifications.Any(nt => nt == type))
                 return;
 
             await Application.Current.Dispatcher.InvokeAsync(() =>

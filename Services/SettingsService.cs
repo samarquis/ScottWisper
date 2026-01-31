@@ -366,10 +366,10 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             {
                 DeviceId = result.DeviceId,
                 DeviceName = result.DeviceName,
-                TestTime = result.TestTime,
+                TestTime = DateTime.Now, // Use current time since result.TestTime is TimeSpan
                 TestPassed = result.Success,
                 ErrorMessage = result.ErrorMessage,
-                TestMetrics = new Dictionary<string, object> { ["Notes"] = result.SupportedFormats.Count > 0 ? null : "No supported formats" }
+                TestMetrics = new Dictionary<string, object> { ["Notes"] = string.IsNullOrEmpty(result.SupportedFormats) ? "No supported formats" : result.SupportedFormats }
             };
 
             await AddDeviceTestResultAsync(legacyResult);

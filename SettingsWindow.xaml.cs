@@ -482,7 +482,7 @@ namespace ScottWisper
                         var device = _inputDevices.FirstOrDefault(d => d.Id == deviceId);
                         if (device != null)
                         {
-                            await _settingsService.SetPreferredDeviceAsync(deviceId);
+                            await _settingsService.SetPreferredDeviceAsync(deviceId, DeviceType.Input);
                             MessageBox.Show($"Device '{device.Name}' marked as preferred due to excellent quality.", 
                                 "Device Quality", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
@@ -1792,15 +1792,7 @@ namespace ScottWisper
         }
     }
 
-    public class HotkeyConflict
-    {
-        public string Hotkey { get; set; } = string.Empty;
-        public string Application { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public bool IsResolvable { get; set; } = false;
-        public string SuggestedHotkey { get; set; } = string.Empty;
-        public string ConflictingHotkey { get; set; } = string.Empty;
-    }
+
 
     /// <summary>
     /// Enhanced device testing result with additional metrics

@@ -176,6 +176,13 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 3. **Cross-Application Compatibility**: Text injection works in target applications
 4. **Performance Validation**: System meets latency and accuracy requirements
 
+**Plan List:**
+- [ ] 05-01-PLAN.md — Dictation Activation Flow Validation
+- [ ] 05-02-PLAN.md — Settings Persistence Validation
+- [ ] 05-03-PLAN.md — Cross-Application Compatibility Validation
+- [ ] 05-04-PLAN.md — Performance and Resource Validation
+- [ ] 05-05-PLAN.md — Phase 05 Comprehensive Validation Report
+
 ---
 
 ### Phase 6: Professional Features & Compliance
@@ -202,6 +209,14 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 6. **Workflow integration**: EHR, case management, and professional software hooks
 7. **Audit logging**: Professional audit trails for compliance requirements
 
+**Plan List:**
+- [ ] 06-01-PLAN.md — Voice Commands and Auto-Punctuation
+- [ ] 06-02-PLAN.md — Local Whisper Integration
+- [ ] 06-03-PLAN.md — Compliance and Privacy Framework
+- [ ] 06-04-PLAN.md — Industry Vocabulary and Custom Terms
+- [ ] 06-05-PLAN.md — Enterprise Deployment and Integration
+- [ ] 06-06-PLAN.md — Phase 06 Final Validation
+
 ---
 
 ## Progress Tracking
@@ -212,8 +227,9 @@ This roadmap delivers a professional dictation platform in 3 phases, starting wi
 | Phase 2: Windows Integration & User Experience | ✅ Complete | 100% | All 23 plans executed, Phase goal verified ✓ |
 | Phase 3: Integration Layer Repair | ✅ Complete | 100% | All 8 gap closure plans executed, Phase goal verified ✓ |
 | Phase 4: Missing Implementation | 📋 Planned | 0% | Gap closure phase - completes blocked requirements |
-| Phase 5: End-to-End Validation | 📋 Planned | 0% | Gap closure phase - validates all user workflows |
-| Phase 6: Competitive Features & Polish | ⏸️ Not Started | 0% | Depends on gap closure completion |
+| Phase 5: End-to-End Validation | 📋 Planned | 0% | Validation phase - systematic workflow testing |
+| Phase 6: Professional Features & Compliance | 📋 Planned | 0% | Feature phase - enterprise and privacy focus |
+
 
 **Overall Project Progress:** [██████░░░░] 50% - Phase 1-3 complete, Phase 4 ready for execution
 
