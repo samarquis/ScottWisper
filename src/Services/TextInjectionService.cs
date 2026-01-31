@@ -715,6 +715,44 @@ namespace ScottWisper.Services
             }
         }
 
+        public ApplicationCompatibility GetApplicationCompatibility(string processName)
+        {
+            try
+            {
+                // Find matching application in compatibility map
+                var targetApp = TargetApplication.Unknown;
+                var lowerProcess = processName.ToLowerInvariant();
+
+                if (lowerProcess.Contains("chrome")) targetApp = TargetApplication.Chrome;
+                else if (lowerProcess.Contains("firefox")) targetApp = TargetApplication.Firefox;
+                else if (lowerProcess.Contains("msedge")) targetApp = TargetApplication.Edge;
+                else if (lowerProcess.Contains("devenv")) targetApp = TargetApplication.VisualStudio;
+                else if (lowerProcess.Contains("winword")) targetApp = TargetApplication.Word;
+                else if (lowerProcess.Contains("outlook")) targetApp = TargetApplication.Outlook;
+                else if (lowerProcess.Contains("notepad++")) targetApp = TargetApplication.NotepadPlus;
+                else if (lowerProcess.Contains("wt") || lowerProcess.Contains("windowsterminal")) targetApp = TargetApplication.WindowsTerminal;
+                else if (lowerProcess.Contains("cmd")) targetApp = TargetApplication.CommandPrompt;
+                else if (lowerProcess.Contains("notepad")) targetApp = TargetApplication.Notepad;
+
+                if (ApplicationCompatibilityMap != null && ApplicationCompatibilityMap.TryGetValue(targetApp, out var compatibility))
+                {
+                    return compatibility;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogDebug(ex, "Failed to get application compatibility for {Process}", processName);
+            }
+
+            // Return default compatibility for unknown applications
+            return new ApplicationCompatibility
+            {
+                Category = ApplicationCategory.Other,
+                IsCompatible = true,
+                PreferredMethod = InjectionMethod.SendInput
+            };
+        }
+
         private int GetDelayForApplication(TargetApplication app)
         {
             return app switch

@@ -858,7 +858,10 @@ namespace ScottWisper
                 await UpdatePermissionStatusInSystemTray((MicrophonePermissionStatus)permissionStatus);
                 
                 // Initialize ShowPermissionRequestDialog workflow
-                await InitializePermissionRequestDialogHandling();
+                if (permissionStatus != MicrophonePermissionStatus.Granted)
+                {
+                    await InitializePermissionRequestDialogHandling();
+                }
                 
                 System.Diagnostics.Debug.WriteLine($"Enhanced permission handling initialized. Current status: {permissionStatus}");
             }
@@ -874,7 +877,30 @@ namespace ScottWisper
             try
             {
                 // Initialize ShowPermissionRequestDialog workflow integration
-                // This would handle automatic permission request dialogs with user guidance
+                // This handles automatic permission request dialogs with user guidance
+                
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var permissionService = _serviceProvider?.GetService<IPermissionService>();
+                    if (permissionService == null)
+                    {
+                        // Fallback: create a wrapper service if not in DI
+                        permissionService = new PermissionService();
+                    }
+
+                    var dialog = new UI.PermissionDialog(permissionService);
+                    dialog.Owner = _mainWindow;
+                    var result = dialog.ShowDialog();
+                    
+                    if (result == true)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Permission granted via dialog");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("Permission denied or dialog cancelled");
+                    }
+                });
                 
                 System.Diagnostics.Debug.WriteLine("Permission request dialog handling initialized");
             }
@@ -1182,14 +1208,9 @@ namespace ScottWisper
                     System.Diagnostics.Debug.WriteLine($"Gap closure validation failures: {validationResults.FailedTests}");
                      
                     // Log individual test failures
-                    var failedTestCount = validationResults.FailedTests;
-                    for (int i = 0; i < failedTestCount; i++)
+                    foreach (var failedTest in validationResults.TestResults.Where(r => !r.Success))
                     {
-                        // Would need TestResults collection to log individual failures
-                        System.Diagnostics.Debug.WriteLine($"Failed test {i}");
-                    }
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  - {failedTest.TestName}: {failedTest.Message}");
+                        System.Diagnostics.Debug.WriteLine($"  - {failedTest.Category}: {failedTest.Message}");
                     }
                     
                     // Show summary notification
@@ -1204,8 +1225,10 @@ namespace ScottWisper
                     }
                     
                     // Consider activating graceful fallback mode based on critical failures
-                    var criticalFailures = validationResults.FailedTests
-                        .Where(t => t.TestName.Contains("Audio") || t.TestName.Contains("Permission") || t.TestName.Contains("TextInjection"))
+                    var criticalFailures = validationResults.TestResults
+                        .Where(r => !r.Success && 
+                                    (r.Category.Contains("Audio", StringComparison.OrdinalIgnoreCase) || 
+                                     r.Category.Contains("Speech-to-Text", StringComparison.OrdinalIgnoreCase)))
                         .ToList();
                         
                     if (criticalFailures.Count > 0)

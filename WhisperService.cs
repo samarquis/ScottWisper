@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using ScottWisper.Services;
+using ScottWisper.Configuration;
 
 namespace ScottWisper
 {
@@ -15,6 +16,7 @@ namespace ScottWisper
         private string _apiKey;
         private readonly string _baseUrl = "https://api.openai.com/v1/audio/transcriptions";
         private readonly ISettingsService? _settingsService;
+        private readonly LocalInferenceService? _localInference;
         
         // API usage tracking
         private int _requestCount = 0;
@@ -36,9 +38,10 @@ namespace ScottWisper
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
         }
         
-        public WhisperService(ISettingsService settingsService)
+        public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
         {
             _settingsService = settingsService;
+            _localInference = localInference;
             _apiKey = GetApiKeyFromSettings();
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
@@ -61,7 +64,33 @@ namespace ScottWisper
                 {
                     throw new ArgumentException("Audio data cannot be null or empty");
                 }
+
+                // Check if we should use local inference
+                if (_settingsService?.Settings.Transcription.Mode == TranscriptionMode.Local && _localInference != null)
+                {
+                    try
+                    {
+                        TranscriptionProgress?.Invoke(this, 10);
+                        var result = await _localInference.TranscribeAudioAsync(audioData, language);
+                        TranscriptionProgress?.Invoke(this, 100);
+                        TranscriptionCompleted?.Invoke(this, result);
+                        return result;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
+                        {
+                            // Log warning and fallback
+                            System.Diagnostics.Debug.WriteLine($"Local transcription failed, falling back to cloud: {ex.Message}");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
                 
+                // Cloud transcription (OpenAI)
                 // Create multipart form content
                 using var content = new MultipartFormDataContent();
                 
@@ -239,6 +268,7 @@ namespace ScottWisper
         public void Dispose()
         {
             _httpClient?.Dispose();
+            _localInference?.Dispose();
         }
         
         // Response model for Whisper API

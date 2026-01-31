@@ -7,10 +7,12 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using ScottWisper.Services;
+using ScottWisper.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Windows;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using static ScottWisper.Services.ApplicationCategory;
+using static ScottWisper.ApplicationCategory;
 
 namespace ScottWisper.Tests
 {
@@ -23,12 +25,14 @@ namespace ScottWisper.Tests
         private readonly ITextInjection _textInjection;
         private readonly IFeedbackService _feedbackService;
         private readonly IAudioDeviceService _audioDeviceService;
+        private readonly ISettingsService _settingsService;
 
-        public IntegrationTests(ITextInjection textInjection, IFeedbackService feedbackService, IAudioDeviceService audioDeviceService)
+        public IntegrationTests(ITextInjection textInjection, IFeedbackService feedbackService, IAudioDeviceService audioDeviceService, ISettingsService settingsService)
         {
             _textInjection = textInjection;
             _feedbackService = feedbackService;
             _audioDeviceService = audioDeviceService;
+            _settingsService = settingsService;
         }
 
         /// <summary>
@@ -36,6 +40,13 @@ namespace ScottWisper.Tests
         /// </summary>
         public class BrowserTestSuite
         {
+            private readonly ITextInjection _textInjection;
+
+            public BrowserTestSuite(ITextInjection textInjection)
+            {
+                _textInjection = textInjection;
+            }
+
             public async Task<TestResult> TestChromeCompatibilityAsync()
             {
                 return await TestBrowserInjectionAsync("chrome");
@@ -80,6 +91,13 @@ namespace ScottWisper.Tests
         /// </summary>
         public class IDETestSuite
         {
+            private readonly ITextInjection _textInjection;
+
+            public IDETestSuite(ITextInjection textInjection)
+            {
+                _textInjection = textInjection;
+            }
+
             public async Task<TestResult> TestVisualStudioCompatibilityAsync()
             {
                 return await TestIDEInjectionAsync("devenv");
@@ -102,7 +120,7 @@ namespace ScottWisper.Tests
                     var testResult = new TestResult { TestName = $"{ideProcess} IDE Injection Test" };
 
                     var testText = $"IDE injection test for {ideProcess} - {DateTime.Now:HH:mm:ss}";
-                    var injectResult = await _textInjection.InjectTextAsync(new TestTextOptions 
+                    var injectResult = await _textInjection.InjectTextAsync(testText, new TestTextOptions 
                     { 
                         UseClipboardFallback = false,
                         RetryCount = 2,
@@ -126,6 +144,13 @@ namespace ScottWisper.Tests
         /// </summary>
         public class OfficeTestSuite
         {
+            private readonly ITextInjection _textInjection;
+
+            public OfficeTestSuite(ITextInjection textInjection)
+            {
+                _textInjection = textInjection;
+            }
+
             public async Task<TestResult> TestWordCompatibilityAsync()
             {
                 return await TestOfficeInjectionAsync("winword");
@@ -153,7 +178,7 @@ namespace ScottWisper.Tests
                     var testResult = new TestResult { TestName = $"{officeProcess} Office Injection Test" };
 
                     var testText = $"Office injection test for {officeProcess} - {DateTime.Now:HH:mm:ss}";
-                    var injectResult = await _textInjection.InjectTextAsync(new TestTextOptions 
+                    var injectResult = await _textInjection.InjectTextAsync(testText, new TestTextOptions 
                     { 
                         UseClipboardFallback = true, // Office apps prefer clipboard
                         RetryCount = 2,
@@ -177,6 +202,13 @@ namespace ScottWisper.Tests
         /// </summary>
         public class TerminalTestSuite
         {
+            private readonly ITextInjection _textInjection;
+
+            public TerminalTestSuite(ITextInjection textInjection)
+            {
+                _textInjection = textInjection;
+            }
+
             public async Task<TestResult> TestWindowsTerminalCompatibilityAsync()
             {
                 return await TestTerminalInjectionAsync("WindowsTerminal");
@@ -199,7 +231,7 @@ namespace ScottWisper.Tests
                     var testResult = new TestResult { TestName = $"{terminalProcess} Terminal Injection Test" };
 
                     var testText = $"Terminal injection test for {terminalProcess} - {DateTime.Now:HH:mm:ss}";
-                    var injectResult = await _textInjection.InjectTextAsync(new TestTextOptions 
+                    var injectResult = await _textInjection.InjectTextAsync(testText, new TestTextOptions 
                     { 
                         UseClipboardFallback = false,
                         RetryCount = 1,
@@ -289,27 +321,27 @@ namespace ScottWisper.Tests
             var collector = new TestResultCollector { TestRunStarted = DateTime.Now };
 
             // Browser tests
-            collector.AddResult(await new BrowserTestSuite().TestChromeCompatibilityAsync());
-            collector.AddResult(await new BrowserTestSuite().TestFirefoxCompatibilityAsync());
-            collector.AddResult(await new BrowserTestSuite().TestEdgeCompatibilityAsync());
+            collector.AddResult(await new BrowserTestSuite(_textInjection).TestChromeCompatibilityAsync());
+            collector.AddResult(await new BrowserTestSuite(_textInjection).TestFirefoxCompatibilityAsync());
+            collector.AddResult(await new BrowserTestSuite(_textInjection).TestEdgeCompatibilityAsync());
 
             // IDE tests
-            collector.AddResult(await new IDETestSuite().TestVisualStudioCompatibilityAsync());
-            collector.AddResult(await new IDETestSuite().TestVSCodeCompatibilityAsync());
-            collector.AddResult(await new IDETestSuite().TestNotepadPlusCompatibilityAsync());
+            collector.AddResult(await new IDETestSuite(_textInjection).TestVisualStudioCompatibilityAsync());
+            collector.AddResult(await new IDETestSuite(_textInjection).TestVSCodeCompatibilityAsync());
+            collector.AddResult(await new IDETestSuite(_textInjection).TestNotepadPlusCompatibilityAsync());
 
             // Office tests
-            collector.AddResult(await new OfficeTestSuite().TestWordCompatibilityAsync());
-            collector.AddResult(await new OfficeTestSuite().TestOutlookCompatibilityAsync());
-            collector.AddResult(await new OfficeTestSuite().TestExcelCompatibilityAsync());
-            collector.AddResult(await new OfficeTestSuite().TestPowerPointCompatibilityAsync());
+            collector.AddResult(await new OfficeTestSuite(_textInjection).TestWordCompatibilityAsync());
+            collector.AddResult(await new OfficeTestSuite(_textInjection).TestOutlookCompatibilityAsync());
+            collector.AddResult(await new OfficeTestSuite(_textInjection).TestExcelCompatibilityAsync());
+            collector.AddResult(await new OfficeTestSuite(_textInjection).TestPowerPointCompatibilityAsync());
 
             // Terminal tests
-            collector.AddResult(await new TerminalTestSuite().TestWindowsTerminalCompatibilityAsync());
-            collector.AddResult(await new TerminalTestSuite().TestCommandPromptCompatibilityAsync());
-            collector.AddResult(await new TerminalTestSuite().TestPowerShellCompatibilityAsync());
+            collector.AddResult(await new TerminalTestSuite(_textInjection).TestWindowsTerminalCompatibilityAsync());
+            collector.AddResult(await new TerminalTestSuite(_textInjection).TestCommandPromptCompatibilityAsync());
+            collector.AddResult(await new TerminalTestSuite(_textInjection).TestPowerShellCompatibilityAsync());
 
-collector.TotalDuration = DateTime.Now - collector.TestRunStarted;
+            collector.TotalDuration = DateTime.Now - collector.TestRunStarted;
             return collector.GetSummary();
         }
 
@@ -360,7 +392,7 @@ collector.TotalDuration = DateTime.Now - collector.TestRunStarted;
                         Success = success,
                         Details = $"Text: \"{testText}\" -> Success: {success}",
                         TestTime = DateTime.Now,
-                        ApplicationCategory = GetApplicationCategory(targetApp),
+                        ApplicationCategory = GetApplicationCategory(currentWindow.ProcessName),
                         ProcessName = currentWindow.ProcessName
                     });
                 }
@@ -530,6 +562,49 @@ collector.TotalDuration = DateTime.Now - collector.TestRunStarted;
         /// <summary>
         /// Validate settings UI completeness for gap closure
         /// </summary>
+        /// <summary>
+        /// Runs comprehensive cross-application validation
+        /// </summary>
+        public async Task<TestSuiteResult> RunComprehensiveCrossApplicationValidationAsync()
+        {
+            var suiteResult = new TestSuiteResult { SuiteName = "Cross-Application Validation Suite" };
+            
+            try
+            {
+                var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+                var logger = loggerFactory.CreateLogger<ScottWisper.Validation.CrossApplicationValidator>();
+                var validator = new ScottWisper.Validation.CrossApplicationValidator(_textInjection, logger);
+                
+                var validationResult = await validator.ValidateCrossApplicationInjectionAsync();
+                
+                foreach (var appResult in validationResult.ApplicationResults)
+                {
+                    suiteResult.TestResults.Add(new ScottWisper.TestResult
+                    {
+                        TestName = $"Injection Validation: {appResult.DisplayName}",
+                        Success = appResult.IsSuccess,
+                        Message = $"Success Rate: {appResult.SuccessRate:F1}% | Latency: {appResult.AverageLatency.TotalMilliseconds:F1}ms",
+                        Timestamp = DateTime.Now
+                    });
+                }
+                
+                suiteResult.StartTime = validationResult.StartTime;
+                suiteResult.EndTime = validationResult.EndTime;
+            }
+            catch (Exception ex)
+            {
+                suiteResult.TestResults.Add(new ScottWisper.TestResult
+                {
+                    TestName = "Cross-Application Validation Suite Error",
+                    Success = false,
+                    Message = ex.Message,
+                    Timestamp = DateTime.Now
+                });
+            }
+            
+            return suiteResult;
+        }
+
         public async Task<TestResult> ValidateSettingsUICompletenessAsync()
         {
             try

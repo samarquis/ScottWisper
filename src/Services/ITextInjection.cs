@@ -80,6 +80,11 @@ namespace ScottWisper.Services
         /// Validates cross-application text injection compatibility
         /// </summary>
         Task<CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync();
+        
+        /// <summary>
+        /// Gets application compatibility for a specific process
+        /// </summary>
+        ApplicationCompatibility GetApplicationCompatibility(string processName);
     }
 
     // Use existing TargetApplication enum from root namespace to avoid conflicts

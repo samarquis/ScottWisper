@@ -1636,7 +1636,7 @@ namespace ScottWisper.Services
                 foreach (var device in devices.Take(5)) // Limit to first 5 devices
                 {
                     var isCompatible = IsDeviceCompatible(device.DeviceId);
-                    report.AppendLine($"  - {device.DeviceName} ({device.DeviceId}) - Compatible: {isCompatible}");
+                    report.AppendLine($"  - {device.Name} ({device.DeviceId}) - Compatible: {isCompatible}");
                 }
 
                 // System information

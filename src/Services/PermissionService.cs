@@ -2,6 +2,7 @@ using ScottWisper.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;

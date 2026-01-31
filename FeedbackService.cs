@@ -891,7 +891,7 @@ namespace ScottWisper
                 Status = newStatus,
                 Message = null, // Could be enhanced to include contextual messages
                 Duration = duration,
-                NotificationType = (NotificationType)DetermineNotificationType(newStatus)
+                NotificationType = DetermineNotificationType(newStatus)
             };
 
             // Add to history

@@ -172,6 +172,14 @@ namespace ScottWisper.UI
         }
 
         /// <summary>
+        /// Updates the status text only
+        /// </summary>
+        private void UpdateStatus(string statusText)
+        {
+            UpdateStatus(statusText, _currentStatus);
+        }
+
+        /// <summary>
         /// Updates the status display with appropriate colors and text
         /// </summary>
         private void UpdateStatus(string statusText, MicrophonePermissionStatus status)
@@ -205,6 +213,17 @@ namespace ScottWisper.UI
         }
 
         /// <summary>
+        /// Updates instruction text directly
+        /// </summary>
+        private void UpdateInstructionText(string instructionText)
+        {
+            if (InstructionText != null)
+            {
+                InstructionText.Text = instructionText;
+            }
+        }
+
+        /// <summary>
         /// Updates instruction text based on permission status
         /// </summary>
         private void UpdateInstructionText(MicrophonePermissionStatus status)
@@ -220,10 +239,7 @@ namespace ScottWisper.UI
                     _ => "Checking microphone permission status..."
                 };
 
-                if (InstructionText != null)
-                {
-                    InstructionText.Text = instructionText;
-                }
+                UpdateInstructionText(instructionText);
             }
             catch (Exception ex)
             {

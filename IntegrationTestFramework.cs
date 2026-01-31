@@ -739,6 +739,7 @@ namespace ScottWisper
     // Data classes
     public class TestSuiteResult
     {
+        public string SuiteName { get; set; } = string.Empty;
         public int TotalTests { get; set; }
         public int PassedTests { get; set; }
         public int FailedTests { get; set; }
@@ -746,11 +747,15 @@ namespace ScottWisper
         public List<TestResult> TestResults { get; set; } = new List<TestResult>();
         public Dictionary<string, List<TestResult>> ResultsByCategory { get; set; } = new Dictionary<string, List<TestResult>>();
         public DateTime ReportGeneratedAt { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
         public TimeSpan Duration { get; set; }
         
         // Missing properties
         public string TestSuiteName { get; set; } = string.Empty;
         public bool AllPassed => PassedTests == TotalTests && TotalTests > 0;
+        public int FailedChecks => FailedTests;
+        public List<TestResult> Results => TestResults;
     }
 
     public class TestResult

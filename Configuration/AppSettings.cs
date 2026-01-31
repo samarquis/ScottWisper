@@ -45,6 +45,27 @@ namespace ScottWisper.Configuration
         public string Model { get; set; } = "whisper-1";
         public string Language { get; set; } = "auto";
         public string ApiKey { get; set; } = string.Empty;
+        public bool EnableAutoPunctuation { get; set; } = true;
+        public bool EnableRealTimeTranscription { get; set; } = false;
+        public float ConfidenceThreshold { get; set; } = 0.8f;
+        public int MaxRecordingDuration { get; set; } = 60; // seconds
+        public string ApiEndpoint { get; set; } = string.Empty;
+        public int RequestTimeout { get; set; } = 30; // seconds
+        public bool UseProxy { get; set; } = false;
+        public int CurrentUsage { get; set; } = 0;
+        public int MonthlyLimit { get; set; } = 1000;
+        public int FreeTierLimit { get; set; } = 100;
+
+        // Local transcription settings
+        public TranscriptionMode Mode { get; set; } = TranscriptionMode.Cloud;
+        public string LocalModelPath { get; set; } = string.Empty;
+        public bool AutoFallbackToCloud { get; set; } = true;
+    }
+
+    public enum TranscriptionMode
+    {
+        Cloud,
+        Local
     }
 
     public class HotkeySettings
@@ -105,12 +126,28 @@ namespace ScottWisper.Configuration
     public class HotkeyConflict
     {
         public string ConflictingHotkey { get; set; } = string.Empty;
+        public string Hotkey 
+        { 
+            get => ConflictingHotkey; 
+            set => ConflictingHotkey = value; 
+        }
         public string ConflictingApplication { get; set; } = string.Empty;
+        public string Application 
+        { 
+            get => ConflictingApplication; 
+            set => ConflictingApplication = value; 
+        }
         public string ConflictType { get; set; } = string.Empty; // "system", "application", "profile"
+        public string Status 
+        { 
+            get => ConflictType; 
+            set => ConflictType = value; 
+        }
         public string Resolution { get; set; } = string.Empty;
         public bool IsResolvable { get; set; } = true;
         public DateTime DetectedAt { get; set; } = DateTime.Now;
         public string SuggestedHotkey { get; set; } = string.Empty;
+        public string ConflictingHotkeyName { get; set; } = string.Empty;
     }
 
     public class HotkeyValidationResult
@@ -129,6 +166,12 @@ namespace ScottWisper.Configuration
         public bool StartWithWindows { get; set; } = false;
         public bool ShowTranscriptionWindow { get; set; } = true;
         public double WindowOpacity { get; set; } = 1.0;
+        public float FeedbackVolume { get; set; } = 0.5f;
+        public bool StartMinimized { get; set; } = false;
+        public bool CheckForUpdates { get; set; } = true;
+        public int StartupDelay { get; set; } = 0;
+        public string Theme { get; set; } = "Dark";
+        public bool ShowChangeNotifications { get; set; } = true;
     }
 
     public class TextInjectionSettings

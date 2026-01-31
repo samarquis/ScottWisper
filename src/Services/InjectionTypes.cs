@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ScottWisper
 {
@@ -80,6 +81,7 @@ namespace ScottWisper
         public string TargetApplication { get; set; } = string.Empty;
         // Add ApplicationInfo property for compatibility
         public Services.WindowInfo ApplicationInfo { get; set; } = new();
+        public string Method { get; set; } = string.Empty; // This property is already present, no change needed.
     }
 
     /// <summary>
@@ -138,5 +140,54 @@ namespace ScottWisper
     {
         public string ScenarioName { get; set; } = string.Empty;
         public TargetApplication Application { get; set; }
+    }
+
+    /// <summary>
+    /// Supported text injection methods
+    /// </summary>
+    public enum InjectionMethod
+    {
+        SendInput,
+        Clipboard
+    }
+
+    /// <summary>
+    /// Category of application for compatibility handling
+    /// </summary>
+    public enum ApplicationCategory
+    {
+        Unknown,
+        WebBrowser,
+        Browser,
+        TextEditor,
+        IDE,
+        DevelopmentTool,
+        Office,
+        Terminal,
+        Communication,
+        Other
+    }
+
+    /// <summary>
+    /// Compatibility mode for application profiles
+    /// </summary>
+    public enum CompatibilityMode
+    {
+        Standard,
+        Browser,
+        IDE,
+        Office,
+        Terminal,
+        Communication
+    }
+
+    /// <summary>
+    /// Level of special character support
+    /// </summary>
+    public enum SpecialCharacterSupport
+    {
+        Standard,
+        Basic,
+        Full
     }
 }

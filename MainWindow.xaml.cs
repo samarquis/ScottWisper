@@ -591,9 +591,10 @@ namespace ScottWisper
                     return;
                 }
 
-                // Get current application compatibility
+                // Get application compatibility profile
                 var windowInfo = _textInjectionService.GetCurrentWindowInfo();
-                var compatibility = _textInjectionService.GetApplicationCompatibility();
+                var activeApp = _textInjectionService.DetectActiveApplication();
+                var compatibility = _textInjectionService.GetApplicationCompatibility(activeApp.ToString());
                 
                 // Build comprehensive compatibility report
                 var report = $"=== Application Compatibility Report ===\n\n" +

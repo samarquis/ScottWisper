@@ -25,13 +25,13 @@ namespace ScottWisper.ViewModels
         private string _apiStatus = "Not tested";
 
         // Commands
-        public ICommand SaveCommand { get; }
-        public ICommand ResetCommand { get; }
-        public ICommand TestAudioCommand { get; }
-        public ICommand RecordHotkeyCommand { get; }
-        public ICommand RefreshDevicesCommand { get; }
-        public ICommand TestApiCommand { get; }
-        public ICommand ValidateEndpointCommand { get; }
+        public ICommand SaveCommand { get; private set; }
+        public ICommand ResetCommand { get; private set; }
+        public ICommand TestAudioCommand { get; private set; }
+        public ICommand RecordHotkeyCommand { get; private set; }
+        public ICommand RefreshDevicesCommand { get; private set; }
+        public ICommand TestApiCommand { get; private set; }
+        public ICommand ValidateEndpointCommand { get; private set; }
 
         // Properties for General Settings
         private bool _startWithWindows;
@@ -244,7 +244,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _confidenceThreshold, value))
                 {
-                    _settings.Transcription.ConfidenceThreshold = value;
+                    _settings.Transcription.ConfidenceThreshold = value / 100f;
                     _ = Task.Run(() => _settingsService.SaveAsync());
                 }
             }
@@ -358,7 +358,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _windowOpacity, value))
                 {
-                    _settings.UI.WindowOpacity = value;
+                    _settings.UI.WindowOpacity = value / 100.0;
                     _ = Task.Run(() => _settingsService.SaveAsync());
                 }
             }
@@ -372,7 +372,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _feedbackVolume, value))
                 {
-                    _settings.UI.FeedbackVolume = value;
+                    _settings.UI.FeedbackVolume = value / 100f;
                     _ = Task.Run(() => _settingsService.SaveAsync());
                 }
             }
@@ -416,7 +416,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _enableDebugLogging, value))
                 {
-                    _settings.Advanced.EnableDebugLogging = value;
+                    _settings.TextInjection.EnableDebugMode = value;
                     _ = Task.Run(() => _settingsService.SaveAsync());
                 }
             }
@@ -430,7 +430,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _logLevel, value))
                 {
-                    _settings.Advanced.LogLevel = value;
+                    // _settings.TextInjection.LogLevel = value; // LogLevel not in TextInjection, using a placeholder or skipping
                     _ = Task.Run(() => _settingsService.SaveAsync());
                 }
             }
@@ -444,7 +444,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _enablePerformanceMetrics, value))
                 {
-                    _settings.Advanced.EnablePerformanceMetrics = value;
+                    _settings.TextInjection.EnablePerformanceMonitoring = value;
                     _ = Task.Run(() => _settingsService.SaveAsync());
                 }
             }
@@ -458,9 +458,9 @@ namespace ScottWisper.ViewModels
         public List<(string Id, string DisplayName)> AvailableModels => GetAvailableModels(TranscriptionProvider);
 
         // Status properties
-        public string StatusMessage => _statusMessage;
-        public string ApiStatus => _apiStatus;
-        public bool IsLoading => _isLoading;
+        public string StatusMessage { get => _statusMessage; set => SetProperty(ref _statusMessage, value); }
+        public string ApiStatus { get => _apiStatus; set => SetProperty(ref _apiStatus, value); }
+        public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
 
         // Usage Statistics
         private long _totalRequests = 0;
@@ -509,18 +509,17 @@ namespace ScottWisper.ViewModels
             SaveCommand = new RelayCommand(async () => await SaveSettingsAsync());
             ResetCommand = new RelayCommand(async () => await ResetSettingsAsync());
             TestAudioCommand = new RelayCommand(async () => await TestAudioAsync());
-            RecordHotkeyCommand = new RelayCommand(StartHotkeyRecording);
+            RecordHotkeyCommand = new RelayCommand(() => { StartHotkeyRecording(); return Task.CompletedTask; });
             RefreshDevicesCommand = new RelayCommand(async () => await RefreshDevicesAsync());
             TestApiCommand = new RelayCommand(async () => await TestApiAsync());
             ValidateEndpointCommand = new RelayCommand(async () => await ValidateEndpointAsync());
         }
 
-        private async Task LoadSettingsAsync()
+        public async Task LoadSettingsAsync()
         {
             try
             {
-                _isLoading = true;
-                OnPropertyChanged(nameof(IsLoading));
+                IsLoading = true;
                 StatusMessage = "Loading settings...";
 
                 // Load general settings
@@ -545,35 +544,34 @@ namespace ScottWisper.ViewModels
                 ApiKey = _settings.Transcription.ApiKey ?? string.Empty;
                 EnableAutoPunctuation = _settings.Transcription.EnableAutoPunctuation;
                 EnableRealTimeTranscription = _settings.Transcription.EnableRealTimeTranscription;
-                ConfidenceThreshold = _settings.Transcription.ConfidenceThreshold;
+                ConfidenceThreshold = (int)(_settings.Transcription.ConfidenceThreshold * 100);
                 MaxRecordingDuration = _settings.Transcription.MaxRecordingDuration;
 
                 // Load API settings
                 ApiEndpoint = _settings.Transcription.ApiEndpoint ?? string.Empty;
                 ApiTimeout = _settings.Transcription.RequestTimeout;
-                UseProxy = _settings.Transcription.UseProxy ?? false;
+                UseProxy = _settings.Transcription.UseProxy;
 
                 // Load UI settings
                 ShowVisualFeedback = _settings.UI.ShowVisualFeedback;
                 ShowTranscriptionWindow = _settings.UI.ShowTranscriptionWindow;
                 MinimizeToTray = _settings.UI.MinimizeToTray;
-                WindowOpacity = _settings.UI.WindowOpacity;
-                FeedbackVolume = _settings.UI.FeedbackVolume;
+                WindowOpacity = (int)(_settings.UI.WindowOpacity * 100);
+                FeedbackVolume = (int)(_settings.UI.FeedbackVolume * 100);
 
                 // Load hotkey settings
                 ToggleRecordingHotkey = _settings.Hotkeys.ToggleRecording;
                 ShowSettingsHotkey = _settings.Hotkeys.ShowSettings;
 
                 // Load advanced settings
-                EnableDebugLogging = _settings.Advanced.EnableDebugLogging;
-                LogLevel = _settings.Advanced.LogLevel ?? "info";
-                EnablePerformanceMetrics = _settings.Advanced.EnablePerformanceMetrics ?? false;
+                EnableDebugLogging = _settings.TextInjection.EnableDebugMode;
+                LogLevel = "info"; // _settings.Advanced.LogLevel ?? "info";
+                EnablePerformanceMetrics = _settings.TextInjection.EnablePerformanceMonitoring;
 
                 // Load usage statistics
                 await LoadUsageStatisticsAsync();
 
-                _isLoading = false;
-                OnPropertyChanged(nameof(IsLoading));
+                IsLoading = false;
                 StatusMessage = "Settings loaded successfully";
             }
             catch (Exception ex)
@@ -623,7 +621,7 @@ namespace ScottWisper.ViewModels
             }
         }
 
-        private async Task SaveSettingsAsync()
+        public async Task SaveSettingsAsync()
         {
             try
             {

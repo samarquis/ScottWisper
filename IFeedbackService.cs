@@ -26,6 +26,7 @@ namespace ScottWisper
         /// </summary>
         enum NotificationType
         {
+            None,
             Info,
             Warning,
             Error,

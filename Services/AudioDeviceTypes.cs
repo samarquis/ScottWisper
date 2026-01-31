@@ -9,6 +9,7 @@ namespace ScottWisper.Services
     public class AudioDevice
     {
         public string Id { get; set; } = string.Empty;
+        public string DeviceId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
@@ -59,6 +60,14 @@ namespace ScottWisper.Services
         public string DeviceId { get; set; } = string.Empty;
         public Exception? Exception { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        public AudioDeviceEventArgs() { }
+        public AudioDeviceEventArgs(AudioDevice device)
+        {
+            Device = device;
+            DeviceId = device.Id;
+            DeviceName = device.Name;
+        }
     }
 
     /// <summary>

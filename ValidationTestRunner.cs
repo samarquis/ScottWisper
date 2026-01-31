@@ -689,14 +689,12 @@ namespace ScottWisper
                 if (results.FailedTests > 0)
                 {
                     report.AppendLine("## Failed Test Details");
-                    var failedTestCount = results.FailedTests;
-                    for (int i = 0; i < failedTestCount; i++)
+                    var failedTests = results.TestResults.Where(tr => !tr.Success).ToList();
+                    for (int i = 0; i < failedTests.Count; i++)
                     {
-                        // Would need TestResults collection to log individual failures
-                        report.AppendLine($"### Failed Test {i + 1}");
+                        var failedTest = failedTests[i];
+                        report.AppendLine($"### Failed Test {i + 1}: {failedTest.TestName}");
                         report.AppendLine("- Status: ❌ FAILED");
-                        report.AppendLine($"### {failedTest.TestName}");
-                        report.AppendLine($"- Status: ❌ FAILED");
                         report.AppendLine($"- Error: {failedTest.Message}");
                         report.AppendLine($"- Duration: {failedTest.Duration.TotalMilliseconds:F2}ms");
                         report.AppendLine($"- Timestamp: {failedTest.Timestamp:yyyy-MM-dd HH:mm:ss}");

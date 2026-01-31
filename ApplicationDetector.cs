@@ -426,37 +426,44 @@ namespace ScottWisper.Services
         }
     }
 
-    #region Data Models
-
     /// <summary>
-    /// Application profile for text injection compatibility
+    /// Profile information for a specific application
     /// </summary>
     public class ApplicationProfile
     {
-        public static ApplicationProfile Unknown { get; } = new ApplicationProfile 
-        { 
-            Category = ApplicationCategory.Unknown,
-            ProcessName = "Unknown",
-            WindowTitle = "Unknown",
-            IsKnownApplication = false
-        };
-
-        public int ProcessId { get; set; }
         public string ProcessName { get; set; } = string.Empty;
-        public string ExecutablePath { get; set; } = string.Empty;
+        public string ApplicationName { get; set; } = string.Empty;
         public string WindowTitle { get; set; } = string.Empty;
         public string WindowClass { get; set; } = string.Empty;
+        public string ExecutablePath { get; set; } = string.Empty;
+        public int ProcessId { get; set; }
         public ApplicationCategory Category { get; set; }
-        public ApplicationCapabilities Capabilities { get; set; } = new ApplicationCapabilities();
+        public ApplicationCapabilities Capabilities { get; set; } = new();
         public CompatibilityMode CompatibilityMode { get; set; }
         public bool IsKnownApplication { get; set; }
-        public DateTime LastDetected { get; set; } = DateTime.Now;
 
-        public string ApplicationName => $"{ProcessName} ({WindowTitle})";
+        public static ApplicationProfile Unknown => new() 
+        { 
+            ApplicationName = "Unknown", 
+            Category = ApplicationCategory.Unknown,
+            CompatibilityMode = CompatibilityMode.Standard
+        };
     }
 
     /// <summary>
-    /// Application signature for unique identification
+    /// Application capabilities for text injection
+    /// </summary>
+    public class ApplicationCapabilities
+    {
+        public bool SupportsUnicode { get; set; } = true;
+        public SpecialCharacterSupport SpecialCharacterSupport { get; set; } = SpecialCharacterSupport.Standard;
+        public InjectionMethod PreferredInjectionMethod { get; set; } = InjectionMethod.SendInput;
+        public bool RequiresSpecialHandling { get; set; }
+        public int MaxTextLength { get; set; } = 1000;
+    }
+
+    /// <summary>
+    /// Application signature for identification
     /// </summary>
     public class ApplicationSignature
     {
@@ -471,80 +478,12 @@ namespace ScottWisper.Services
     }
 
     /// <summary>
-    /// Application capabilities for text injection
-    /// </summary>
-    public class ApplicationCapabilities
-    {
-        public bool SupportsUnicode { get; set; } = true;
-        public SpecialCharacterSupport SpecialCharacterSupport { get; set; } = SpecialCharacterSupport.Standard;
-        public InjectionMethod PreferredInjectionMethod { get; set; } = InjectionMethod.SendInput;
-        public bool RequiresSpecialHandling { get; set; } = false;
-        public int MaxTextLength { get; set; } = 1000;
-        public bool SupportsLineBreaks { get; set; } = true;
-        public bool SupportsTabs { get; set; } = true;
-        public int RecommendedDelayBetweenChars { get; set; } = 5;
-    }
-
-    /// <summary>
-    /// Event arguments for application change events
+    /// Event arguments for application change notifications
     /// </summary>
     public class ApplicationChangedEventArgs : EventArgs
     {
         public string OldApplication { get; set; } = string.Empty;
         public string NewApplication { get; set; } = string.Empty;
-        public ApplicationProfile Profile { get; set; } = new ApplicationProfile();
+        public ApplicationProfile Profile { get; set; } = new();
     }
-
-    /// <summary>
-    /// Application categories for compatibility handling
-    /// </summary>
-    public enum ApplicationCategory
-    {
-        Unknown,
-        Other,
-        WebBrowser,
-        Browser = WebBrowser, // Alias for backward compatibility
-        IDE,
-        DevelopmentTool = IDE, // Alias for backward compatibility
-        Office,
-        TextEditor,
-        Communication,
-        Terminal
-    }
-
-    /// <summary>
-    /// Special character support levels
-    /// </summary>
-    public enum SpecialCharacterSupport
-    {
-        Basic,      // Only ASCII characters
-        Standard,   // Most common special characters
-        Full        // Full Unicode support
-    }
-
-    /// <summary>
-    /// Text injection methods
-    /// </summary>
-    public enum InjectionMethod
-    {
-        SendInput,
-        Clipboard,
-        Unicode,
-        PostMessage
-    }
-
-    /// <summary>
-    /// Compatibility modes for different application types
-    /// </summary>
-    public enum CompatibilityMode
-    {
-        Standard,
-        Browser,
-        IDE,
-        Office,
-        Terminal,
-        Communication
-    }
-
-    #endregion
 }
