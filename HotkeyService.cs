@@ -35,7 +35,7 @@ namespace ScottWisper
         }
     }
 
-    public class HotkeyService : IDisposable
+    public class HotkeyService : IHotkeyService
     {
         private const int WM_HOTKEY = 0x0312;
         private const int HOTKEY_ID_BASE = 9000;

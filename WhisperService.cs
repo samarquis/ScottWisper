@@ -10,7 +10,7 @@ using ScottWisper.Configuration;
 
 namespace ScottWisper
 {
-    public class WhisperService : IDisposable
+    public class WhisperService : IWhisperService
     {
         private readonly HttpClient _httpClient;
         private string _apiKey;

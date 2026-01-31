@@ -635,7 +635,7 @@ namespace ScottWisper.ViewModels
             }
         }
 
-        private async Task ResetSettingsAsync()
+        public async Task ResetSettingsAsync()
         {
             try
             {

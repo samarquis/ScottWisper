@@ -12,7 +12,7 @@ namespace ScottWisper.Validation
     /// Implements comprehensive cross-application text injection validation.
     /// Verifies CORE-03 requirement: Automatic text injection into active window.
     /// </summary>
-    public class CrossApplicationValidator
+    public class CrossApplicationValidator : ICrossApplicationValidator
     {
         private readonly ITextInjection _textInjection;
         private readonly ILogger<CrossApplicationValidator> _logger;
@@ -37,9 +37,9 @@ namespace ScottWisper.Validation
         /// <summary>
         /// Validates text injection across all target applications.
         /// </summary>
-        public async Task<CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync()
+        public async Task<ScottWisper.CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync()
         {
-            var overallResult = new CrossApplicationValidationResult
+            var overallResult = new ScottWisper.CrossApplicationValidationResult
             {
                 StartTime = DateTime.UtcNow,
                 ApplicationResults = new List<ApplicationValidationResult>()

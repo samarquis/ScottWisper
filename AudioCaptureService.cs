@@ -10,7 +10,7 @@ using ScottWisper.Services;
 
 namespace ScottWisper
 {
-    public class AudioCaptureService : IDisposable
+    public class AudioCaptureService : IAudioCaptureService
     {
         private WaveInEvent? _waveIn;
         private MemoryStream? _audioStream;
