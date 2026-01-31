@@ -20,7 +20,7 @@ namespace ScottWisper.Tests
             _options = options;
         }
         public T CurrentValue => _options;
-        public T Get(string name) => _options;
+        public T Get(string? name) => _options;
         public IDisposable OnChange(Action<T, string> listener) => throw new NotImplementedException();
     }
 

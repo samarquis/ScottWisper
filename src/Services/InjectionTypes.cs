@@ -138,8 +138,8 @@ namespace ScottWisper
     /// </summary>
     public class InjectionTestResultExtended : InjectionTestResult
     {
-        public string ScenarioName { get; set; } = string.Empty;
-        public TargetApplication Application { get; set; }
+        public new string ScenarioName { get; set; } = string.Empty;
+        public new TargetApplication Application { get; set; }
     }
 
     /// <summary>
