@@ -1179,10 +1179,15 @@ namespace ScottWisper
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Gap closure validation failures: {validationResults.FailedTests.Count}");
-                    
+                    System.Diagnostics.Debug.WriteLine($"Gap closure validation failures: {validationResults.FailedTests}");
+                     
                     // Log individual test failures
-                    foreach (var failedTest in validationResults.FailedTests)
+                    var failedTestCount = validationResults.FailedTests;
+                    for (int i = 0; i < failedTestCount; i++)
+                    {
+                        // Would need TestResults collection to log individual failures
+                        System.Diagnostics.Debug.WriteLine($"Failed test {i}");
+                    }
                     {
                         System.Diagnostics.Debug.WriteLine($"  - {failedTest.TestName}: {failedTest.Message}");
                     }
@@ -1193,7 +1198,7 @@ namespace ScottWisper
                     {
                         await feedbackService.ShowToastNotificationAsync(
                             "Validation Issues", 
-                            $"{validationResults.FailedTests.Count} validation tests failed. Check logs for details.", 
+                            $"{validationResults.FailedTests} validation tests failed. Check logs for details.", 
                             IFeedbackService.NotificationType.Warning
                         );
                     }
@@ -1999,6 +2004,7 @@ namespace ScottWisper
         NotRequested,
         Granted,
         Denied,
-        Unknown
+        Unknown,
+        SystemError
     }
 }

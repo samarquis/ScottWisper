@@ -618,7 +618,7 @@ namespace ScottWisper
                 report.AppendLine($"- Overall Status: {(results.AllPassed ? "✅ PASSED" : "❌ FAILED")}");
                 report.AppendLine($"- Total Tests: {results.TotalTests}");
                 report.AppendLine($"- Passed: {results.PassedTests}");
-                report.AppendLine($"- Failed: {results.FailedTests.Count}");
+                report.AppendLine($"- Failed: {results.FailedTests}");
                 report.AppendLine($"- Success Rate: {(results.TotalTests > 0 ? (results.PassedTests * 100.0 / results.TotalTests):0):F1}%");
                 report.AppendLine($"- Execution Time: {results.Duration.TotalSeconds:F2} seconds");
                 report.AppendLine();
@@ -686,11 +686,15 @@ namespace ScottWisper
                 report.AppendLine();
 
                 // Test Results Details
-                if (results.FailedTests.Count > 0)
+                if (results.FailedTests > 0)
                 {
                     report.AppendLine("## Failed Test Details");
-                    foreach (var failedTest in results.FailedTests)
+                    var failedTestCount = results.FailedTests;
+                    for (int i = 0; i < failedTestCount; i++)
                     {
+                        // Would need TestResults collection to log individual failures
+                        report.AppendLine($"### Failed Test {i + 1}");
+                        report.AppendLine("- Status: ❌ FAILED");
                         report.AppendLine($"### {failedTest.TestName}");
                         report.AppendLine($"- Status: ❌ FAILED");
                         report.AppendLine($"- Error: {failedTest.Message}");

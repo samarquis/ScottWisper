@@ -18,7 +18,14 @@ namespace ScottWisper
         NotepadPlus = 7,
         WindowsTerminal = 8,
         CommandPrompt = 9,
-        Notepad = 10
+        Notepad = 10,
+        Excel = 11,
+        PowerShell = 12,
+        TextEditor = 13,
+        Browser = 14,
+        Office = 15,
+        DevelopmentTool = 16,
+        Terminal = 17
     }
     /// <summary>
     /// Performance metrics for injection operations
@@ -54,6 +61,10 @@ namespace ScottWisper
         public TimeSpan Duration { get; set; }
         public Services.WindowInfo ApplicationInfo { get; set; } = new();
         public Services.ApplicationCompatibility Compatibility { get; set; } = new();
+        // Additional properties for compatibility
+        public string ErrorMessage { get; set; } = string.Empty;
+        public string ScenarioName { get; set; } = string.Empty;
+        public TargetApplication Application { get; set; } = TargetApplication.Unknown;
     }
 
     /// <summary>
@@ -67,6 +78,8 @@ namespace ScottWisper
         public string FailureReason { get; set; } = string.Empty;
         public TimeSpan Duration { get; set; }
         public string TargetApplication { get; set; } = string.Empty;
+        // Add ApplicationInfo property for compatibility
+        public Services.WindowInfo ApplicationInfo { get; set; } = new();
     }
 
     /// <summary>
@@ -114,6 +127,8 @@ namespace ScottWisper
         public TimeSpan Duration { get; set; }
         public string ErrorMessage { get; set; } = string.Empty;
         public List<InjectionTestResult> TestResults { get; set; } = new();
+        // Additional property for compatibility
+        public string ApplicationName { get; set; } = string.Empty;
     }
 
     /// <summary>

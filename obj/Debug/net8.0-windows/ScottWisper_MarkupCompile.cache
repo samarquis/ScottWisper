@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
 C:\Programming\ScottWisper\App.xaml
-6-1692202216
+7-1256091305
 
-40-1842561475
+421818924134
 241-12978174
-AudioVisualizer.xaml;MainWindow.xaml;ProfileDialog.xaml;SettingsWindow.xaml;StatusIndicatorWindow.xaml;TranscriptionWindow.xaml;
+AudioVisualizer.xaml;MainWindow.xaml;ProfileDialog.xaml;SettingsWindow.xaml;src\UI\PermissionDialog.xaml;StatusIndicatorWindow.xaml;TranscriptionWindow.xaml;
 
 True
 

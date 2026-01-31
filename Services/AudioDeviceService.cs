@@ -407,7 +407,8 @@ namespace ScottWisper.Services
                 result.SupportedFormats = GetSupportedFormats(device);
 
                 // Test 3: Quality assessment (async, no lock needed)
-                result.QualityScore = await Task.Run(() => AssessDeviceQualityAsync(device));
+                var qualityScore = await Task.Run(() => AssessDeviceQualityAsync(device));
+                result.QualityScore = (int)qualityScore;
 
                 // Test 4: Latency measurement (async, no lock needed)
                 result.LatencyMs = await Task.Run(() => MeasureDeviceLatencyAsync(device));
@@ -688,9 +689,10 @@ namespace ScottWisper.Services
         {
             await Task.Run(async () =>
             {
+                if (_disposed || _isMonitoring) return;
+                
                 lock (_lockObject)
                 {
-                    if (_disposed || _isMonitoring) return;
 
                     try
                     {
@@ -1828,11 +1830,12 @@ namespace ScottWisper.Services
         /// </summary>
         public async Task<bool> SwitchDeviceAsync(string deviceId)
         {
+            if (_disposed) return false;
+            
             return await Task.Run(async () =>
             {
                 lock (_lockObject)
                 {
-                    if (_disposed) return false;
 
                     try
                     {

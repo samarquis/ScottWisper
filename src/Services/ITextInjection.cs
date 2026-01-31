@@ -82,23 +82,7 @@ namespace ScottWisper.Services
         Task<CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync();
     }
 
-    /// <summary>
-    /// Target applications for text injection (extended from ApplicationDetector)
-    /// </summary>
-    public enum TargetApplication
-    {
-        Unknown = 0,
-        Chrome = 1,
-        Firefox = 2,
-        Edge = 3,
-        VisualStudio = 4,
-        Word = 5,
-        Outlook = 6,
-        NotepadPlus = 7,
-        WindowsTerminal = 8,
-        CommandPrompt = 9,
-        Notepad = 10
-    }
+    // Use existing TargetApplication enum from root namespace to avoid conflicts
 
     /// <summary>
     /// Basic injection options
@@ -110,6 +94,10 @@ namespace ScottWisper.Services
         public int DelayBetweenRetriesMs { get; set; } = 100;
         public int DelayBetweenCharsMs { get; set; } = 5;
         public bool RespectExistingText { get; set; } = true;
+        // Additional properties for compatibility
+        public string Method { get; set; } = "SendInput";
+        public bool UseUnicode { get; set; } = true;
+        public bool ValidateUnicode { get; set; } = true;
     }
 
     /// <summary>

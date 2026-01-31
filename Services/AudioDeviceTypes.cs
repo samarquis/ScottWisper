@@ -166,15 +166,5 @@ namespace ScottWisper.Services
         All
     }
 
-    /// <summary>
-    /// Microphone permission status enumeration
-    /// </summary>
-    public enum MicrophonePermissionStatus
-    {
-        Unknown,
-        Denied,
-        Granted,
-        NotRequested,
-        SystemError
-    }
+    // Use MicrophonePermissionStatus from root namespace to avoid conflicts
 }

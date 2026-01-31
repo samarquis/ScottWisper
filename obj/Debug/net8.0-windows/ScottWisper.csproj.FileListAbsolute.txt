@@ -80,3 +80,5 @@ C:\Programming\ScottWisper\obj\Debug\net8.0-windows\refint\ScottWisper.dll
 C:\Programming\ScottWisper\obj\Debug\net8.0-windows\ScottWisper.pdb
 C:\Programming\ScottWisper\obj\Debug\net8.0-windows\ScottWisper.genruntimeconfig.cache
 C:\Programming\ScottWisper\obj\Debug\net8.0-windows\ref\ScottWisper.dll
+C:\Programming\ScottWisper\obj\Debug\net8.0-windows\src\UI\PermissionDialog.baml
+C:\Programming\ScottWisper\obj\Debug\net8.0-windows\src\UI\PermissionDialog.g.cs

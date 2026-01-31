@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using static ScottWisper.MicrophonePermissionStatus; // Use root namespace enum
 
 namespace ScottWisper.Services
 {
@@ -92,12 +93,12 @@ namespace ScottWisper.Services
             });
         }
 
-        /// <summary>
+         /// <summary>
         /// Checks microphone permission status with detailed analysis
         /// </summary>
         public async Task<MicrophonePermissionStatus> CheckMicrophonePermissionAsync()
         {
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 try
                 {
@@ -265,11 +266,16 @@ namespace ScottWisper.Services
         /// </summary>
         public async Task<List<PermissionRequestRecord>> GetPermissionRequestHistoryAsync()
         {
-            return await Task.Run(() =>
+            return await Task.Run(async () =>
             {
-                lock (_requestHistory)
+                try
                 {
                     return new List<PermissionRequestRecord>(_requestHistory);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting permission request history: {ex.Message}");
+                    return new List<PermissionRequestRecord>();
                 }
             });
         }
