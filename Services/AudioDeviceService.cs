@@ -209,10 +209,16 @@ namespace WhisperKey.Services
         _ownsEnumerator = ownsEnumerator;
         
         // Initialize device change monitoring
-        InitializeMonitoringAsync();
+        InitializeMonitoring();
     }
         
-        private async void InitializeMonitoringAsync()
+        private void InitializeMonitoring()
+        {
+            // Fire-and-forget with exception handling
+            _ = InitializeMonitoringAsync();
+        }
+        
+        private async Task InitializeMonitoringAsync()
         {
             try
             {
@@ -233,6 +239,10 @@ namespace WhisperKey.Services
             catch (COMException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error initializing monitoring: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Unexpected error initializing monitoring: {ex.Message}");
             }
         }
 
@@ -1667,7 +1677,13 @@ namespace WhisperKey.Services
         /// <summary>
         /// Handles device reconnection events
         /// </summary>
-        private async void HandleDeviceReconnection(string deviceId)
+        private void HandleDeviceReconnection(string deviceId)
+        {
+            // Fire-and-forget with exception handling
+            _ = HandleDeviceReconnectionAsync(deviceId);
+        }
+        
+        private async Task HandleDeviceReconnectionAsync(string deviceId)
         {
             try
             {
@@ -1685,6 +1701,10 @@ namespace WhisperKey.Services
             catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling device reconnection: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Unexpected error handling device reconnection: {ex.Message}");
             }
         }
 

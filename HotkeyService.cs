@@ -83,15 +83,28 @@ namespace WhisperKey
                 }
             }
             
-            InitializeAsync();
+            Initialize();
         }
 
-        private async void InitializeAsync()
+        private void Initialize()
         {
-            await Task.Yield();
-            await LoadCurrentProfileAsync();
-            RegisterCurrentProfileHotkeys();
-            StartConflictMonitoring();
+            // Fire-and-forget with exception handling
+            _ = InitializeAsync();
+        }
+        
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                await Task.Yield();
+                await LoadCurrentProfileAsync();
+                RegisterCurrentProfileHotkeys();
+                StartConflictMonitoring();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing hotkey service: {ex.Message}");
+            }
         }
 
         private async Task LoadCurrentProfileAsync()
@@ -454,23 +467,36 @@ namespace WhisperKey
             }
         }
 
-        private async void ConflictCheckCallback(object? state)
+        private void ConflictCheckCallback(object? state)
         {
-            // Check for system-level hotkey conflicts
-            await Task.Run(() =>
+            // Fire-and-forget with exception handling
+            _ = ConflictCheckCallbackAsync(state);
+        }
+        
+        private async Task ConflictCheckCallbackAsync(object? state)
+        {
+            try
             {
-                foreach (var hotkey in CurrentProfile.Hotkeys.Values.Where(h => h.IsEnabled))
+                // Check for system-level hotkey conflicts
+                await Task.Run(() =>
                 {
-                    var validation = ValidateHotkey(hotkey.Combination);
-                    if (!validation.IsValid && validation.Conflicts.Any())
+                    foreach (var hotkey in CurrentProfile.Hotkeys.Values.Where(h => h.IsEnabled))
                     {
-                        foreach (var conflict in validation.Conflicts)
+                        var validation = ValidateHotkey(hotkey.Combination);
+                        if (!validation.IsValid && validation.Conflicts.Any())
                         {
-                            HotkeyConflictDetected?.Invoke(this, new HotkeyConflictEventArgs(conflict));
+                            foreach (var conflict in validation.Conflicts)
+                            {
+                                HotkeyConflictDetected?.Invoke(this, new HotkeyConflictEventArgs(conflict));
+                            }
                         }
                     }
-                }
-            });
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in conflict check callback: {ex.Message}");
+            }
         }
 
         public async Task<bool> SwitchProfileAsync(string profileId)
