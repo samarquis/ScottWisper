@@ -127,9 +127,17 @@
                 </Grid>
             </Border>
 
+            <!-- Visual Listening Indicator (Google Assistant Style) -->
+            <Border Grid.Row="1" Background="Transparent" Padding="0,10,0,5" 
+                    Visibility="Collapsed" x:Name="MainWindowListeningIndicatorContainer">
+                <local:ListeningIndicator x:Name="MainWindowListeningIndicator" 
+                                         Width="80" Height="80"
+                                         HorizontalAlignment="Center"/>
+            </Border>
+
             <!-- Primary Action: Start Dictation Button -->
-            <Border Grid.Row="1" Background="#FFF8F9FA" Padding="20,15" Margin="10,5"
-                   CornerRadius="8" BorderBrush="#FF28A745" BorderThickness="2">
+            <Border Grid.Row="2" Background="#FFF8F9FA" Padding="20,15" Margin="10,5"
+                   CornerRadius="8" BorderBrush="#FF28A745" BorderThickness="2" x:Name="StartDictationBorder">
                 <Button x:Name="StartDictationButton" Click="StartDictationButton_Click"
                         Height="60" FontSize="18" FontWeight="Bold"
                         Background="#FF28A745" Foreground="White"
@@ -173,7 +181,7 @@
             </Border>
 
             <!-- Status History Panel -->
-            <Border Grid.Row="2" Background="White" Padding="15" Margin="10,5"
+            <Border Grid.Row="3" Background="White" Padding="15" Margin="10,5"
                    CornerRadius="5" BorderBrush="#FFE1E4E8" BorderThickness="1">
                 <Grid>
                     <Grid.RowDefinitions>

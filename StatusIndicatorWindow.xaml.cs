@@ -150,20 +150,27 @@ namespace WhisperKey
 
         private void UpdateVisuals()
         {
-            // Update circle color based on status
-            var color = CurrentStatus switch
+            // Update the visual listening indicator (Google Assistant style)
+            ListeningIndicator?.SetStatus(CurrentStatus);
+            
+            // Update border color to match status theme
+            var borderColor = CurrentStatus switch
             {
                 IFeedbackService.DictationStatus.Idle => System.Windows.Media.Color.FromArgb(200, 128, 128, 128),
                 IFeedbackService.DictationStatus.Ready => System.Windows.Media.Color.FromArgb(200, 68, 255, 68),
-                IFeedbackService.DictationStatus.Recording => System.Windows.Media.Color.FromArgb(200, 255, 68, 68),
-                IFeedbackService.DictationStatus.Processing => System.Windows.Media.Color.FromArgb(200, 68, 68, 255),
-                IFeedbackService.DictationStatus.Complete => System.Windows.Media.Color.FromArgb(200, 68, 255, 68),
-                IFeedbackService.DictationStatus.Error => System.Windows.Media.Color.FromArgb(200, 255, 68, 68),
+                IFeedbackService.DictationStatus.Recording => System.Windows.Media.Color.FromArgb(200, 66, 133, 244), // Google Blue
+                IFeedbackService.DictationStatus.Processing => System.Windows.Media.Color.FromArgb(200, 255, 193, 7), // Amber
+                IFeedbackService.DictationStatus.Complete => System.Windows.Media.Color.FromArgb(200, 68, 255, 68), // Green
+                IFeedbackService.DictationStatus.Error => System.Windows.Media.Color.FromArgb(200, 220, 53, 69), // Red
                 _ => System.Windows.Media.Color.FromArgb(200, 128, 128, 128)
             };
 
-            StatusCircle.Fill = new System.Windows.Media.SolidColorBrush(color);
-            MainBorder.Background = new System.Windows.Media.SolidColorBrush(color);
+            // Keep the status circle for backward compatibility (hidden)
+            StatusCircle.Fill = new System.Windows.Media.SolidColorBrush(borderColor);
+            
+            // Update main border with subtle background tint
+            MainBorder.Background = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromArgb(200, 45, 45, 48)); // Dark theme background
 
             UpdateTooltip();
         }

@@ -1,0 +1,311 @@
+<UserControl x:Class="WhisperKey.ListeningIndicator"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="120"
+             Height="120">
+    
+    <Grid>
+        <!-- Outer glow rings -->
+        <Ellipse Name="OuterRing1" 
+                 Width="100" Height="100"
+                 Fill="Transparent"
+                 Stroke="#FF4285F4"
+                 StrokeThickness="3"
+                 Opacity="0.3"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"/>
+        
+        <Ellipse Name="OuterRing2" 
+                 Width="110" Height="110"
+                 Fill="Transparent"
+                 Stroke="#FF4285F4"
+                 StrokeThickness="2"
+                 Opacity="0.2"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"/>
+        
+        <Ellipse Name="OuterRing3" 
+                 Width="120" Height="120"
+                 Fill="Transparent"
+                 Stroke="#FF4285F4"
+                 StrokeThickness="1"
+                 Opacity="0.1"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"/>
+        
+        <!-- Main pulsing circle -->
+        <Ellipse Name="MainCircle" 
+                 Width="80" Height="80"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center">
+            <Ellipse.Fill>
+                <RadialGradientBrush Center="0.3,0.3" RadiusX="0.7" RadiusY="0.7">
+                    <GradientStop Color="#FF669DFD" Offset="0"/>
+                    <GradientStop Color="#FF4285F4" Offset="0.5"/>
+                    <GradientStop Color="#FF1A73E8" Offset="1"/>
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+            <Ellipse.Effect>
+                <DropShadowEffect Color="#FF4285F4" 
+                                  BlurRadius="30" 
+                                  ShadowDepth="0" 
+                                  Opacity="0.6"/>
+            </Ellipse.Effect>
+        </Ellipse>
+        
+        <!-- Inner highlight -->
+        <Ellipse Name="InnerHighlight" 
+                 Width="60" Height="60"
+                 Fill="Transparent"
+                 Stroke="#80FFFFFF"
+                 StrokeThickness="2"
+                 Opacity="0.5"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"/>
+        
+        <!-- Microphone icon -->
+        <Grid Name="MicrophoneIcon" 
+              Width="40" Height="40"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+            <Path Data="M12,14 C12,16.21 10.21,18 8,18 C5.79,18 4,16.21 4,14 L4,8 C4,5.79 5.79,4 8,4 C10.21,4 12,5.79 12,8 L12,14 M16,11 L16,14 C16,17.31 13.31,20 10,20 L6,20 M8,20 L8,23 M3,23 L13,23"
+                  Stroke="White"
+                  StrokeThickness="2"
+                  Fill="Transparent"
+                  Stretch="Uniform"
+                  Width="24"
+                  Height="24"/>
+        </Grid>
+        
+        <!-- Ripple effects (animated rings) -->
+        <Ellipse Name="Ripple1" 
+                 Width="80" Height="80"
+                 Fill="Transparent"
+                 Stroke="#FF4285F4"
+                 StrokeThickness="2"
+                 Opacity="0"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"/>
+        
+        <Ellipse Name="Ripple2" 
+                 Width="80" Height="80"
+                 Fill="Transparent"
+                 Stroke="#FF669DFD"
+                 StrokeThickness="2"
+                 Opacity="0"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"/>
+    </Grid>
+    
+    <UserControl.Resources>
+        <!-- Scale animation for main circle -->
+        <Storyboard x:Key="PulseAnimation" RepeatBehavior="Forever">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="MainCircle" 
+                                          Storyboard.TargetProperty="(Ellipse.Width)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="80"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="90">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="80">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="MainCircle" 
+                                          Storyboard.TargetProperty="(Ellipse.Height)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="80"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="90">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="80">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <!-- Glow intensity animation -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="MainCircle" 
+                                          Storyboard.TargetProperty="(Ellipse.Effect).(DropShadowEffect.Opacity)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0.6"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="1.0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="0.6">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <!-- Glow blur animation -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="MainCircle" 
+                                          Storyboard.TargetProperty="(Ellipse.Effect).(DropShadowEffect.BlurRadius)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="30"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="45">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="30">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <!-- Outer ring 1 animation -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="OuterRing1" 
+                                          Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0.3"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.6" Value="0.6">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.2" Value="0.3">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <!-- Outer ring 2 animation -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="OuterRing2" 
+                                          Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.2" Value="0.2"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:0.8" Value="0.5">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.4" Value="0.2">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <!-- Outer ring 3 animation -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="OuterRing3" 
+                                          Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.4" Value="0.1"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.0" Value="0.3">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.6" Value="0.1">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+        
+        <!-- Ripple animation (expanding rings) -->
+        <Storyboard x:Key="RippleAnimation" RepeatBehavior="Forever">
+            <!-- Ripple 1 -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple1" 
+                                          Storyboard.TargetProperty="(Ellipse.Width)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="80"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.5" Value="150">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple1" 
+                                          Storyboard.TargetProperty="(Ellipse.Height)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="80"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.5" Value="150">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple1" 
+                                          Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0.8"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.5" Value="0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple1" 
+                                          Storyboard.TargetProperty="(Ellipse.StrokeThickness)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="3"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:1.5" Value="0.5">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            
+            <!-- Ripple 2 (delayed start) -->
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple2" 
+                                          Storyboard.TargetProperty="(Ellipse.Width)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="80"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:2.0" Value="150">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple2" 
+                                          Storyboard.TargetProperty="(Ellipse.Height)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="80"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:2.0" Value="150">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple2" 
+                                          Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="0.6"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:2.0" Value="0">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="Ripple2" 
+                                          Storyboard.TargetProperty="(Ellipse.StrokeThickness)">
+                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="3"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:2.0" Value="0.5">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <QuadraticEase EasingMode="EaseOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+        
+        <!-- Idle state animation (subtle breathing) -->
+        <Storyboard x:Key="IdleAnimation" RepeatBehavior="Forever">
+            <DoubleAnimationUsingKeyFrames Storyboard.TargetName="MainCircle" 
+                                          Storyboard.TargetProperty="Opacity">
+                <EasingDoubleKeyFrame KeyTime="0:0:0" Value="0.7"/>
+                <EasingDoubleKeyFrame KeyTime="0:0:2" Value="0.9">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+                <EasingDoubleKeyFrame KeyTime="0:0:4" Value="0.7">
+                    <EasingDoubleKeyFrame.EasingFunction>
+                        <SineEase EasingMode="EaseInOut"/>
+                    </EasingDoubleKeyFrame.EasingFunction>
+                </EasingDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+    </UserControl.Resources>
+</UserControl>

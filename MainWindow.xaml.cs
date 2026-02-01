@@ -188,6 +188,23 @@ namespace WhisperKey
             // Update footer message
             FooterMessage.Text = GetDetailedStatusMessage(status);
 
+            // Update visual listening indicator (Google Assistant style)
+            MainWindowListeningIndicator?.SetStatus(status);
+            
+            // Show/hide listening indicator container based on recording state
+            if (MainWindowListeningIndicatorContainer != null)
+            {
+                bool showIndicator = status == IFeedbackService.DictationStatus.Recording ||
+                                    status == IFeedbackService.DictationStatus.Processing;
+                MainWindowListeningIndicatorContainer.Visibility = showIndicator ? Visibility.Visible : Visibility.Collapsed;
+                
+                // Hide start button when recording is active
+                if (StartDictationBorder != null)
+                {
+                    StartDictationBorder.Visibility = showIndicator ? Visibility.Collapsed : Visibility.Visible;
+                }
+            }
+
             // Track recording events for stats
             if (status == IFeedbackService.DictationStatus.Recording)
             {
