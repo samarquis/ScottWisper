@@ -145,7 +145,23 @@ namespace ScottWisper
                     UpdateDeviceStatus("Device list loaded");
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateDeviceStatus($"Error loading devices: {ex.Message}");
+                    IsLoading = false;
+                });
+            }
+            catch (IOException ex)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateDeviceStatus($"Error loading devices: {ex.Message}");
+                    IsLoading = false;
+                });
+            }
+            catch (TimeoutException ex)
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
@@ -235,7 +251,15 @@ namespace ScottWisper
                 await LoadDevicesAsync();
                 UpdateUsageStatistics();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                UpdateStatus($"Failed to load settings: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                UpdateStatus($"Failed to load settings: {ex.Message}");
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 UpdateStatus($"Failed to load settings: {ex.Message}");
             }
@@ -428,7 +452,17 @@ namespace ScottWisper
                 };
                 testDialog.ShowDialog();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                UpdateDeviceStatus($"Test failed: {ex.Message}");
+                MessageBox.Show($"Failed to test device: {ex.Message}", "Test Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (IOException ex)
+            {
+                UpdateDeviceStatus($"Test failed: {ex.Message}");
+                MessageBox.Show($"Failed to test device: {ex.Message}", "Test Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (TimeoutException ex)
             {
                 UpdateDeviceStatus($"Test failed: {ex.Message}");
                 MessageBox.Show($"Failed to test device: {ex.Message}", "Test Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -456,7 +490,29 @@ namespace ScottWisper
                         ErrorMessage = testPassed ? "" : "Device test failed"
                     });
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
+                    {
+                        DeviceId = device.Id,
+                        DeviceName = device.Name,
+                        TestPassed = false,
+                        TestTime = DateTime.Now,
+                        ErrorMessage = ex.Message
+                    });
+                }
+                catch (IOException ex)
+                {
+                    testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
+                    {
+                        DeviceId = device.Id,
+                        DeviceName = device.Name,
+                        TestPassed = false,
+                        TestTime = DateTime.Now,
+                        ErrorMessage = ex.Message
+                    });
+                }
+                catch (TimeoutException ex)
                 {
                     testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
                     {
@@ -569,7 +625,11 @@ namespace ScottWisper
                 ApiStatusText.Text = isValid ? "API key valid" : "API key invalid";
                 MessageBox.Show(isValid ? "API key is valid!" : "API key is invalid.", "API Key Test", MessageBoxButton.OK, isValid ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                ApiStatusText.Text = $"Test failed: {ex.Message}";
+            }
+            catch (TimeoutException ex)
             {
                 ApiStatusText.Text = $"Test failed: {ex.Message}";
             }
@@ -738,7 +798,21 @@ namespace ScottWisper
                 var response = await _staticHttpClient.GetAsync(endpoint);
                 return response.IsSuccessStatusCode;
             }
-            catch { return false; }
+            catch (System.Net.Http.HttpRequestException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"API endpoint test failed for {endpoint}: {ex.Message}");
+                return false;
+            }
+            catch (TimeoutException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"API endpoint test failed for {endpoint}: {ex.Message}");
+                return false;
+            }
+            catch (UriFormatException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"API endpoint test failed for {endpoint}: {ex.Message}");
+                return false;
+            }
         }
 
         private AppSettings CloneSettings(AppSettings settings)
