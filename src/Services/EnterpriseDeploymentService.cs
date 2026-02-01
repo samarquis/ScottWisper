@@ -175,34 +175,10 @@ namespace ScottWisper.Services
                     return result;
                 }
                 
-                // Build MSI arguments
-                var arguments = $"/i \"{msiPath}\" /qn /norestart";
-                
-                // Add properties from config
-                if (config != null)
-                {
-                    if (!string.IsNullOrEmpty(config.LicenseKey))
-                        arguments += $" LICENSEKEY=\"{config.LicenseKey}\"";
-                    
-                    if (!string.IsNullOrEmpty(config.OrganizationName))
-                        arguments += $" ORGANIZATION=\"{config.OrganizationName}\"";
-                    
-                    if (!string.IsNullOrEmpty(config.Settings.ApiKey))
-                        arguments += $" APIKEY=\"{config.Settings.ApiKey}\"";
-                    
-                    if (!string.IsNullOrEmpty(config.Webhook.EndpointUrl))
-                        arguments += $" WEBHOOKURL=\"{config.Webhook.EndpointUrl}\"";
-                    
-                    arguments += $" ENABLEAUDITLOGGING=\"{(config.Settings.EnableAuditLogging ? "1" : "0")}\"";
-                    arguments += $" COMPLIANCEFRAMEWORK=\"{config.Settings.ComplianceFramework}\"";
-                    arguments += $" DESKTOPSHORTCUT=\"{(config.CreateDesktopShortcut ? "1" : "0")}\"";
-                }
-                
-                // Add logging
+                // Build MSI arguments using ArgumentList to prevent command injection
                 var logPath = Path.Combine(Path.GetTempPath(), $"ScottWisper_Install_{DateTime.Now:yyyyMMdd_HHmmss}.log");
-                arguments += $" /l*v \"{logPath}\"";
                 
-                _logger.LogInformation("Starting silent installation with arguments: {Arguments}", arguments);
+                _logger.LogInformation("Starting silent installation from: {MsiPath}", msiPath);
                 
                 // Execute MSI
                 var process = new Process
@@ -210,13 +186,43 @@ namespace ScottWisper.Services
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = "msiexec.exe",
-                        Arguments = arguments,
+                        Arguments = null, // Use ArgumentList instead
                         UseShellExecute = false,
                         CreateNoWindow = true,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true
                     }
                 };
+                
+                // Add arguments safely using ArgumentList (prevents command injection)
+                process.StartInfo.ArgumentList.Add("/i");
+                process.StartInfo.ArgumentList.Add(msiPath);
+                process.StartInfo.ArgumentList.Add("/qn");
+                process.StartInfo.ArgumentList.Add("/norestart");
+                
+                // Add properties from config (safely escaped by ArgumentList)
+                if (config != null)
+                {
+                    if (!string.IsNullOrEmpty(config.LicenseKey))
+                        process.StartInfo.ArgumentList.Add($"LICENSEKEY={config.LicenseKey}");
+                    
+                    if (!string.IsNullOrEmpty(config.OrganizationName))
+                        process.StartInfo.ArgumentList.Add($"ORGANIZATION={config.OrganizationName}");
+                    
+                    if (!string.IsNullOrEmpty(config.Settings.ApiKey))
+                        process.StartInfo.ArgumentList.Add($"APIKEY={config.Settings.ApiKey}");
+                    
+                    if (!string.IsNullOrEmpty(config.Webhook.EndpointUrl))
+                        process.StartInfo.ArgumentList.Add($"WEBHOOKURL={config.Webhook.EndpointUrl}");
+                    
+                    process.StartInfo.ArgumentList.Add($"ENABLEAUDITLOGGING={(config.Settings.EnableAuditLogging ? "1" : "0")}");
+                    process.StartInfo.ArgumentList.Add($"COMPLIANCEFRAMEWORK={config.Settings.ComplianceFramework}");
+                    process.StartInfo.ArgumentList.Add($"DESKTOPSHORTCUT={(config.CreateDesktopShortcut ? "1" : "0")}");
+                }
+                
+                // Add logging
+                process.StartInfo.ArgumentList.Add("/l*v");
+                process.StartInfo.ArgumentList.Add(logPath);
                 
                 process.Start();
                 await process.WaitForExitAsync();
