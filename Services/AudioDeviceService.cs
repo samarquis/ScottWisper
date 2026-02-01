@@ -198,7 +198,7 @@ namespace ScottWisper.Services
         {
             try
             {
-                var monitoringStarted = await MonitorDeviceChangesAsync();
+                var monitoringStarted = await MonitorDeviceChangesAsync().ConfigureAwait(false);
                 if (monitoringStarted)
                 {
                     System.Diagnostics.Debug.WriteLine("Device change monitoring initialized successfully");
@@ -208,7 +208,11 @@ namespace ScottWisper.Services
                     System.Diagnostics.Debug.WriteLine("Failed to initialize device change monitoring");
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing monitoring: {ex.Message}");
+            }
+            catch (COMException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error initializing monitoring: {ex.Message}");
             }
@@ -221,7 +225,7 @@ namespace ScottWisper.Services
             try
             {
                 // Check microphone permission first
-                var permissionStatus = await CheckMicrophonePermissionAsync();
+                var permissionStatus = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
                 
                 if (permissionStatus == MicrophonePermissionStatus.Denied)
                 {
@@ -260,7 +264,17 @@ namespace ScottWisper.Services
                 System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (security): {ex.Message}");
                 return new List<AudioDevice>();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
+                return new List<AudioDevice>();
+            }
+            catch (COMException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
+                return new List<AudioDevice>();
+            }
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
                 return new List<AudioDevice>();
@@ -279,7 +293,12 @@ namespace ScottWisper.Services
                     var result = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
                     return Task.FromResult(result);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error enumerating output devices: {ex.Message}");
+                    return Task.FromResult(new List<AudioDevice>());
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error enumerating output devices: {ex.Message}");
                     return Task.FromResult(new List<AudioDevice>());
@@ -298,10 +317,24 @@ namespace ScottWisper.Services
                     var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
                     return Task.FromResult(CreateAudioDevice(device)!);
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
                     throw new InvalidOperationException("Unable to get default input device", ex);
+                }
+                catch (SecurityException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get default input device", ex);
+                }
+                catch (COMException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get default input device", ex);
+                }
+                catch (InvalidOperationException)
+                {
+                    throw;
                 }
             }
         }
@@ -317,10 +350,24 @@ namespace ScottWisper.Services
                     var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
                     return Task.FromResult(CreateAudioDevice(device)!);
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
                     throw new InvalidOperationException("Unable to get default output device", ex);
+                }
+                catch (SecurityException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get default output device", ex);
+                }
+                catch (COMException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get default output device", ex);
+                }
+                catch (InvalidOperationException)
+                {
+                    throw;
                 }
             }
         }
@@ -354,7 +401,22 @@ namespace ScottWisper.Services
                         return Task.FromResult(true);
                     }
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+                catch (SecurityException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+                catch (IOException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
                     return Task.FromResult(false);
@@ -395,7 +457,15 @@ namespace ScottWisper.Services
                         waveIn.StopRecording();
                         result.BasicFunctionality = true;
                     }
-                    catch
+                    catch (InvalidOperationException)
+                    {
+                        result.BasicFunctionality = false;
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        result.BasicFunctionality = false;
+                    }
+                    catch (IOException)
                     {
                         result.BasicFunctionality = false;
                     }
@@ -405,21 +475,33 @@ namespace ScottWisper.Services
                 result.SupportedFormats = string.Join(", ", GetSupportedFormats(device) ?? new List<string>());
 
                 // Test 3: Quality assessment
-                var qualityScore = await AssessDeviceQualityAsync(device);
+                var qualityScore = await AssessDeviceQualityAsync(device).ConfigureAwait(false);
                 result.QualityScore = (int)qualityScore;
 
                 // Test 4: Latency measurement
-                result.LatencyMs = await MeasureDeviceLatencyAsync(device);
+                result.LatencyMs = await MeasureDeviceLatencyAsync(device).ConfigureAwait(false);
 
                 // Test 5: Noise floor measurement
-                result.NoiseFloorDb = await MeasureNoiseFloorAsync(device);
+                result.NoiseFloorDb = await MeasureNoiseFloorAsync(device).ConfigureAwait(false);
 
                 result.Success = result.BasicFunctionality && result.QualityScore > 0.3f;
                 result.TestCompleted = DateTime.Now;
                 result.TestTime = result.TestCompleted - result.TestStarted;
                 return result;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                return new AudioDeviceTestResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    DeviceId = deviceId,
+                    TestStarted = DateTime.Now,
+                    TestCompleted = DateTime.Now,
+                    TestTime = TimeSpan.Zero
+                };
+            }
+            catch (COMException ex)
             {
                 return new AudioDeviceTestResult
                 {
@@ -494,7 +576,7 @@ namespace ScottWisper.Services
                     };
 
                     waveIn.StartRecording();
-                    await Task.Delay(durationMs);
+                    await Task.Delay(durationMs).ConfigureAwait(false);
                     waveIn.StopRecording();
 
                     // Calculate metrics
@@ -515,7 +597,22 @@ namespace ScottWisper.Services
 
                 return metrics;
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
+                return new AudioQualityMetrics { DeviceId = deviceId };
+            }
+            catch (SecurityException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
+                return new AudioQualityMetrics { DeviceId = deviceId };
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
+                return new AudioQualityMetrics { DeviceId = deviceId };
+            }
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
                 return new AudioQualityMetrics { DeviceId = deviceId };
@@ -594,7 +691,12 @@ namespace ScottWisper.Services
 
                     return Task.FromResult(score);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error scoring device compatibility for {deviceId}: {ex.Message}");
+                    return Task.FromResult(new DeviceCompatibilityScore { DeviceId = deviceId });
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error scoring device compatibility for {deviceId}: {ex.Message}");
                     return Task.FromResult(new DeviceCompatibilityScore { DeviceId = deviceId });
@@ -638,7 +740,7 @@ namespace ScottWisper.Services
                     waveIn.StartRecording();
                     
                     // Wait up to 1 second for first buffer
-                    await Task.Delay(1000);
+                    await Task.Delay(1000).ConfigureAwait(false);
                     
                     waveIn.StopRecording();
 
@@ -646,7 +748,22 @@ namespace ScottWisper.Services
                     return latencyStopwatch.ElapsedMilliseconds < 200;
                 }
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
+                return false;
+            }
+            catch (SecurityException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
+                return false;
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
+                return false;
+            }
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
                 return false;
@@ -655,12 +772,12 @@ namespace ScottWisper.Services
 
         public async Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync()
         {
-            var inputDevices = await GetInputDevicesAsync();
+            var inputDevices = await GetInputDevicesAsync().ConfigureAwait(false);
             var recommendations = new List<DeviceRecommendation>();
 
             foreach (var device in inputDevices)
             {
-                var score = await ScoreDeviceCompatibilityAsync(device.Id);
+                var score = await ScoreDeviceCompatibilityAsync(device.Id).ConfigureAwait(false);
                 
                 recommendations.Add(new DeviceRecommendation
                 {
@@ -703,7 +820,19 @@ namespace ScottWisper.Services
                     _monitoringWaveIn.StartRecording();
                     _isMonitoring = true;
                 }
-                catch (Exception ex)
+                catch (UnauthorizedAccessException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error starting real-time monitoring for {deviceId}: {ex.Message}");
+                }
+                catch (SecurityException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error starting real-time monitoring for {deviceId}: {ex.Message}");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error starting real-time monitoring for {deviceId}: {ex.Message}");
+                }
+                catch (IOException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error starting real-time monitoring for {deviceId}: {ex.Message}");
                 }
@@ -735,7 +864,11 @@ namespace ScottWisper.Services
                     _isMonitoring = false;
                     _currentAudioLevel = 0f;
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error stopping real-time monitoring: {ex.Message}");
+                }
+                catch (IOException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error stopping real-time monitoring: {ex.Message}");
                 }
@@ -805,14 +938,26 @@ namespace ScottWisper.Services
                             waveIn.StopRecording();
                             formats.Add($"{format.SampleRate}Hz, {format.BitsPerSample}bit, {format.Channels}ch");
                         }
-                        catch
+                        catch (InvalidOperationException)
+                        {
+                            // Format not supported
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            // Format not supported
+                        }
+                        catch (IOException)
                         {
                             // Format not supported
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting supported formats: {ex.Message}");
+            }
+            catch (COMException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting supported formats: {ex.Message}");
             }
@@ -852,7 +997,11 @@ namespace ScottWisper.Services
 
                 return Math.Min(1.0f, score);
             }
-            catch
+            catch (InvalidOperationException)
+            {
+                return 0.1f;
+            }
+            catch (COMException)
             {
                 return 0.1f;
             }
@@ -881,13 +1030,21 @@ namespace ScottWisper.Services
                     };
 
                     waveIn.StartRecording();
-                    await Task.Delay(500); // Wait up to 500ms for first buffer
+                    await Task.Delay(500).ConfigureAwait(false); // Wait up to 500ms for first buffer
                     waveIn.StopRecording();
 
                     return (int)stopwatch.ElapsedMilliseconds;
                 }
             }
-            catch
+            catch (InvalidOperationException)
+            {
+                return 999; // High latency value indicating measurement failed
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return 999; // High latency value indicating measurement failed
+            }
+            catch (IOException)
             {
                 return 999; // High latency value indicating measurement failed
             }
@@ -924,14 +1081,22 @@ namespace ScottWisper.Services
                     };
 
                     waveIn.StartRecording();
-                    await Task.Delay(1000); // Measure for 1 second
+                    await Task.Delay(1000).ConfigureAwait(false); // Measure for 1 second
                     waveIn.StopRecording();
 
                     // Calculate noise floor (minimum level during quiet period)
                     return minLevel;
                 }
             }
-            catch
+            catch (InvalidOperationException)
+            {
+                return -120f; // Default noise floor in dB
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return -120f; // Default noise floor in dB
+            }
+            catch (IOException)
             {
                 return -120f; // Default noise floor in dB
             }
@@ -1011,7 +1176,21 @@ namespace ScottWisper.Services
 
                     return Task.FromResult(capabilities);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException)
+                {
+                    throw;
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting device capabilities for {deviceId}: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get device capabilities", ex);
+                }
+                catch (SecurityException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting device capabilities for {deviceId}: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get device capabilities", ex);
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting device capabilities for {deviceId}: {ex.Message}");
                     throw new InvalidOperationException("Unable to get device capabilities", ex);
@@ -1032,7 +1211,12 @@ namespace ScottWisper.Services
                     
                     return Task.FromResult(device != null ? CreateAudioDevice(device) : null);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting device by ID {deviceId}: {ex.Message}");
+                    return Task.FromResult<AudioDevice?>(null);
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting device by ID {deviceId}: {ex.Message}");
                     return Task.FromResult<AudioDevice?>(null);
@@ -1062,7 +1246,12 @@ namespace ScottWisper.Services
                            (format.Channels == 1 || format.Channels == 2) && 
                            format.BitsPerSample >= 16;
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error checking device compatibility for {deviceId}: {ex.Message}");
+                    return false;
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error checking device compatibility for {deviceId}: {ex.Message}");
                     return false;
@@ -1092,7 +1281,17 @@ namespace ScottWisper.Services
 
                 return audioDevice;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating audio device object: {ex.Message}");
+                return null;
+            }
+            catch (COMException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating audio device object: {ex.Message}");
+                return null;
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error creating audio device object: {ex.Message}");
                 return null;
@@ -1135,7 +1334,7 @@ namespace ScottWisper.Services
                         return Task.FromResult(MicrophonePermissionStatus.Denied);
                     }
 
-                    // Test with first available device
+                // Test with first available device
                     var testDevice = devices.First();
                     return CheckMicrophonePermissionForDevice(testDevice.ID);
                 }
@@ -1147,7 +1346,12 @@ namespace ScottWisper.Services
                 {
                     return Task.FromResult(MicrophonePermissionStatus.Denied);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
+                    return Task.FromResult(MicrophonePermissionStatus.SystemError);
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
                     return Task.FromResult(MicrophonePermissionStatus.SystemError);
@@ -1220,7 +1424,13 @@ namespace ScottWisper.Services
                         return Task.FromResult(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
+                    PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
+                    return Task.FromResult(false);
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
                     PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
@@ -1255,14 +1465,17 @@ namespace ScottWisper.Services
             {
                 return Task.FromResult(MicrophonePermissionStatus.Denied);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException)
             {
-                // Device not available or other system error
-                if (ex.Message.Contains("not found") || ex.Message.Contains("unavailable"))
-                {
-                    return Task.FromResult(MicrophonePermissionStatus.SystemError);
-                }
-                return Task.FromResult(MicrophonePermissionStatus.Denied);
+                return Task.FromResult(MicrophonePermissionStatus.SystemError);
+            }
+            catch (COMException)
+            {
+                return Task.FromResult(MicrophonePermissionStatus.SystemError);
+            }
+            catch (IOException)
+            {
+                return Task.FromResult(MicrophonePermissionStatus.SystemError);
             }
         }
 
@@ -1274,7 +1487,11 @@ namespace ScottWisper.Services
                 const string settingsPath = "ms-settings:privacy-microphone";
                 ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
+            }
+            catch (ExternalException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
             }
@@ -1338,7 +1555,12 @@ namespace ScottWisper.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
+                return Task.FromResult(false);
+            }
+            catch (COMException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
                 return Task.FromResult(false);
@@ -1356,13 +1578,18 @@ namespace ScottWisper.Services
                 {
                     // This would typically be implemented with a message pump
                     // For now, we'll use polling to check for device changes
-                    await Task.Delay(1000);
-                    await CheckForDeviceChangesAsync();
+                    await Task.Delay(1000).ConfigureAwait(false);
+                    await CheckForDeviceChangesAsync().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error in device message monitoring: {ex.Message}");
-                    await Task.Delay(5000); // Wait longer if there's an error
+                    await Task.Delay(5000).ConfigureAwait(false); // Wait longer if there's an error
+                }
+                catch (COMException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error in device message monitoring: {ex.Message}");
+                    await Task.Delay(5000).ConfigureAwait(false); // Wait longer if there's an error
                 }
             }
         }
@@ -1374,7 +1601,7 @@ namespace ScottWisper.Services
         {
             try
             {
-                var currentDevices = await GetInputDevicesAsync();
+                var currentDevices = await GetInputDevicesAsync().ConfigureAwait(false);
                 
                 // Compare with previously known devices to detect changes
                 // This is a simplified approach - in production, you'd want to maintain state
@@ -1387,7 +1614,11 @@ namespace ScottWisper.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error checking device changes: {ex.Message}");
+            }
+            catch (COMException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error checking device changes: {ex.Message}");
             }
@@ -1409,7 +1640,7 @@ namespace ScottWisper.Services
                 DeviceDisconnected?.Invoke(this, eventArgs);
                 System.Diagnostics.Debug.WriteLine($"Device disconnected: {deviceId}");
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling device disconnection: {ex.Message}");
             }
@@ -1422,7 +1653,7 @@ namespace ScottWisper.Services
         {
             try
             {
-                var device = await GetDeviceByIdAsync(deviceId);
+                var device = await GetDeviceByIdAsync(deviceId).ConfigureAwait(false);
                 if (device != null)
                 {
                     var eventArgs = new AudioDeviceEventArgs { Device = device, DeviceId = device.Id, DeviceName = device.Name };
@@ -1433,7 +1664,7 @@ namespace ScottWisper.Services
                     _ = TestDeviceAsync(deviceId);
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling device reconnection: {ex.Message}");
             }
@@ -1471,7 +1702,11 @@ namespace ScottWisper.Services
                     System.Diagnostics.Debug.WriteLine("Device change monitoring stopped");
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping device monitoring: {ex.Message}");
+            }
+            catch (ExternalException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error stopping device monitoring: {ex.Message}");
             }
@@ -1500,7 +1735,7 @@ namespace ScottWisper.Services
                     return Task.FromResult(false);
                 }
             }
-            catch (Exception ex)
+            catch (ExternalException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error showing permission request dialog: {ex.Message}");
                 return Task.FromResult(false);
@@ -1533,7 +1768,7 @@ namespace ScottWisper.Services
                 // This would integrate with SystemTrayService for notifications
                 System.Diagnostics.Debug.WriteLine($"Permission Notification: {title} - {message}");
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error showing permission status notification: {ex.Message}");
             }
@@ -1552,9 +1787,9 @@ namespace ScottWisper.Services
                 {
                     _permissionRetryCount = attempt;
                     var delay = baseDelayMs * (int)Math.Pow(2, attempt - 1); // Exponential backoff
-                    await Task.Delay(delay);
+                    await Task.Delay(delay).ConfigureAwait(false);
 
-                    var status = await CheckMicrophonePermissionAsync();
+                    var status = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
                     if (status == MicrophonePermissionStatus.Granted)
                     {
                         _permissionRetryCount = 0;
@@ -1564,10 +1799,14 @@ namespace ScottWisper.Services
 
                     if (attempt < maxAttempts)
                     {
-                        await ShowPermissionRequestDialogAsync();
+                        await ShowPermissionRequestDialogAsync().ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Permission retry attempt {attempt} failed: {ex.Message}");
+                }
+                catch (COMException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Permission retry attempt {attempt} failed: {ex.Message}");
                 }
@@ -1590,12 +1829,12 @@ namespace ScottWisper.Services
 
             try
             {
-                var status = await CheckMicrophonePermissionAsync();
+                var status = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
                 report.AppendLine($"Current Permission Status: {status}");
                 report.AppendLine($"Last Permission Request: {_lastPermissionRequest:yyyy-MM-dd HH:mm:ss}");
                 report.AppendLine($"Permission Retry Count: {_permissionRetryCount}");
 
-                var devices = await GetInputDevicesAsync();
+                var devices = await GetInputDevicesAsync().ConfigureAwait(false);
                 report.AppendLine($"Available Audio Devices: {devices.Count}");
                 
                 foreach (var device in devices.Take(5)) // Limit to first 5 devices
@@ -1641,7 +1880,11 @@ namespace ScottWisper.Services
                 report.AppendLine("4. Check Windows Device Manager for driver issues");
                 report.AppendLine("5. Restart Windows if issues persist");
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                report.AppendLine($"Error generating diagnostic report: {ex.Message}");
+            }
+            catch (COMException ex)
             {
                 report.AppendLine($"Error generating diagnostic report: {ex.Message}");
             }
@@ -1661,7 +1904,7 @@ namespace ScottWisper.Services
                 ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
                 System.Diagnostics.Debug.WriteLine("Guided user to Windows microphone settings");
             }
-            catch (Exception ex)
+            catch (ExternalException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error guiding user to settings: {ex.Message}");
             }
@@ -1686,7 +1929,7 @@ namespace ScottWisper.Services
                     GuidanceAction = "Check Windows Settings > Privacy > Microphone"
                 });
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error entering graceful fallback mode: {ex.Message}");
             }
@@ -1714,10 +1957,10 @@ namespace ScottWisper.Services
                 if (isConnected)
                 {
                     // Attempt to recover device functionality
-                    var device = await GetDeviceByIdAsync(deviceId);
+                    var device = await GetDeviceByIdAsync(deviceId).ConfigureAwait(false);
                     if (device != null)
                     {
-                        var testResult = await PerformComprehensiveTestAsync(deviceId);
+                        var testResult = await PerformComprehensiveTestAsync(deviceId).ConfigureAwait(false);
                         recoveryEventArgs.Status = testResult.Success ? "Success" : "Failed";
                         
                         if (!testResult.Success)
@@ -1739,7 +1982,22 @@ namespace ScottWisper.Services
                 DeviceRecoveryCompleted?.Invoke(this, recoveryEventArgs);
                 return recoveryEventArgs.Success;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                var errorEventArgs = new DeviceRecoveryEventArgs
+                {
+                    DeviceId = deviceId,
+                    DeviceName = deviceId,
+                    RecoveryAction = "Recovery",
+                    Status = "Failed",
+                    Exception = ex
+                };
+
+                DeviceRecoveryCompleted?.Invoke(this, errorEventArgs);
+                System.Diagnostics.Debug.WriteLine($"Device change recovery failed: {ex.Message}");
+                return false;
+            }
+            catch (COMException ex)
             {
                 var errorEventArgs = new DeviceRecoveryEventArgs
                 {
@@ -1774,13 +2032,17 @@ namespace ScottWisper.Services
                 PermissionDenied?.Invoke(this, permissionEventArgs);
 
                 // Auto-open settings for user convenience
-                await ShowPermissionRequestDialogAsync();
+                await ShowPermissionRequestDialogAsync().ConfigureAwait(false);
                 
                 // Show status notification
                 await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, 
-                    "Microphone access denied. Please check Windows Settings.");
+                    "Microphone access denied. Please check Windows Settings.").ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
+            }
+            catch (ExternalException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
             }
@@ -1863,7 +2125,21 @@ namespace ScottWisper.Services
                     System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
                     return Task.FromResult(false);
                 }
-                catch (Exception ex)
+                catch (SecurityException ex)
+                {
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                        MicrophonePermissionStatus.Denied, 
+                        "Security error accessing device - check Windows Privacy Settings", 
+                        deviceId, ex));
+                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+                catch (IOException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
                     return Task.FromResult(false);
@@ -1895,7 +2171,11 @@ namespace ScottWisper.Services
                     System.Diagnostics.Debug.WriteLine("AudioDeviceService disposed successfully");
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing AudioDeviceService: {ex.Message}");
+            }
+            catch (AggregateException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error disposing AudioDeviceService: {ex.Message}");
             }
