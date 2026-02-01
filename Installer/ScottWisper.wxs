@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ScottWisper MSI Installer - WiX v4
+  
+  Build Commands:
+    1. Harvest files: wix harvest dir ./publish -o ./Installer/Files.wxs -cg ProductComponents -gg
+    2. Build MSI: wix build ./Installer/ScottWisper.wxs ./Installer/Files.wxs -o ./ScottWisper.msi
+  
+  Silent Install:
+    msiexec /i ScottWisper.msi /qn
+    
+  Uninstall:
+    msiexec /x ScottWisper.msi /qn
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+     
+  <Package Name="ScottWisper" 
+           Language="1033" 
+           Version="1.0.0" 
+           Manufacturer="ScottWisper" 
+           UpgradeCode="a3ef09de-38b1-4068-87c0-9a7d707d1a88">
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of ScottWisper is already installed." />
+    
+    <MediaTemplate EmbedCab="yes" />
+    
+    <!-- Features -->
+    <Feature Id="ProductFeature" Title="ScottWisper" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ApplicationShortcuts" />
+      <ComponentRef Id="RegistryEntries" />
+    </Feature>
+    
+    <!-- Standard Install Location -->
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="ScottWisper" />
+    </StandardDirectory>
+    
+    <!-- Start Menu -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="ScottWisper" />
+    </StandardDirectory>
+    
+    <!-- Desktop -->
+    <StandardDirectory Id="DesktopFolder" />
+    
+    <!-- Application Shortcuts -->
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcuts" Guid="*">
+        <Shortcut Id="StartMenuShortcut"
+                  Directory="ApplicationProgramsFolder"
+                  Name="ScottWisper"
+                  Description="Voice-to-Text Dictation Software"
+                  Target="[INSTALLFOLDER]ScottWisper.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                   />
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" 
+                      Key="Software\ScottWisper" 
+                      Name="Installed" 
+                      Type="integer" 
+                      Value="1" 
+                      KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    
+    <!-- Desktop Shortcut (optional, controlled by DESKTOPSHORTCUT property) -->
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcutComp" Guid="*" Condition="DESKTOPSHORTCUT">
+        <Shortcut Id="DesktopShortcut"
+                  Directory="DesktopFolder"
+                  Name="ScottWisper"
+                  Target="[INSTALLFOLDER]ScottWisper.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" 
+                      Key="Software\ScottWisper" 
+                      Name="DesktopShortcut" 
+                      Type="integer" 
+                      Value="1" 
+                      KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+    
+    <!-- Registry Entries -->
+    <Component Id="RegistryEntries" Guid="*" Directory="INSTALLFOLDER">
+      <RegistryKey Root="HKLM" Key="Software\ScottWisper">
+        <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" />
+        <RegistryValue Type="string" Name="Version" Value="1.0.0" />
+      </RegistryKey>
+    </Component>
+    
+    <!-- Properties -->
+    <Property Id="DESKTOPSHORTCUT" Value="0" />
+    
+  </Package>
+</Wix>

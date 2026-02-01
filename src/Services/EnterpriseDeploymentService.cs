@@ -74,7 +74,7 @@ namespace ScottWisper.Services
     public class EnterpriseDeploymentService : IEnterpriseDeploymentService
     {
         private readonly ILogger<EnterpriseDeploymentService> _logger;
-        private readonly string _msiProductCode = "{12345678-1234-1234-1234-123456789012}";
+        private readonly string _msiProductCode = "{a3ef09de-38b1-4068-87c0-9a7d707d1a88}";
         
         public EnterpriseDeploymentService(ILogger<EnterpriseDeploymentService> logger)
         {
