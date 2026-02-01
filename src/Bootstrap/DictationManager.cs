@@ -39,7 +39,7 @@ namespace ScottWisper.Bootstrap
                     dictationTask = StartAsync();
                 }
             }
-            await dictationTask;
+            await dictationTask.ConfigureAwait(false);
         }
         
         /// <summary>
@@ -57,7 +57,7 @@ namespace ScottWisper.Bootstrap
                 // Update enhanced feedback to recording state
                 if (feedbackService != null)
                 {
-                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Recording, "Recording started - Speak clearly");
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Recording, "Recording started - Speak clearly").ConfigureAwait(false);
                 }
                 else if (_bootstrapper.SystemTrayService != null)
                 {
@@ -79,13 +79,13 @@ namespace ScottWisper.Bootstrap
                 // Start audio capture with progress feedback
                 if (feedbackService != null)
                 {
-                    await feedbackService.StartProgressAsync("Recording", TimeSpan.FromMinutes(30));
+                    await feedbackService.StartProgressAsync("Recording", TimeSpan.FromMinutes(30)).ConfigureAwait(false);
                 }
                 
                 // Start audio capture
                 if (_bootstrapper.AudioCaptureService != null)
                 {
-                    await _bootstrapper.AudioCaptureService.StartRecordingAsync();
+                    await _bootstrapper.AudioCaptureService.StartCaptureAsync().ConfigureAwait(false);
                 }
                 
                 lock (_dictationLock)
@@ -93,9 +93,13 @@ namespace ScottWisper.Bootstrap
                     _isDictating = true;
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                await HandleErrorAsync("Failed to start dictation", ex);
+                await HandleErrorAsync("Failed to start dictation", ex).ConfigureAwait(false);
+            }
+            catch (System.IO.IOException ex)
+            {
+                await HandleErrorAsync("Audio device error", ex).ConfigureAwait(false);
             }
         }
         
@@ -111,22 +115,22 @@ namespace ScottWisper.Bootstrap
             {
                 var feedbackService = _bootstrapper.FeedbackService;
                 
-                // Stop progress
+                // Complete progress
                 if (feedbackService != null)
                 {
-                    await feedbackService.StopProgressAsync();
+                    await feedbackService.CompleteProgressAsync("Recording stopped").ConfigureAwait(false);
                 }
                 
                 // Stop audio capture
                 if (_bootstrapper.AudioCaptureService != null)
                 {
-                    await _bootstrapper.AudioCaptureService.StopRecordingAsync();
+                    await _bootstrapper.AudioCaptureService.StopCaptureAsync().ConfigureAwait(false);
                 }
                 
                 // Update feedback status
                 if (feedbackService != null)
                 {
-                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Idle, "Ready");
+                    await feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Idle, "Ready").ConfigureAwait(false);
                 }
                 else if (_bootstrapper.SystemTrayService != null)
                 {
@@ -150,9 +154,13 @@ namespace ScottWisper.Bootstrap
                     _isDictating = false;
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                await HandleErrorAsync("Failed to stop dictation", ex);
+                await HandleErrorAsync("Failed to stop dictation", ex).ConfigureAwait(false);
+            }
+            catch (System.IO.IOException ex)
+            {
+                await HandleErrorAsync("Audio device error during stop", ex).ConfigureAwait(false);
             }
         }
         
@@ -166,7 +174,7 @@ namespace ScottWisper.Bootstrap
                     "Dictation Error",
                     $"{message}: {ex.Message}",
                     IFeedbackService.NotificationType.Error
-                );
+                ).ConfigureAwait(false);
             }
             else
             {
