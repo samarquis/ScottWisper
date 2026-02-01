@@ -128,9 +128,13 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                     WriteIndented = true
                 });
 
-                await File.WriteAllTextAsync(_userSettingsPath, json);
+                await File.WriteAllTextAsync(_userSettingsPath, json).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (IOException ex)
+            {
+                throw new InvalidOperationException($"Failed to save settings: {ex.Message}", ex);
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 throw new InvalidOperationException($"Failed to save settings: {ex.Message}", ex);
             }
@@ -143,9 +147,9 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             {
                 try
                 {
-                    return JsonSerializer.Deserialize<T>(value);
+                return JsonSerializer.Deserialize<T>(value);
                 }
-                catch
+                catch (JsonException)
                 {
                     return default(T)!;
                 }
@@ -155,7 +159,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
 
         public async Task SetValueAsync<T>(string key, T value)
         {
-            var oldValue = await GetValueAsync<T>(key);
+            var oldValue = await GetValueAsync<T>(key).ConfigureAwait(false);
             
             // For now, this will update the in-memory settings
             // In a full implementation, you'd want to update specific properties
@@ -177,14 +181,22 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         {
             try
             {
-                var encryptedData = await File.ReadAllTextAsync(GetEncryptedFilePath(key));
+                var encryptedData = await File.ReadAllTextAsync(GetEncryptedFilePath(key)).ConfigureAwait(false);
                 return DecryptString(encryptedData);
             }
             catch (FileNotFoundException)
             {
                 return string.Empty;
             }
-            catch (Exception)
+            catch (IOException)
+            {
+                return string.Empty;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return string.Empty;
+            }
+            catch (CryptographicException)
             {
                 return string.Empty;
             }
@@ -196,9 +208,17 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             {
                 var encryptedData = EncryptString(value);
                 var filePath = GetEncryptedFilePath(key);
-                await File.WriteAllTextAsync(filePath, encryptedData);
+                await File.WriteAllTextAsync(filePath, encryptedData).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (IOException ex)
+            {
+                throw new InvalidOperationException($"Failed to save encrypted value for {key}: {ex.Message}", ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                throw new InvalidOperationException($"Failed to save encrypted value for {key}: {ex.Message}", ex);
+            }
+            catch (SecurityException ex)
             {
                 throw new InvalidOperationException($"Failed to save encrypted value for {key}: {ex.Message}", ex);
             }
@@ -210,7 +230,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             {
                 if (File.Exists(_userSettingsPath))
                 {
-                    var json = await File.ReadAllTextAsync(_userSettingsPath);
+                    var json = await File.ReadAllTextAsync(_userSettingsPath).ConfigureAwait(false);
                     var userSettings = JsonSerializer.Deserialize<AppSettings>(json);
                     
                     if (userSettings != null)
@@ -220,10 +240,20 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                     }
                 }
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
                 // Log error but continue with default settings
-                System.Diagnostics.Debug.WriteLine($"Failed to load user settings: {ex.Message}");
+                _logger.LogWarning(ex, "Failed to load user settings due to IO error");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // Log error but continue with default settings
+                _logger.LogWarning(ex, "Failed to load user settings due to access denied");
+            }
+            catch (JsonException ex)
+            {
+                // Log error but continue with default settings
+                _logger.LogWarning(ex, "Failed to parse user settings JSON");
             }
         }
 
@@ -270,25 +300,25 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         public async Task SetSelectedInputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.InputDeviceId = deviceId ?? "default";
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task SetSelectedOutputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.OutputDeviceId = deviceId ?? "default";
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task SetFallbackInputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.FallbackInputDeviceId = deviceId ?? "default";
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
-public async Task SetFallbackOutputDeviceAsync(string deviceId)
+        public async Task SetFallbackOutputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.FallbackOutputDeviceId = deviceId ?? "default";
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task SetPreferredDeviceAsync(string deviceId, DeviceType deviceType)
@@ -302,7 +332,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                     _currentSettings.Audio.SelectedOutputDeviceId = deviceId ?? "default";
                     break;
             }
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task<DeviceSpecificSettings> GetDeviceSettingsAsync(string deviceId)
@@ -321,7 +351,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 return;
 
             _currentSettings.Audio.DeviceSettings[deviceId] = settings;
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task AddDeviceTestResultAsync(Configuration.DeviceTestingResult result)
@@ -341,7 +371,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             }
 
             // Update device settings based on test result
-            var deviceSettings = await GetDeviceSettingsAsync(result.DeviceId);
+            var deviceSettings = await GetDeviceSettingsAsync(result.DeviceId).ConfigureAwait(false);
             deviceSettings.LastTested = result.TestTime;
             deviceSettings.LastTestPassed = result.TestPassed;
             deviceSettings.IsCompatible = result.TestPassed;
@@ -351,8 +381,8 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 deviceSettings.Notes = result.ErrorMessage;
             }
 
-            await SetDeviceSettingsAsync(result.DeviceId, deviceSettings);
-            await SaveAsync();
+            await SetDeviceSettingsAsync(result.DeviceId, deviceSettings).ConfigureAwait(false);
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task AddAudioDeviceTestResultAsync(AudioDeviceTestResult result)
@@ -371,7 +401,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 TestMetrics = new Dictionary<string, object> { ["Notes"] = string.IsNullOrEmpty(result.SupportedFormats) ? "No supported formats" : result.SupportedFormats }
             };
 
-            await AddDeviceTestResultAsync(legacyResult);
+            await AddDeviceTestResultAsync(legacyResult).ConfigureAwait(false);
         }
 
         public async Task<List<Configuration.DeviceTestingResult>> GetDeviceTestHistoryAsync(string deviceId)
@@ -411,7 +441,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                     .ToList();
             }
 
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task<List<AudioQualityMetrics>> GetAudioQualityHistoryAsync(string deviceId)
@@ -439,7 +469,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 _currentSettings.DeviceCompatibilityScores.Remove(oldest);
             }
 
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync()
@@ -450,16 +480,16 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
 
         public async Task SetRealTimeMonitoringEnabledAsync(string deviceId, bool enabled)
         {
-            var deviceSettings = await GetDeviceSettingsAsync(deviceId);
+            var deviceSettings = await GetDeviceSettingsAsync(deviceId).ConfigureAwait(false);
             deviceSettings.RealTimeMonitoringEnabled = enabled;
-            await SetDeviceSettingsAsync(deviceId, deviceSettings);
-            await SaveAsync();
+            await SetDeviceSettingsAsync(deviceId, deviceSettings).ConfigureAwait(false);
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task RefreshDeviceListAsync()
         {
             _currentSettings.LastDeviceRefresh = DateTime.Now;
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task<bool> IsDeviceEnabledAsync(string deviceId)
@@ -470,9 +500,9 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
 
         public async Task SetDeviceEnabledAsync(string deviceId, bool enabled)
         {
-            var settings = await GetDeviceSettingsAsync(deviceId);
+            var settings = await GetDeviceSettingsAsync(deviceId).ConfigureAwait(false);
             settings.IsEnabled = enabled;
-            await SetDeviceSettingsAsync(deviceId, settings);
+            await SetDeviceSettingsAsync(deviceId, settings).ConfigureAwait(false);
         }
 
         public async Task<string> GetRecommendedDeviceAsync(DeviceType type)
@@ -484,7 +514,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 // Try preferred devices first, then fallback
                 foreach (var preferredDevice in _currentSettings.Audio.PreferredDevices)
                 {
-                    var settings = await GetDeviceSettingsAsync(preferredDevice);
+                    var settings = await GetDeviceSettingsAsync(preferredDevice).ConfigureAwait(false);
                     if (settings.IsEnabled && settings.IsCompatible)
                     {
                         return preferredDevice;
@@ -575,7 +605,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 
                 return Convert.ToBase64String(encryptedBytes);
             }
-            catch (Exception ex)
+            catch (CryptographicException ex)
             {
                 _logger.LogError(ex, "Failed to encrypt string");
                 return string.Empty;
@@ -600,7 +630,12 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 
                 return Encoding.UTF8.GetString(decryptedBytes);
             }
-            catch (Exception ex)
+            catch (FormatException ex)
+            {
+                _logger.LogError(ex, "Failed to decrypt string: invalid base64 format");
+                return string.Empty;
+            }
+            catch (CryptographicException ex)
             {
                 _logger.LogError(ex, "Failed to decrypt string");
                 return string.Empty;
@@ -619,7 +654,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             profile.ModifiedAt = DateTime.Now;
             
             _currentSettings.Hotkeys.Profiles[profile.Id] = profile;
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
             return true;
         }
 
@@ -633,7 +668,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
 
             profile.ModifiedAt = DateTime.Now;
             _currentSettings.Hotkeys.Profiles[profile.Id] = profile;
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
             return true;
         }
 
@@ -653,7 +688,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 _currentSettings.Hotkeys.CurrentProfile = "Default";
             }
 
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
             return true;
         }
 
@@ -666,7 +701,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 return false;
 
             _currentSettings.Hotkeys.CurrentProfile = profileId;
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
             return true;
         }
 
@@ -710,11 +745,11 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             };
 
             var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json);
+            await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
 
             // Store backup path
             _currentSettings.Hotkeys.BackupProfilePath = filePath;
-            await SaveAsync();
+            await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task<HotkeyProfile> ImportHotkeyProfileAsync(string filePath)
@@ -722,7 +757,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Profile file not found: {filePath}");
 
-            var json = await File.ReadAllTextAsync(filePath);
+            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
             var importData = JsonSerializer.Deserialize<JsonElement>(json);
             
             var profile = JsonSerializer.Deserialize<HotkeyProfile>(
@@ -739,7 +774,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
                 profile.Id = $"{originalId}_{counter++}";
             }
 
-            await CreateHotkeyProfileAsync(profile);
+            await CreateHotkeyProfileAsync(profile).ConfigureAwait(false);
             return profile;
         }
 
@@ -756,7 +791,7 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             }
 
             // Check against existing hotkeys in current profile
-            var currentProfile = await GetCurrentHotkeyProfileAsync();
+            var currentProfile = await GetCurrentHotkeyProfileAsync().ConfigureAwait(false);
             var conflictingHotkey = currentProfile.Hotkeys.Values
                 .FirstOrDefault(h => string.Equals(h.Combination, combination, StringComparison.OrdinalIgnoreCase));
 
