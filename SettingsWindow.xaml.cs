@@ -301,6 +301,15 @@ namespace ScottWisper
             // Set API key (masked)
             ApiKeyPasswordBox.Password = _settingsService.Settings.Transcription.ApiKey;
             
+            // Set API endpoint
+            ApiEndpointTextBox.Text = _settingsService.Settings.Transcription.ApiEndpoint ?? string.Empty;
+            
+            // Set API timeout
+            ApiTimeoutTextBox.Text = _settingsService.Settings.Transcription.RequestTimeout.ToString();
+            
+            // Set proxy checkbox
+            UseProxyCheckBox.IsChecked = _settingsService.Settings.Transcription.UseProxy;
+            
             // Update available models based on provider
             UpdateAvailableModels();
         }
@@ -820,6 +829,12 @@ namespace ScottWisper
         private void ValidateEndpoint_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Validation.");
         private void ResetApiUsage_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Reset.");
         private void UpgradeTier_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Upgrade.");
+        private void UseProxy_Checked(object sender, RoutedEventArgs e)
+        {
+            if (IsLoading) return;
+            if (UseProxyCheckBox != null) _settingsService.Settings.Transcription.UseProxy = UseProxyCheckBox.IsChecked ?? false;
+            _ = _settingsService.SaveAsync();
+        }
 
         private void InterfaceStartWithWindows_Checked(object sender, RoutedEventArgs e)
         {
