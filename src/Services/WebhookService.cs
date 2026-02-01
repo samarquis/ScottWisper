@@ -182,12 +182,16 @@ namespace WhisperKey.Services
         {
             var data = new Dictionary<string, object>
             {
-                ["error"] = error,
-                ["stack_trace"] = stackTrace ?? string.Empty,
+                ["error"] = SanitizeErrorMessage(error),
                 ["timestamp"] = DateTime.UtcNow.ToString("O"),
-                ["machine_name"] = Environment.MachineName,
-                ["user_name"] = Environment.UserName
+                ["user_id"] = HashValue(Environment.UserName)
             };
+            
+            // Only include stack trace in debug builds or if explicitly configured
+            if (!string.IsNullOrEmpty(stackTrace) && _config.IncludeStackTraces)
+            {
+                data["stack_trace"] = SanitizeStackTrace(stackTrace);
+            }
             
             return await SendWebhookAsync(WebhookEventType.Error, data);
         }
@@ -343,16 +347,18 @@ namespace WhisperKey.Services
                 }
                 catch (Exception ex)
                 {
-                    result.Error = ex.Message;
+                    result.Error = SanitizeErrorMessage(ex.Message);
                     
                     if (attempt < _config.RetryCount)
                     {
-                        _logger.LogWarning(ex, "Webhook attempt {Attempt} failed, retrying...", attempt + 1);
+                        _logger.LogWarning("Webhook attempt {Attempt} failed: {Error}, retrying...", 
+                            attempt + 1, SanitizeErrorMessage(ex.Message));
                         await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
                     }
                     else
                     {
-                        _logger.LogError(ex, "Webhook failed after {Retries} attempts", _config.RetryCount + 1);
+                        _logger.LogError("Webhook failed after {Retries} attempts: {Error}", 
+                            _config.RetryCount + 1, SanitizeErrorMessage(ex.Message));
                     }
                 }
             }
@@ -424,6 +430,44 @@ namespace WhisperKey.Services
             var bytes = Encoding.UTF8.GetBytes(value);
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToHexString(hash);
+        }
+        
+        /// <summary>
+        /// Sanitize error message to remove sensitive information
+        /// </summary>
+        private string SanitizeErrorMessage(string error)
+        {
+            if (string.IsNullOrEmpty(error))
+                return error;
+            
+            // Remove common sensitive patterns
+            var sanitized = error;
+            
+            // Remove file paths (Windows and Unix)
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[A-Za-z]:\\[^\s]*|/[^\s]*", "[PATH_REDACTED]");
+            
+            // Remove potential connection strings, API keys, tokens
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"(password|pwd|secret|token|key|apikey)=[^&\s]*", "$1=[REDACTED]", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            // Remove email addresses
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL_REDACTED]");
+            
+            return sanitized;
+        }
+        
+        /// <summary>
+        /// Sanitize stack trace to remove sensitive file paths
+        /// </summary>
+        private string SanitizeStackTrace(string stackTrace)
+        {
+            if (string.IsNullOrEmpty(stackTrace))
+                return stackTrace;
+            
+            // Remove full file paths, keep only filename
+            var sanitized = System.Text.RegularExpressions.Regex.Replace(stackTrace, @"[A-Za-z]:\\[^\s]*\\([^\s]+\.cs|[^\s]+\.dll)", "$1");
+            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"/[^\s]*/([^/\s]+\.cs|[^/\s]+\.dll)", "$1");
+            
+            return sanitized;
         }
     }
     

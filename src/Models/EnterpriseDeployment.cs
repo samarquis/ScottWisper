@@ -295,6 +295,11 @@ namespace WhisperKey.Models
         /// Custom headers to include
         /// </summary>
         public Dictionary<string, string> CustomHeaders { get; set; } = new();
+        
+        /// <summary>
+        /// Include stack traces in error webhooks (security consideration)
+        /// </summary>
+        public bool IncludeStackTraces { get; set; } = false;
     }
     
     /// <summary>

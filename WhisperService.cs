@@ -326,6 +326,19 @@ namespace WhisperKey
 
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
         {
+            try
+            {
+                await HandleSettingsChangedAsync(e).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error handling settings change: {ex.Message}");
+                TranscriptionError?.Invoke(this, ex);
+            }
+        }
+        
+        private async Task HandleSettingsChangedAsync(SettingsChangedEventArgs e)
+        {
             await Task.Run(() => {
                 // Handle transcription settings changes
                 if (e.Category == "Transcription")
@@ -351,7 +364,7 @@ namespace WhisperKey
                         }
                     }
                 }
-            });
+            }).ConfigureAwait(false);
         }
         
         private void UpdateUsageStats(int audioDataLength)
