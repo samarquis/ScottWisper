@@ -191,178 +191,175 @@ namespace ScottWisper.Services
         _enumerator = new MMDeviceEnumerator();
         
         // Initialize device change monitoring
-        _ = Task.Run(async () =>
-        {
-            var monitoringStarted = await MonitorDeviceChangesAsync();
-            if (monitoringStarted)
-            {
-                System.Diagnostics.Debug.WriteLine("Device change monitoring initialized successfully");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("Failed to initialize device change monitoring");
-            }
-        });
+        InitializeMonitoringAsync();
     }
+        
+        private async void InitializeMonitoringAsync()
+        {
+            try
+            {
+                var monitoringStarted = await MonitorDeviceChangesAsync();
+                if (monitoringStarted)
+                {
+                    System.Diagnostics.Debug.WriteLine("Device change monitoring initialized successfully");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Failed to initialize device change monitoring");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error initializing monitoring: {ex.Message}");
+            }
+        }
 
         public async Task<List<AudioDevice>> GetInputDevicesAsync()
         {
-            return await Task.Run(() =>
+            if (_disposed) return new List<AudioDevice>();
+
+            try
             {
+                // Check microphone permission first
+                var permissionStatus = await CheckMicrophonePermissionAsync();
+                
+                if (permissionStatus == MicrophonePermissionStatus.Denied)
+                {
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                        "Microphone access is denied. Please enable microphone access in Windows Settings Privacy -> Microphone."));
+                    return new List<AudioDevice>();
+                }
+
                 lock (_lockObject)
                 {
                     if (_disposed) return new List<AudioDevice>();
 
-                    try
+                    var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+                    var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
+
+                    // Filter devices based on permission status
+                    if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
                     {
-                        // Check microphone permission first
-                        var permissionStatus = CheckMicrophonePermissionAsync().Result;
+                        audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
+                    }
+
+                    return audioDevices;
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                    "Access to audio devices was denied. Please check Windows Privacy Settings.", ""));
+                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (permission denied): {ex.Message}");
+                return new List<AudioDevice>();
+            }
+            catch (SecurityException ex)
+            {
+                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                    "Security error accessing audio devices. Please check Windows Privacy Settings.", ""));
+                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (security): {ex.Message}");
+                return new List<AudioDevice>();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
+                return new List<AudioDevice>();
+            }
+        }
+
+        public Task<List<AudioDevice>> GetOutputDevicesAsync()
+        {
+            lock (_lockObject)
+            {
+                if (_disposed) return Task.FromResult(new List<AudioDevice>());
+
+                try
+                {
+                    var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+                    var result = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
+                    return Task.FromResult(result);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error enumerating output devices: {ex.Message}");
+                    return Task.FromResult(new List<AudioDevice>());
+                }
+            }
+        }
+
+        public Task<AudioDevice> GetDefaultInputDeviceAsync()
+        {
+            lock (_lockObject)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(AudioDeviceService));
+
+                try
+                {
+                    var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
+                    return Task.FromResult(CreateAudioDevice(device)!);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get default input device", ex);
+                }
+            }
+        }
+
+        public Task<AudioDevice> GetDefaultOutputDeviceAsync()
+        {
+            lock (_lockObject)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(AudioDeviceService));
+
+                try
+                {
+                    var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                    return Task.FromResult(CreateAudioDevice(device)!);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get default output device", ex);
+                }
+            }
+        }
+
+        public Task<bool> TestDeviceAsync(string deviceId)
+        {
+            lock (_lockObject)
+            {
+                if (_disposed) return Task.FromResult(false);
+
+                try
+                {
+                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                    
+                    if (device == null) return Task.FromResult(false);
+
+                    // Test basic device functionality
+                    using (var waveIn = new WaveInEvent())
+                    {
+                        waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                         
-                        if (permissionStatus == MicrophonePermissionStatus.Denied)
-                        {
-                            PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                                "Microphone access is denied. Please enable microphone access in Windows Settings Privacy -> Microphone."));
-                            return new List<AudioDevice>();
-                        }
-
-                        var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                        var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
-
-                        // Filter devices based on permission status
-                        if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
-                        {
-                            audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
-                        }
-
-                        return audioDevices;
-                    }
-                    catch (UnauthorizedAccessException ex)
-                    {
-                        PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                            "Access to audio devices was denied. Please check Windows Privacy Settings.", ""));
-                        System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (permission denied): {ex.Message}");
-                        return new List<AudioDevice>();
-                    }
-                    catch (SecurityException ex)
-                    {
-                        PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                            "Security error accessing audio devices. Please check Windows Privacy Settings.", ""));
-                        System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (security): {ex.Message}");
-                        return new List<AudioDevice>();
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
-                        return new List<AudioDevice>();
-                    }
-                }
-            });
-        }
-
-        public async Task<List<AudioDevice>> GetOutputDevicesAsync()
-        {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) return new List<AudioDevice>();
-
-                    try
-                    {
-                        var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-                        return devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error enumerating output devices: {ex.Message}");
-                        return new List<AudioDevice>();
-                    }
-                }
-            });
-        }
-
-        public async Task<AudioDevice> GetDefaultInputDeviceAsync()
-        {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) throw new ObjectDisposedException(nameof(AudioDeviceService));
-
-                    try
-                    {
-                        var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Communications);
-                        return CreateAudioDevice(device)!;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
-                        throw new InvalidOperationException("Unable to get default input device", ex);
-                    }
-                }
-            });
-        }
-
-        public async Task<AudioDevice> GetDefaultOutputDeviceAsync()
-        {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) throw new ObjectDisposedException(nameof(AudioDeviceService));
-
-                    try
-                    {
-                        var device = _enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-                        return CreateAudioDevice(device)!;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
-                        throw new InvalidOperationException("Unable to get default output device", ex);
-                    }
-                }
-            });
-        }
-
-        public async Task<bool> TestDeviceAsync(string deviceId)
-        {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) return false;
-
-                    try
-                    {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
+                        // Test if we can configure the device for basic recording
+                        waveIn.WaveFormat = new WaveFormat(16000, 1); // 16kHz mono for speech recognition
                         
-                        if (device == null) return false;
-
-                        // Test basic device functionality
-                        using (var waveIn = new WaveInEvent())
-                        {
-                            waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                            
-                            // Test if we can configure the device for basic recording
-                            waveIn.WaveFormat = new WaveFormat(16000, 1); // 16kHz mono for speech recognition
-                            
-                            // Try to start recording briefly
-                            waveIn.StartRecording();
-                            Thread.Sleep(100); // Very brief test
-                            waveIn.StopRecording();
-                            
-                            return true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
-                        return false;
+                        // Try to start recording briefly
+                        waveIn.StartRecording();
+                        Thread.Sleep(100); // Very brief test
+                        waveIn.StopRecording();
+                        
+                        return Task.FromResult(true);
                     }
                 }
-            });
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+            }
         }
 
         public async Task<AudioDeviceTestResult> PerformComprehensiveTestAsync(string deviceId)
@@ -407,15 +404,15 @@ namespace ScottWisper.Services
                 // Test 2: Format support (sync, no lock needed)
                 result.SupportedFormats = string.Join(", ", GetSupportedFormats(device) ?? new List<string>());
 
-                // Test 3: Quality assessment (async, no lock needed)
-                var qualityScore = await Task.Run(() => AssessDeviceQualityAsync(device));
+                // Test 3: Quality assessment
+                var qualityScore = await AssessDeviceQualityAsync(device);
                 result.QualityScore = (int)qualityScore;
 
-                // Test 4: Latency measurement (async, no lock needed)
-                result.LatencyMs = await Task.Run(() => MeasureDeviceLatencyAsync(device));
+                // Test 4: Latency measurement
+                result.LatencyMs = await MeasureDeviceLatencyAsync(device);
 
-                // Test 5: Noise floor measurement (async, no lock needed)
-                result.NoiseFloorDb = await Task.Run(() => MeasureNoiseFloorAsync(device));
+                // Test 5: Noise floor measurement
+                result.NoiseFloorDb = await MeasureNoiseFloorAsync(device);
 
                 result.Success = result.BasicFunctionality && result.QualityScore > 0.3f;
                 result.TestCompleted = DateTime.Now;
@@ -438,231 +435,222 @@ namespace ScottWisper.Services
 
         public async Task<AudioQualityMetrics> AnalyzeAudioQualityAsync(string deviceId, int durationMs = 3000)
         {
-            return await Task.Run(async () =>
-            {
-                MMDevice? device;
-                lock (_lockObject)
-                {
-                    if (_disposed) return new AudioQualityMetrics();
+            if (_disposed) return new AudioQualityMetrics();
 
-                    device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                        .FirstOrDefault(d => d.ID == deviceId);
+            MMDevice? device;
+            lock (_lockObject)
+            {
+                device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                    .FirstOrDefault(d => d.ID == deviceId);
+            }
+            
+            if (device == null) return new AudioQualityMetrics();
+
+            try
+            {
+                var metrics = new AudioQualityMetrics
+                {
+                    DeviceId = deviceId,
+                    AnalysisTime = DateTime.Now
+                };
+
+                var buffer = new byte[16000 * durationMs / 1000]; // 16kHz, 16-bit
+                var samples = new float[durationMs / 10]; // Sample every 10ms
+
+                using (var waveIn = new WaveInEvent())
+                {
+                    waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
+                    waveIn.BufferMilliseconds = 10;
+                    
+                    int sampleIndex = 0;
+                    float sum = 0;
+                    float sumSquares = 0;
+                    int peakCount = 0;
+                    float maxLevel = 0;
+
+                    waveIn.DataAvailable += (sender, e) =>
+                    {
+                        if (sampleIndex >= samples.Length) return;
+
+                        // Convert bytes to float
+                        for (int i = 0; i < e.BytesRecorded; i += 2)
+                        {
+                            if (i + 1 < e.Buffer.Length)
+                            {
+                                short sample = BitConverter.ToInt16(e.Buffer, i);
+                                float level = Math.Abs(sample / 32768f);
+                                
+                                samples[sampleIndex] = level;
+                                sum += level;
+                                sumSquares += level * level;
+                                
+                                if (level > 0.1f) peakCount++;
+                                if (level > maxLevel) maxLevel = level;
+                                
+                                sampleIndex++;
+                            }
+                        }
+                    };
+
+                    waveIn.StartRecording();
+                    await Task.Delay(durationMs);
+                    waveIn.StopRecording();
+
+                    // Calculate metrics
+                    if (sampleIndex > 0)
+                    {
+                        float average = sum / sampleIndex;
+                        float rms = (float)Math.Sqrt(sumSquares / sampleIndex);
+                        float peakRatio = peakCount / (float)sampleIndex;
+                        
+                        metrics.AverageLevel = average;
+                        metrics.RMSLevel = rms;
+                        metrics.PeakLevel = maxLevel;
+                        metrics.PeakToRMSRatio = peakRatio;
+                        metrics.DynamicRange = maxLevel - average;
+                        metrics.SignalQuality = CalculateSignalQuality(rms, peakRatio);
+                    }
                 }
-                
-                if (device == null) return new AudioQualityMetrics();
+
+                return metrics;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
+                return new AudioQualityMetrics { DeviceId = deviceId };
+            }
+        }
+
+        public Task<DeviceCompatibilityScore> ScoreDeviceCompatibilityAsync(string deviceId)
+        {
+            lock (_lockObject)
+            {
+                if (_disposed) return Task.FromResult(new DeviceCompatibilityScore());
 
                 try
                 {
-                    var metrics = new AudioQualityMetrics
+                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                    
+                    if (device == null) return Task.FromResult(new DeviceCompatibilityScore());
+
+                    var score = new DeviceCompatibilityScore
                     {
                         DeviceId = deviceId,
-                        AnalysisTime = DateTime.Now
+                        ScoreTime = DateTime.Now
                     };
 
-                    var buffer = new byte[16000 * durationMs / 1000]; // 16kHz, 16-bit
-                    var samples = new float[durationMs / 10]; // Sample every 10ms
-
-                    using (var waveIn = new WaveInEvent())
+                    var format = device.AudioClient?.MixFormat;
+                    if (format != null)
                     {
-                        waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                        waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
-                        waveIn.BufferMilliseconds = 10;
-                        
-                        int sampleIndex = 0;
-                        float sum = 0;
-                        float sumSquares = 0;
-                        int peakCount = 0;
-                        float maxLevel = 0;
+                        // Sample rate scoring (16kHz+ is optimal for speech)
+                        if (format.SampleRate >= 16000)
+                            score.SampleRateScore = Math.Min(1.0f, 16000f / format.SampleRate);
+                        else
+                            score.SampleRateScore = 0.2f;
 
-                        waveIn.DataAvailable += (sender, e) =>
-                        {
-                            if (sampleIndex >= samples.Length) return;
+                        // Channel scoring (mono is preferred for speech)
+                        if (format.Channels == 1)
+                            score.ChannelScore = 1.0f;
+                        else if (format.Channels == 2)
+                            score.ChannelScore = 0.8f;
+                        else
+                            score.ChannelScore = 0.4f;
 
-                            // Convert bytes to float
-                            for (int i = 0; i < e.BytesRecorded; i += 2)
-                            {
-                                if (i + 1 < e.Buffer.Length)
-                                {
-                                    short sample = BitConverter.ToInt16(e.Buffer, i);
-                                    float level = Math.Abs(sample / 32768f);
-                                    
-                                    samples[sampleIndex] = level;
-                                    sum += level;
-                                    sumSquares += level * level;
-                                    
-                                    if (level > 0.1f) peakCount++;
-                                    if (level > maxLevel) maxLevel = level;
-                                    
-                                    sampleIndex++;
-                                }
-                            }
-                        };
-
-                        waveIn.StartRecording();
-                        await Task.Delay(durationMs);
-                        waveIn.StopRecording();
-
-                            // Calculate metrics
-                            if (sampleIndex > 0)
-                            {
-                                float average = sum / sampleIndex;
-                                float rms = (float)Math.Sqrt(sumSquares / sampleIndex);
-                                float peakRatio = peakCount / (float)sampleIndex;
-                                
-                                metrics.AverageLevel = average;
-                                metrics.RMSLevel = rms;
-                                metrics.PeakLevel = maxLevel;
-                                metrics.PeakToRMSRatio = peakRatio;
-                                metrics.DynamicRange = maxLevel - average;
-                                metrics.SignalQuality = CalculateSignalQuality(rms, peakRatio);
-                            }
+                        // Bit depth scoring
+                        if (format.BitsPerSample >= 16)
+                            score.BitDepthScore = 1.0f;
+                        else if (format.BitsPerSample >= 8)
+                            score.BitDepthScore = 0.6f;
+                        else
+                            score.BitDepthScore = 0.2f;
                     }
 
-                    return metrics;
+                    // Device category scoring
+                    var deviceName = device.FriendlyName.ToLower();
+                    if (deviceName.Contains("usb") || deviceName.Contains("external"))
+                        score.DeviceTypeScore = 1.0f; // External devices are preferred
+                    else if (deviceName.Contains("webcam") || deviceName.Contains("integrated"))
+                        score.DeviceTypeScore = 0.3f; // Integrated devices are less ideal
+                    else
+                        score.DeviceTypeScore = 0.7f; // Other internal devices
+
+                    // Calculate overall score
+                    score.OverallScore = (score.SampleRateScore * 0.3f) +
+                                          (score.ChannelScore * 0.2f) +
+                                          (score.BitDepthScore * 0.2f) +
+                                          (score.DeviceTypeScore * 0.3f);
+
+                    // Determine recommendation level
+                    if (score.OverallScore >= 0.8f)
+                        score.Recommendation = "Excellent";
+                    else if (score.OverallScore >= 0.6f)
+                        score.Recommendation = "Good";
+                    else if (score.OverallScore >= 0.4f)
+                        score.Recommendation = "Fair";
+                    else
+                        score.Recommendation = "Poor";
+
+                    return Task.FromResult(score);
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error analyzing audio quality for {deviceId}: {ex.Message}");
-                    return new AudioQualityMetrics { DeviceId = deviceId };
+                    System.Diagnostics.Debug.WriteLine($"Error scoring device compatibility for {deviceId}: {ex.Message}");
+                    return Task.FromResult(new DeviceCompatibilityScore { DeviceId = deviceId });
                 }
-            });
-        }
-
-        public async Task<DeviceCompatibilityScore> ScoreDeviceCompatibilityAsync(string deviceId)
-        {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) return new DeviceCompatibilityScore();
-
-                    try
-                    {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        if (device == null) return new DeviceCompatibilityScore();
-
-                        var score = new DeviceCompatibilityScore
-                        {
-                            DeviceId = deviceId,
-                            ScoreTime = DateTime.Now
-                        };
-
-                        var format = device.AudioClient?.MixFormat;
-                        if (format != null)
-                        {
-                            // Sample rate scoring (16kHz+ is optimal for speech)
-                            if (format.SampleRate >= 16000)
-                                score.SampleRateScore = Math.Min(1.0f, 16000f / format.SampleRate);
-                            else
-                                score.SampleRateScore = 0.2f;
-
-                            // Channel scoring (mono is preferred for speech)
-                            if (format.Channels == 1)
-                                score.ChannelScore = 1.0f;
-                            else if (format.Channels == 2)
-                                score.ChannelScore = 0.8f;
-                            else
-                                score.ChannelScore = 0.4f;
-
-                            // Bit depth scoring
-                            if (format.BitsPerSample >= 16)
-                                score.BitDepthScore = 1.0f;
-                            else if (format.BitsPerSample >= 8)
-                                score.BitDepthScore = 0.6f;
-                            else
-                                score.BitDepthScore = 0.2f;
-                        }
-
-                        // Device category scoring
-                        var deviceName = device.FriendlyName.ToLower();
-                        if (deviceName.Contains("usb") || deviceName.Contains("external"))
-                            score.DeviceTypeScore = 1.0f; // External devices are preferred
-                        else if (deviceName.Contains("webcam") || deviceName.Contains("integrated"))
-                            score.DeviceTypeScore = 0.3f; // Integrated devices are less ideal
-                        else
-                            score.DeviceTypeScore = 0.7f; // Other internal devices
-
-                        // Calculate overall score
-                        score.OverallScore = (score.SampleRateScore * 0.3f) +
-                                              (score.ChannelScore * 0.2f) +
-                                              (score.BitDepthScore * 0.2f) +
-                                              (score.DeviceTypeScore * 0.3f);
-
-                        // Determine recommendation level
-                        if (score.OverallScore >= 0.8f)
-                            score.Recommendation = "Excellent";
-                        else if (score.OverallScore >= 0.6f)
-                            score.Recommendation = "Good";
-                        else if (score.OverallScore >= 0.4f)
-                            score.Recommendation = "Fair";
-                        else
-                            score.Recommendation = "Poor";
-
-                        return score;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error scoring device compatibility for {deviceId}: {ex.Message}");
-                        return new DeviceCompatibilityScore { DeviceId = deviceId };
-                    }
-                }
-            });
+            }
         }
 
         public async Task<bool> TestDeviceLatencyAsync(string deviceId)
         {
-            return await Task.Run(async () =>
+            if (_disposed) return false;
+
+            MMDevice? device;
+            lock (_lockObject)
             {
-                MMDevice? device;
-                lock (_lockObject)
-                {
-                    if (_disposed) return false;
+                device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                    .FirstOrDefault(d => d.ID == deviceId);
+            }
+            
+            if (device == null) return false;
 
-                    device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                        .FirstOrDefault(d => d.ID == deviceId);
-                }
-                
-                if (device == null) return false;
-
-                try
+            try
+            {
+                using (var waveIn = new WaveInEvent())
                 {
-                    using (var waveIn = new WaveInEvent())
+                    waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    waveIn.WaveFormat = new WaveFormat(16000, 1);
+                    waveIn.BufferMilliseconds = 50; // Small buffer for latency testing
+
+                    var latencyStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    bool firstBufferReceived = false;
+
+                    waveIn.DataAvailable += (sender, e) =>
                     {
-                        waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                        waveIn.WaveFormat = new WaveFormat(16000, 1);
-                        waveIn.BufferMilliseconds = 50; // Small buffer for latency testing
-
-                        var latencyStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                        bool firstBufferReceived = false;
-
-                        waveIn.DataAvailable += (sender, e) =>
+                        if (!firstBufferReceived && e.BytesRecorded > 0)
                         {
-                            if (!firstBufferReceived && e.BytesRecorded > 0)
-                            {
-                                latencyStopwatch.Stop();
-                                firstBufferReceived = true;
-                            }
-                        };
+                            latencyStopwatch.Stop();
+                            firstBufferReceived = true;
+                        }
+                    };
 
-                        waveIn.StartRecording();
-                        
-                        // Wait up to 1 second for first buffer
-                        await Task.Delay(1000);
-                        
-                        waveIn.StopRecording();
+                    waveIn.StartRecording();
+                    
+                    // Wait up to 1 second for first buffer
+                    await Task.Delay(1000);
+                    
+                    waveIn.StopRecording();
 
-                        // Consider latency acceptable if < 200ms
-                        return latencyStopwatch.ElapsedMilliseconds < 200;
-                    }
+                    // Consider latency acceptable if < 200ms
+                    return latencyStopwatch.ElapsedMilliseconds < 200;
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
-                    return false;
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error testing device latency for {deviceId}: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync()
@@ -688,73 +676,72 @@ namespace ScottWisper.Services
             return recommendations.OrderByDescending(r => r.Score).ThenBy(r => r.Priority).ToList();
         }
 
-        public async Task StartRealTimeMonitoringAsync(string deviceId)
+        public Task StartRealTimeMonitoringAsync(string deviceId)
         {
-            await Task.Run(async () =>
+            if (_disposed || _isMonitoring) return Task.CompletedTask;
+            
+            lock (_lockObject)
             {
-                if (_disposed || _isMonitoring) return;
-                
-                lock (_lockObject)
+                if (_disposed || _isMonitoring) return Task.CompletedTask;
+
+                try
                 {
+                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                    
+                    if (device == null) return Task.CompletedTask;
 
-                    try
-                    {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        if (device == null) return;
+                    _monitoringWaveIn = new WaveInEvent();
+                    _monitoringWaveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    _monitoringWaveIn.WaveFormat = new WaveFormat(16000, 1);
+                    _monitoringWaveIn.BufferMilliseconds = 50;
 
-                        _monitoringWaveIn = new WaveInEvent();
-                        _monitoringWaveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                        _monitoringWaveIn.WaveFormat = new WaveFormat(16000, 1);
-                        _monitoringWaveIn.BufferMilliseconds = 50;
-
-                        _monitoringWaveIn.DataAvailable += OnMonitoringDataAvailable;
-                        
-                        _levelUpdateTimer = new System.Threading.Timer(UpdateAudioLevel, null, 0, 50);
-                        
-                        _monitoringWaveIn.StartRecording();
-                        _isMonitoring = true;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error starting real-time monitoring for {deviceId}: {ex.Message}");
-                    }
+                    _monitoringWaveIn.DataAvailable += OnMonitoringDataAvailable;
+                    
+                    _levelUpdateTimer = new System.Threading.Timer(UpdateAudioLevel, null, 0, 50);
+                    
+                    _monitoringWaveIn.StartRecording();
+                    _isMonitoring = true;
                 }
-            });
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error starting real-time monitoring for {deviceId}: {ex.Message}");
+                }
+            }
+            
+            return Task.CompletedTask;
         }
 
-        public async Task StopRealTimeMonitoringAsync()
+        public Task StopRealTimeMonitoringAsync()
         {
-            await Task.Run(() =>
+            lock (_lockObject)
             {
-                lock (_lockObject)
+                if (!_isMonitoring) return Task.CompletedTask;
+
+                try
                 {
-                    if (!_isMonitoring) return;
+                    _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+                    _levelUpdateTimer?.Dispose();
+                    _levelUpdateTimer = null;
 
-                    try
+                    if (_monitoringWaveIn != null)
                     {
-                        _levelUpdateTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-                        _levelUpdateTimer?.Dispose();
-                        _levelUpdateTimer = null;
-
-                        if (_monitoringWaveIn != null)
-                        {
-                            _monitoringWaveIn.DataAvailable -= OnMonitoringDataAvailable;
-                            _monitoringWaveIn.StopRecording();
-                            _monitoringWaveIn.Dispose();
-                            _monitoringWaveIn = null;
-                        }
-
-                        _isMonitoring = false;
-                        _currentAudioLevel = 0f;
+                        _monitoringWaveIn.DataAvailable -= OnMonitoringDataAvailable;
+                        _monitoringWaveIn.StopRecording();
+                        _monitoringWaveIn.Dispose();
+                        _monitoringWaveIn = null;
                     }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error stopping real-time monitoring: {ex.Message}");
-                    }
+
+                    _isMonitoring = false;
+                    _currentAudioLevel = 0f;
                 }
-            });
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error stopping real-time monitoring: {ex.Message}");
+                }
+            }
+            
+            return Task.CompletedTask;
         }
 
         private void OnMonitoringDataAvailable(object? sender, WaveInEventArgs e)
@@ -989,74 +976,68 @@ namespace ScottWisper.Services
             return 4; // Not recommended
         }
 
-        public async Task<AudioDeviceCapabilities> GetDeviceCapabilitiesAsync(string deviceId)
+        public Task<AudioDeviceCapabilities> GetDeviceCapabilitiesAsync(string deviceId)
         {
-            return await Task.Run(() =>
+            lock (_lockObject)
             {
-                lock (_lockObject)
+                if (_disposed) throw new ObjectDisposedException(nameof(AudioDeviceService));
+
+                try
                 {
-                    if (_disposed) throw new ObjectDisposedException(nameof(AudioDeviceService));
+                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                    
+                    if (device == null)
+                        throw new ArgumentException($"Device with ID {deviceId} not found");
 
-                    try
+                    var capabilities = new AudioDeviceCapabilities();
+                    
+                    // Get supported formats
+                    var formats = device.AudioClient?.MixFormat;
+                    if (formats != null)
                     {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        if (device == null)
-                            throw new ArgumentException($"Device with ID {deviceId} not found");
-
-                        var capabilities = new AudioDeviceCapabilities();
-                        
-                        // Get supported formats
-                        var formats = device.AudioClient?.MixFormat;
-                        if (formats != null)
-                        {
-                            capabilities.SampleRate = formats.SampleRate;
-                            capabilities.Channels = formats.Channels;
-                            capabilities.BitsPerSample = formats.BitsPerSample;
-                        }
-
-                        // Get device properties
-                        var properties = device.Properties;
-                        if (properties != null)
-                        {
-                            capabilities.DeviceFriendlyName = properties[PropertyKeys.PKEY_Device_FriendlyName].Value as string ?? device.FriendlyName;
-                            capabilities.DeviceDescription = properties[PropertyKeys.PKEY_Device_DeviceDesc].Value as string ?? "";
-                        }
-
-                        return capabilities;
+                        capabilities.SampleRate = formats.SampleRate;
+                        capabilities.Channels = formats.Channels;
+                        capabilities.BitsPerSample = formats.BitsPerSample;
                     }
-                    catch (Exception ex)
+
+                    // Get device properties
+                    var properties = device.Properties;
+                    if (properties != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error getting device capabilities for {deviceId}: {ex.Message}");
-                        throw new InvalidOperationException("Unable to get device capabilities", ex);
+                        capabilities.DeviceFriendlyName = properties[PropertyKeys.PKEY_Device_FriendlyName].Value as string ?? device.FriendlyName;
+                        capabilities.DeviceDescription = properties[PropertyKeys.PKEY_Device_DeviceDesc].Value as string ?? "";
                     }
+
+                    return Task.FromResult(capabilities);
                 }
-            });
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting device capabilities for {deviceId}: {ex.Message}");
+                    throw new InvalidOperationException("Unable to get device capabilities", ex);
+                }
+            }
         }
 
-        public async Task<AudioDevice?> GetDeviceByIdAsync(string deviceId)
+        public Task<AudioDevice?> GetDeviceByIdAsync(string deviceId)
         {
-            return await Task.Run(() =>
+            lock (_lockObject)
             {
-                lock (_lockObject)
-                {
-                    if (_disposed) return null;
+                if (_disposed) return Task.FromResult<AudioDevice?>(null);
 
-                    try
-                    {
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
-                        
-                        return device != null ? CreateAudioDevice(device) : null;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error getting device by ID {deviceId}: {ex.Message}");
-                        return null;
-                    }
+                try
+                {
+                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                    
+                    return Task.FromResult(device != null ? CreateAudioDevice(device) : null);
                 }
-            });
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting device by ID {deviceId}: {ex.Message}");
+                    return Task.FromResult<AudioDevice?>(null);
+                }
+            }
         }
 
         public bool IsDeviceCompatible(string deviceId)
@@ -1139,159 +1120,150 @@ namespace ScottWisper.Services
         // Real-time device monitoring can be added later
         // For now, manual refresh through RefreshDevicesAsync method
 
-        public async Task<MicrophonePermissionStatus> CheckMicrophonePermissionAsync()
+        public Task<MicrophonePermissionStatus> CheckMicrophonePermissionAsync()
         {
-            return await Task.Run(() =>
+            lock (_lockObject)
             {
-                lock (_lockObject)
-                {
-                    if (_disposed) return MicrophonePermissionStatus.SystemError;
+                if (_disposed) return Task.FromResult(MicrophonePermissionStatus.SystemError);
 
-                    try
-                    {
-                        // Try to access default audio input device to check permissions
-                        var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                        if (!devices.Any())
-                        {
-                            return MicrophonePermissionStatus.Denied;
-                        }
-
-                        // Test with first available device
-                        var testDevice = devices.First();
-                        return CheckMicrophonePermissionForDevice(testDevice.ID).Result;
-                    }
-                    catch (UnauthorizedAccessException)
-                    {
-                        return MicrophonePermissionStatus.Denied;
-                    }
-                    catch (SecurityException)
-                    {
-                        return MicrophonePermissionStatus.Denied;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
-                        return MicrophonePermissionStatus.SystemError;
-                    }
-                }
-            });
-        }
-
-        public async Task<bool> RequestMicrophonePermissionAsync()
-        {
-            return await Task.Run(() =>
-            {
-                lock (_lockObject)
-                {
-                    if (_disposed) return false;
-
-                    try
-                    {
-                        // On Windows, we trigger the permission request by attempting to access the microphone
-                        // This will show the Windows permission dialog if not already granted
-                        var currentStatus = CheckMicrophonePermissionAsync().Result;
-                        
-                        if (currentStatus == MicrophonePermissionStatus.Granted)
-                        {
-                            PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission already granted"));
-                            return true;
-                        }
-
-                        // Try to trigger permission dialog by attempting device access
-                        try
-                        {
-                            var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                            if (!devices.Any())
-                            {
-                                PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "No audio input devices available"));
-                                return false;
-                            }
-
-                            // Attempt to access device to trigger permission dialog
-                            var testDevice = devices.First();
-                            using (var waveIn = new WaveInEvent())
-                            {
-                                waveIn.DeviceNumber = GetDeviceNumber(testDevice.ID);
-                                waveIn.WaveFormat = new WaveFormat(16000, 1);
-                                
-                                // This should trigger the permission dialog if needed
-                                waveIn.StartRecording();
-                                Thread.Sleep(100);
-                                waveIn.StopRecording();
-                            }
-
-                            // Check if permission was granted
-                            var newStatus = CheckMicrophonePermissionForDevice(testDevice.ID).Result;
-                            if (newStatus == MicrophonePermissionStatus.Granted)
-                            {
-                                PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission granted successfully", testDevice.ID));
-                                return true;
-                            }
-                            else
-                            {
-                                PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Microphone permission was denied", testDevice.ID));
-                                return false;
-                            }
-                        }
-                        catch (UnauthorizedAccessException ex)
-                        {
-                            PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Access to microphone was denied. Please enable microphone access in Windows Settings.", ""));
-                            return false;
-                        }
-                        catch (SecurityException ex)
-                        {
-                            PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Security error accessing microphone. Please check Windows Privacy Settings.", ""));
-                            return false;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
-                        PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
-                        return false;
-                    }
-                }
-            });
-        }
-
-        private async Task<MicrophonePermissionStatus> CheckMicrophonePermissionForDevice(string deviceId)
-        {
-            return await Task.Run(() =>
-            {
                 try
                 {
-                    // Try to create and configure a WaveInEvent to test permission
-                    using (var waveIn = new WaveInEvent())
+                    // Try to access default audio input device to check permissions
+                    var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+                    if (!devices.Any())
                     {
-                        waveIn.DeviceNumber = GetDeviceNumber(deviceId);
-                        waveIn.WaveFormat = new WaveFormat(16000, 1); // 16kHz mono
-                        
-                        // Try to start recording briefly to test permission
-                        waveIn.StartRecording();
-                        Thread.Sleep(50); // Very brief test
-                        waveIn.StopRecording();
-                        
-                        return MicrophonePermissionStatus.Granted;
+                        return Task.FromResult(MicrophonePermissionStatus.Denied);
                     }
+
+                    // Test with first available device
+                    var testDevice = devices.First();
+                    return CheckMicrophonePermissionForDevice(testDevice.ID);
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    return MicrophonePermissionStatus.Denied;
+                    return Task.FromResult(MicrophonePermissionStatus.Denied);
                 }
                 catch (SecurityException)
                 {
-                    return MicrophonePermissionStatus.Denied;
+                    return Task.FromResult(MicrophonePermissionStatus.Denied);
                 }
                 catch (Exception ex)
                 {
-                    // Device not available or other system error
-                    if (ex.Message.Contains("not found") || ex.Message.Contains("unavailable"))
-                    {
-                        return MicrophonePermissionStatus.SystemError;
-                    }
-                    return MicrophonePermissionStatus.Denied;
+                    System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
+                    return Task.FromResult(MicrophonePermissionStatus.SystemError);
                 }
-            });
+            }
+        }
+
+        public Task<bool> RequestMicrophonePermissionAsync()
+        {
+            lock (_lockObject)
+            {
+                if (_disposed) return Task.FromResult(false);
+
+                try
+                {
+                    // On Windows, we trigger the permission request by attempting to access the microphone
+                    // This will show the Windows permission dialog if not already granted
+                    var currentStatus = CheckMicrophonePermissionAsync().Result;
+                    
+                    if (currentStatus == MicrophonePermissionStatus.Granted)
+                    {
+                        PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission already granted"));
+                        return Task.FromResult(true);
+                    }
+
+                    // Try to trigger permission dialog by attempting device access
+                    try
+                    {
+                        var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+                        if (!devices.Any())
+                        {
+                            PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "No audio input devices available"));
+                            return Task.FromResult(false);
+                        }
+
+                        // Attempt to access device to trigger permission dialog
+                        var testDevice = devices.First();
+                        using (var waveIn = new WaveInEvent())
+                        {
+                            waveIn.DeviceNumber = GetDeviceNumber(testDevice.ID);
+                            waveIn.WaveFormat = new WaveFormat(16000, 1);
+                            
+                            // This should trigger the permission dialog if needed
+                            waveIn.StartRecording();
+                            Thread.Sleep(100);
+                            waveIn.StopRecording();
+                        }
+
+                        // Check if permission was granted
+                        var newStatus = CheckMicrophonePermissionForDevice(testDevice.ID).Result;
+                        if (newStatus == MicrophonePermissionStatus.Granted)
+                        {
+                            PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission granted successfully", testDevice.ID));
+                            return Task.FromResult(true);
+                        }
+                        else
+                        {
+                            PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Microphone permission was denied", testDevice.ID));
+                            return Task.FromResult(false);
+                        }
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Access to microphone was denied. Please enable microphone access in Windows Settings.", ""));
+                        return Task.FromResult(false);
+                    }
+                    catch (SecurityException ex)
+                    {
+                        PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Security error accessing microphone. Please check Windows Privacy Settings.", ""));
+                        return Task.FromResult(false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
+                    PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
+                    return Task.FromResult(false);
+                }
+            }
+        }
+
+        private Task<MicrophonePermissionStatus> CheckMicrophonePermissionForDevice(string deviceId)
+        {
+            try
+            {
+                // Try to create and configure a WaveInEvent to test permission
+                using (var waveIn = new WaveInEvent())
+                {
+                    waveIn.DeviceNumber = GetDeviceNumber(deviceId);
+                    waveIn.WaveFormat = new WaveFormat(16000, 1); // 16kHz mono
+                    
+                    // Try to start recording briefly to test permission
+                    waveIn.StartRecording();
+                    Thread.Sleep(50); // Very brief test
+                    waveIn.StopRecording();
+                    
+                    return Task.FromResult(MicrophonePermissionStatus.Granted);
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Task.FromResult(MicrophonePermissionStatus.Denied);
+            }
+            catch (SecurityException)
+            {
+                return Task.FromResult(MicrophonePermissionStatus.Denied);
+            }
+            catch (Exception ex)
+            {
+                // Device not available or other system error
+                if (ex.Message.Contains("not found") || ex.Message.Contains("unavailable"))
+                {
+                    return Task.FromResult(MicrophonePermissionStatus.SystemError);
+                }
+                return Task.FromResult(MicrophonePermissionStatus.Denied);
+            }
         }
 
         public void OpenWindowsMicrophoneSettings()
@@ -1311,69 +1283,66 @@ namespace ScottWisper.Services
         /// <summary>
         /// Starts monitoring for device changes using WM_DEVICECHANGE
         /// </summary>
-        public async Task<bool> MonitorDeviceChangesAsync()
+        public Task<bool> MonitorDeviceChangesAsync()
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                lock (_deviceLock)
                 {
-                    lock (_deviceLock)
+                    if (_isMonitoring) return Task.FromResult(true);
+
+                    // Create a hidden window to receive device change messages
+                    _messageWindowHandle = CreateWindowEx(
+                        WS_EX_NOACTIVATE,
+                        "STATIC",
+                        "DeviceChangeMonitor",
+                        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                        0, 0, 0, 0,
+                        new IntPtr(0), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+
+                    if (_messageWindowHandle == IntPtr.Zero)
                     {
-                        if (_isMonitoring) return true;
+                        System.Diagnostics.Debug.WriteLine("Failed to create message window");
+                        return Task.FromResult(false);
+                    }
 
-                        // Create a hidden window to receive device change messages
-                        _messageWindowHandle = CreateWindowEx(
-                            WS_EX_NOACTIVATE,
-                            "STATIC",
-                            "DeviceChangeMonitor",
-                            WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                            0, 0, 0, 0,
-                            new IntPtr(0), IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                    // Register for device notifications
+                    var deviceInterface = new DEV_BROADCAST_DEVICEINTERFACE
+                    {
+                        dbcc_size = Marshal.SizeOf<DEV_BROADCAST_DEVICEINTERFACE>(),
+                        dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE,
+                        dbcc_classguid = GUID_DEVINTERFACE_AUDIO_CAPTURE,
+                        dbcc_name = new char[1]
+                    };
 
-                        if (_messageWindowHandle == IntPtr.Zero)
-                        {
-                            System.Diagnostics.Debug.WriteLine("Failed to create message window");
-                            return false;
-                        }
-
-                        // Register for device notifications
-                        var deviceInterface = new DEV_BROADCAST_DEVICEINTERFACE
-                        {
-                            dbcc_size = Marshal.SizeOf<DEV_BROADCAST_DEVICEINTERFACE>(),
-                            dbcc_devicetype = DBT_DEVTYP_DEVICEINTERFACE,
-                            dbcc_classguid = GUID_DEVINTERFACE_AUDIO_CAPTURE,
-                            dbcc_name = new char[1]
-                        };
-
-                        _deviceNotificationHandle = RegisterDeviceNotification(_messageWindowHandle, ref deviceInterface, DEVICE_NOTIFY_WINDOW_HANDLE);
+                    _deviceNotificationHandle = RegisterDeviceNotification(_messageWindowHandle, ref deviceInterface, DEVICE_NOTIFY_WINDOW_HANDLE);
+                    
+                    if (_deviceNotificationHandle != IntPtr.Zero)
+                    {
+                        _isMonitoring = true;
+                        System.Diagnostics.Debug.WriteLine("Device change monitoring started successfully");
                         
-                        if (_deviceNotificationHandle != IntPtr.Zero)
+                        // Start monitoring thread to process messages
+                        _ = Task.Run(() => MonitorDeviceMessages());
+                        return Task.FromResult(true);
+                    }
+                    else
+                    {
+                        if (_messageWindowHandle != IntPtr.Zero)
                         {
-                            _isMonitoring = true;
-                            System.Diagnostics.Debug.WriteLine("Device change monitoring started successfully");
-                            
-                            // Start monitoring thread to process messages
-                            _ = Task.Run(() => MonitorDeviceMessages());
-                            return true;
+                            DestroyWindow(_messageWindowHandle);
+                            _messageWindowHandle = IntPtr.Zero;
                         }
-                        else
-                        {
-                            if (_messageWindowHandle != IntPtr.Zero)
-                            {
-                                DestroyWindow(_messageWindowHandle);
-                                _messageWindowHandle = IntPtr.Zero;
-                            }
-                            System.Diagnostics.Debug.WriteLine("Failed to register for device notifications");
-                            return false;
-                        }
+                        System.Diagnostics.Debug.WriteLine("Failed to register for device notifications");
+                        return Task.FromResult(false);
                     }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
-                    return false;
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
+                return Task.FromResult(false);
+            }
         }
 
         /// <summary>
@@ -1511,69 +1480,65 @@ namespace ScottWisper.Services
         /// <summary>
         /// Shows user-friendly permission request dialog
         /// </summary>
-        public async Task<bool> ShowPermissionRequestDialogAsync()
+        public Task<bool> ShowPermissionRequestDialogAsync()
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                // Show Windows microphone privacy settings
+                const string settingsPath = "ms-settings:privacy-microphone";
+                var result = ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
+                
+                if (result.ToInt32() > 32) // ShellExecute success
                 {
-                    // Show Windows microphone privacy settings
-                    const string settingsPath = "ms-settings:privacy-microphone";
-                    var result = ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
-                    
-                    if (result.ToInt32() > 32) // ShellExecute success
-                    {
-                        _lastPermissionRequest = DateTime.Now;
-                        System.Diagnostics.Debug.WriteLine("Permission request dialog opened successfully");
-                        return true;
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Failed to open permission request dialog");
-                        return false;
-                    }
+                    _lastPermissionRequest = DateTime.Now;
+                    System.Diagnostics.Debug.WriteLine("Permission request dialog opened successfully");
+                    return Task.FromResult(true);
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error showing permission request dialog: {ex.Message}");
-                    return false;
+                    System.Diagnostics.Debug.WriteLine("Failed to open permission request dialog");
+                    return Task.FromResult(false);
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing permission request dialog: {ex.Message}");
+                return Task.FromResult(false);
+            }
         }
 
         /// <summary>
         /// Shows permission status notification in system tray
         /// </summary>
-        public async Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message)
+        public Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message)
         {
-            await Task.Run(() =>
+            try
             {
-                try
+                var title = status switch
                 {
-                    var title = status switch
-                    {
-                        MicrophonePermissionStatus.Granted => "Microphone Access Granted",
-                        MicrophonePermissionStatus.Denied => "Microphone Access Denied",
-                        MicrophonePermissionStatus.Unknown => "Microphone Status Unknown",
-                        _ => "Microphone Permission"
-                    };
+                    MicrophonePermissionStatus.Granted => "Microphone Access Granted",
+                    MicrophonePermissionStatus.Denied => "Microphone Access Denied",
+                    MicrophonePermissionStatus.Unknown => "Microphone Status Unknown",
+                    _ => "Microphone Permission"
+                };
 
-                    // Icon types for notification (simplified - would use actual notification system)
-                    var iconType = status switch
-                    {
-                        MicrophonePermissionStatus.Granted => "Info",
-                        MicrophonePermissionStatus.Denied => "Error",
-                        _ => "Warning"
-                    };
-
-                    // This would integrate with SystemTrayService for notifications
-                    System.Diagnostics.Debug.WriteLine($"Permission Notification: {title} - {message}");
-                }
-                catch (Exception ex)
+                // Icon types for notification (simplified - would use actual notification system)
+                var iconType = status switch
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error showing permission status notification: {ex.Message}");
-                }
-            });
+                    MicrophonePermissionStatus.Granted => "Info",
+                    MicrophonePermissionStatus.Denied => "Error",
+                    _ => "Warning"
+                };
+
+                // This would integrate with SystemTrayService for notifications
+                System.Diagnostics.Debug.WriteLine($"Permission Notification: {title} - {message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing permission status notification: {ex.Message}");
+            }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -1705,29 +1670,28 @@ namespace ScottWisper.Services
         /// <summary>
         /// Enters graceful fallback mode when permission or device issues occur
         /// </summary>
-        public async Task EnterGracefulFallbackModeAsync(string reason)
+        public Task EnterGracefulFallbackModeAsync(string reason)
         {
-            await Task.Run(() =>
+            try
             {
-                try
+                System.Diagnostics.Debug.WriteLine($"Entering graceful fallback mode: {reason}");
+                
+                // Stop any active monitoring - fire and forget, this is synchronous
+                _ = StopRealTimeMonitoringAsync();
+                
+                // Notify about fallback mode
+                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, reason)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Entering graceful fallback mode: {reason}");
-                    
-                    // Stop any active monitoring
-                    StopRealTimeMonitoringAsync().Wait();
-                    
-                    // Notify about fallback mode
-                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, reason)
-                    {
-                        RequiresUserAction = true,
-                        GuidanceAction = "Check Windows Settings > Privacy > Microphone"
-                    });
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error entering graceful fallback mode: {ex.Message}");
-                }
-            });
+                    RequiresUserAction = true,
+                    GuidanceAction = "Check Windows Settings > Privacy > Microphone"
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error entering graceful fallback mode: {ex.Message}");
+            }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -1825,90 +1789,86 @@ namespace ScottWisper.Services
         /// <summary>
         /// Switches to the specified audio device with validation and error handling
         /// </summary>
-        public async Task<bool> SwitchDeviceAsync(string deviceId)
+        public Task<bool> SwitchDeviceAsync(string deviceId)
         {
-            if (_disposed) return false;
+            if (_disposed) return Task.FromResult(false);
             
-            return await Task.Run(async () =>
+            lock (_lockObject)
             {
-                lock (_lockObject)
+                try
                 {
-
-                    try
+                    // Get the target device
+                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                        .FirstOrDefault(d => d.ID == deviceId);
+                    
+                    if (device == null)
                     {
-                        // Get the target device
-                        var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                            .FirstOrDefault(d => d.ID == deviceId);
+                        System.Diagnostics.Debug.WriteLine($"Device with ID {deviceId} not found");
+                        return Task.FromResult(false);
+                    }
+
+                    // Test device compatibility
+                    if (!IsDeviceCompatible(deviceId))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Device {deviceId} is not compatible");
+                        return Task.FromResult(false);
+                    }
+
+                    // Test device functionality
+                    using (var waveIn = new WaveInEvent())
+                    {
+                        waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                        waveIn.WaveFormat = new WaveFormat(16000, 1);
                         
-                        if (device == null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Device with ID {deviceId} not found");
-                            return false;
-                        }
-
-                        // Test device compatibility
-                        if (!IsDeviceCompatible(deviceId))
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Device {deviceId} is not compatible");
-                            return false;
-                        }
-
-                        // Test device functionality
-                        using (var waveIn = new WaveInEvent())
-                        {
-                            waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                            waveIn.WaveFormat = new WaveFormat(16000, 1);
-                            
-                            // Test if device can be configured and started
-                            waveIn.StartRecording();
-                            Thread.Sleep(100); // Brief test
-                            waveIn.StopRecording();
-                        }
-
-                        // Check microphone permission for the device
-                        var permissionStatus = CheckMicrophonePermissionForDevice(deviceId).Result;
-                        if (permissionStatus != MicrophonePermissionStatus.Granted)
-                        {
-                            // Try to request permission
-                            var permissionGranted = RequestMicrophonePermissionAsync().Result;
-                            if (!permissionGranted)
-                            {
-                                PermissionDenied?.Invoke(this, new PermissionEventArgs(
-                                    MicrophonePermissionStatus.Denied, 
-                                    "Cannot switch to device - microphone permission denied", 
-                                    deviceId));
-                                return false;
-                            }
-                        }
-
-                        // Device switch successful
-                        System.Diagnostics.Debug.WriteLine($"Successfully switched to device: {device.FriendlyName}");
-                        
-                        // Raise device connected event for UI updates
-                        var audioDevice = CreateAudioDevice(device);
-                        if (audioDevice != null)
-                        {
-                            DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(audioDevice));
-                        }
-
-                        return true;
+                        // Test if device can be configured and started
+                        waveIn.StartRecording();
+                        Thread.Sleep(100); // Brief test
+                        waveIn.StopRecording();
                     }
-                    catch (UnauthorizedAccessException ex)
+
+                    // Check microphone permission for the device
+                    var permissionStatus = CheckMicrophonePermissionForDevice(deviceId).Result;
+                    if (permissionStatus != MicrophonePermissionStatus.Granted)
                     {
-                        PermissionDenied?.Invoke(this, new PermissionEventArgs(
-                            MicrophonePermissionStatus.Denied, 
-                            "Access to device denied - check Windows Privacy Settings", 
-                            deviceId, ex));
-                        System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
-                        return false;
+                        // Try to request permission
+                        var permissionGranted = RequestMicrophonePermissionAsync().Result;
+                        if (!permissionGranted)
+                        {
+                            PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                                MicrophonePermissionStatus.Denied, 
+                                "Cannot switch to device - microphone permission denied", 
+                                deviceId));
+                            return Task.FromResult(false);
+                        }
                     }
-                    catch (Exception ex)
+
+                    // Device switch successful
+                    System.Diagnostics.Debug.WriteLine($"Successfully switched to device: {device.FriendlyName}");
+                    
+                    // Raise device connected event for UI updates
+                    var audioDevice = CreateAudioDevice(device);
+                    if (audioDevice != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
-                        return false;
+                        DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(audioDevice));
                     }
+
+                    return Task.FromResult(true);
                 }
-            });
+                catch (UnauthorizedAccessException ex)
+                {
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                        MicrophonePermissionStatus.Denied, 
+                        "Access to device denied - check Windows Privacy Settings", 
+                        deviceId, ex));
+                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                    return Task.FromResult(false);
+                }
+            }
         }
 
         /// <summary>
