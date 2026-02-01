@@ -14,11 +14,13 @@ namespace ScottWisper
 {
     public class AudioCaptureService : IAudioCaptureService
     {
-        private WaveInEvent? _waveIn;
+        private IWaveIn? _waveIn;
         private ConcurrentQueue<byte[]>? _audioBuffer;
         private bool _isCapturing;
         private readonly ISettingsService? _settingsService;
         private readonly IAudioDeviceService? _audioDeviceService;
+        private readonly IWaveIn? _waveInInstance;
+        private readonly Func<IWaveIn>? _waveInFactory;
         
         // Audio format specifications (will be loaded from settings)
         private int _sampleRate = 16000; // 16kHz default
@@ -47,7 +49,7 @@ namespace ScottWisper
 
         public AudioCaptureService()
         {
-            // Use default values
+            // Use default values and create WaveIn internally
         }
         
         public AudioCaptureService(ISettingsService settingsService)
@@ -60,6 +62,45 @@ namespace ScottWisper
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
+            LoadAudioSettingsFromSettings();
+            
+            // Subscribe to permission events from AudioDeviceService
+            if (_audioDeviceService != null)
+            {
+                _audioDeviceService.PermissionDenied += OnPermissionDenied;
+                _audioDeviceService.PermissionGranted += OnPermissionGranted;
+                _audioDeviceService.PermissionRequestFailed += OnPermissionRequestFailed;
+            }
+        }
+
+        /// <summary>
+        /// Constructor that accepts an IWaveIn instance for dependency injection and testing.
+        /// </summary>
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IWaveIn waveIn)
+        {
+            _settingsService = settingsService;
+            _audioDeviceService = audioDeviceService;
+            _waveInInstance = waveIn;
+            LoadAudioSettingsFromSettings();
+            
+            // Subscribe to permission events from AudioDeviceService
+            if (_audioDeviceService != null)
+            {
+                _audioDeviceService.PermissionDenied += OnPermissionDenied;
+                _audioDeviceService.PermissionGranted += OnPermissionGranted;
+                _audioDeviceService.PermissionRequestFailed += OnPermissionRequestFailed;
+            }
+        }
+
+        /// <summary>
+        /// Constructor that accepts a factory function for creating IWaveIn instances.
+        /// Useful for scenarios where multiple instances might be needed.
+        /// </summary>
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, Func<IWaveIn> waveInFactory)
+        {
+            _settingsService = settingsService;
+            _audioDeviceService = audioDeviceService;
+            _waveInFactory = waveInFactory;
             LoadAudioSettingsFromSettings();
             
             // Subscribe to permission events from AudioDeviceService
@@ -140,12 +181,11 @@ namespace ScottWisper
                     throw new InvalidOperationException("No audio input devices found");
                 }
                 
-                // Initialize audio capture with settings-based values
-                _waveIn = new WaveInEvent
-                {
-                    WaveFormat = new WaveFormat(_sampleRate, _bitDepth, _channels),
-                    BufferMilliseconds = (int)((_bufferSize * 1000.0) / _sampleRate)
-                };
+                // Initialize audio capture with injected or created IWaveIn
+                _waveIn = _waveInInstance ?? _waveInFactory?.Invoke() ?? new WaveInWrapper();
+                
+                _waveIn.WaveFormat = new WaveFormat(_sampleRate, _bitDepth, _channels);
+                _waveIn.BufferMilliseconds = (int)((_bufferSize * 1000.0) / _sampleRate);
                 
                 // Set up event handlers
                 _waveIn.DataAvailable += OnDataAvailable;
