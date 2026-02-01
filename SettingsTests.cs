@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScottWisper.Services;
 using ScottWisper.Configuration;
@@ -50,7 +51,7 @@ namespace ScottWisper.Tests
                 .Build();
 
  var optionsMonitor = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            _settingsService = new SettingsService(configuration, optionsMonitor);
+            _settingsService = new SettingsService(configuration, optionsMonitor, NullLogger<SettingsService>.Instance);
         }
 
         [TestCleanup]
@@ -92,7 +93,7 @@ namespace ScottWisper.Tests
                 .Build();
             
             var newOptionsMonitor = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            var newSettingsService = new SettingsService(newConfiguration, newOptionsMonitor);
+            var newSettingsService = new SettingsService(newConfiguration, newOptionsMonitor, NullLogger<SettingsService>.Instance);
             var loadedSettings = newSettingsService.Settings;
 
             Assert.AreEqual(48000, loadedSettings.Audio.SampleRate, "Should persist modified sample rate");
@@ -285,7 +286,7 @@ namespace ScottWisper.Tests
                 .Build();
 
             var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            var recoveryService = new SettingsService(configuration, options);
+            var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance);
 
             // Should recover with default settings
             var recoveredSettings = recoveryService.Settings;

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.IO;
@@ -90,18 +91,19 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
     {
         private readonly IConfiguration _configuration;
         private readonly IOptionsMonitor<AppSettings> _options;
+        private readonly ILogger<SettingsService> _logger;
         private readonly string _userSettingsPath;
-        private readonly string _encryptionKey;
         private AppSettings _currentSettings;
 
         public AppSettings Settings => _currentSettings;
 
         public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
 
-        public SettingsService(IConfiguration configuration, IOptionsMonitor<AppSettings> options)
+        public SettingsService(IConfiguration configuration, IOptionsMonitor<AppSettings> options, ILogger<SettingsService> logger)
         {
             _configuration = configuration;
             _options = options;
+            _logger = logger;
             _currentSettings = options.CurrentValue;
             
             // Initialize user settings path in %APPDATA%
@@ -109,9 +111,6 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             var appFolder = Path.Combine(appDataPath, "ScottWisper");
             Directory.CreateDirectory(appFolder);
             _userSettingsPath = Path.Combine(appFolder, "usersettings.json");
-            
-            // Initialize encryption key based on machine info
-            _encryptionKey = GenerateMachineSpecificKey();
             
             // Load user-specific settings
             _ = LoadUserSettingsAsync();
@@ -549,15 +548,13 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
             }
         }
 
-        private string GenerateMachineSpecificKey()
+        private byte[] GenerateEntropy()
         {
-            // Use a combination of machine name and user name for encryption
-            var machineKey = $"{Environment.MachineName}_{Environment.UserName}";
-            var keyBytes = Encoding.UTF8.GetBytes(machineKey);
-            
-            // Use SHA256 to create a consistent 32-byte key
+            // Use Windows DPAPI with optional entropy tied to machine and user
+            // This provides secure encryption without managing keys ourselves
+            var entropySource = $"{Environment.MachineName}_{Environment.UserName}_ScottWisper_v1";
             using var sha256 = SHA256.Create();
-            return Convert.ToBase64String(sha256.ComputeHash(keyBytes));
+            return sha256.ComputeHash(Encoding.UTF8.GetBytes(entropySource));
         }
 
         private string EncryptString(string plainText)
@@ -567,25 +564,20 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
 
             try
             {
-                using var aes = Aes.Create();
-                var key = Convert.FromBase64String(_encryptionKey);
-                aes.Key = key;
-                aes.GenerateIV();
-
-                using var encryptor = aes.CreateEncryptor();
-                using var msEncrypt = new MemoryStream();
+                var plainBytes = Encoding.UTF8.GetBytes(plainText);
+                var entropy = GenerateEntropy();
                 
-                // Write IV to the beginning of the stream
-                msEncrypt.Write(aes.IV, 0, aes.IV.Length);
+                // Use Windows DPAPI for secure encryption tied to the current user
+                var encryptedBytes = ProtectedData.Protect(
+                    plainBytes, 
+                    entropy, 
+                    DataProtectionScope.CurrentUser);
                 
-                using var csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write);
-                using var swEncrypt = new StreamWriter(csEncrypt);
-                swEncrypt.Write(plainText);
-                
-                return Convert.ToBase64String(msEncrypt.ToArray());
+                return Convert.ToBase64String(encryptedBytes);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to encrypt string");
                 return string.Empty;
             }
         }
@@ -597,30 +589,20 @@ public async Task SetFallbackOutputDeviceAsync(string deviceId)
 
             try
             {
-                var fullCipher = Convert.FromBase64String(encryptedText);
+                var encryptedBytes = Convert.FromBase64String(encryptedText);
+                var entropy = GenerateEntropy();
                 
-                using var aes = Aes.Create();
-                var key = Convert.FromBase64String(_encryptionKey);
-                aes.Key = key;
+                // Use Windows DPAPI to decrypt data
+                var decryptedBytes = ProtectedData.Unprotect(
+                    encryptedBytes, 
+                    entropy, 
+                    DataProtectionScope.CurrentUser);
                 
-                // Extract IV from the beginning of the cipher text
-                var iv = new byte[aes.BlockSize / 8];
-                Array.Copy(fullCipher, 0, iv, 0, iv.Length);
-                aes.IV = iv;
-                
-                // Extract the actual cipher text
-                var cipherText = new byte[fullCipher.Length - iv.Length];
-                Array.Copy(fullCipher, iv.Length, cipherText, 0, cipherText.Length);
-                
-                using var decryptor = aes.CreateDecryptor();
-                using var msDecrypt = new MemoryStream(cipherText);
-                using var csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read);
-                using var srDecrypt = new StreamReader(csDecrypt);
-                
-                return srDecrypt.ReadToEnd();
+                return Encoding.UTF8.GetString(decryptedBytes);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to decrypt string");
                 return string.Empty;
             }
         }

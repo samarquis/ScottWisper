@@ -1,4 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScottWisper.Services;
 using ScottWisper.Configuration;
 using System;
@@ -7,8 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Security.Cryptography;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Configuration;
 
 namespace ScottWisper.Tests
 {
@@ -48,7 +49,7 @@ namespace ScottWisper.Tests
                 .Build();
 
             var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            _settingsService = new SettingsService(configuration, options);
+            _settingsService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance);
         }
 
         [TestCleanup]
@@ -279,7 +280,7 @@ namespace ScottWisper.Tests
                     .Build();
                 
                 var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-                var recoveryService = new SettingsService(configuration, options);
+                var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance);
                 
                 // Should not crash, should fall back to defaults
                 var recoveredSettings = recoveryService.Settings;
