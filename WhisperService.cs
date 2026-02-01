@@ -15,10 +15,12 @@ namespace WhisperKey
     {
         private readonly HttpClient _httpClient;
         private string _apiKey;
-        private readonly string _baseUrl = "https://api.openai.com/v1/audio/transcriptions";
+        private string _baseUrl;
         private readonly ISettingsService? _settingsService;
         private readonly LocalInferenceService? _localInference;
         private readonly bool _ownsHttpClient;
+        
+        private const string DefaultApiEndpoint = "https://api.openai.com/v1/audio/transcriptions";
         
         // API usage tracking
         private int _requestCount = 0;
@@ -36,6 +38,7 @@ namespace WhisperKey
         public WhisperService()
         {
             _apiKey = GetApiKey();
+            _baseUrl = DefaultApiEndpoint;
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             _ownsHttpClient = true;
@@ -51,6 +54,7 @@ namespace WhisperKey
             _settingsService = settingsService;
             _localInference = localInference;
             _apiKey = GetApiKeyFromSettings();
+            _baseUrl = GetApiEndpointFromSettings();
             
             // Use IHttpClientFactory if available to prevent socket exhaustion
             if (httpClientFactory != null)
@@ -299,6 +303,27 @@ namespace WhisperKey
             return GetApiKey();
         }
 
+        private string GetApiEndpointFromSettings()
+        {
+            if (_settingsService != null)
+            {
+                try
+                {
+                    var endpoint = _settingsService.Settings.Transcription.ApiEndpoint;
+                    if (!string.IsNullOrEmpty(endpoint))
+                    {
+                        return endpoint;
+                    }
+                }
+                catch (Exception ex) when (!IsFatalException(ex))
+                {
+                    // Fall back to default endpoint
+                }
+            }
+            
+            return DefaultApiEndpoint;
+        }
+
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
         {
             await Task.Run(() => {
@@ -306,13 +331,23 @@ namespace WhisperKey
                 if (e.Category == "Transcription")
                 {
                     // Update API key if it changed
-                    if (e.Key.Contains("Api") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+                    if (e.Key.Contains("ApiKey") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
                     {
                         var newApiKey = GetApiKeyFromSettings();
                         if (!string.IsNullOrEmpty(newApiKey) && newApiKey != _apiKey)
                         {
                             _apiKey = newApiKey;
                             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                        }
+                    }
+                    
+                    // Update API endpoint if it changed
+                    if (e.Key.Contains("ApiEndpoint") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+                    {
+                        var newEndpoint = GetApiEndpointFromSettings();
+                        if (!string.IsNullOrEmpty(newEndpoint) && newEndpoint != _baseUrl)
+                        {
+                            _baseUrl = newEndpoint;
                         }
                     }
                 }

@@ -731,6 +731,9 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             if (!_currentSettings.Hotkeys.Profiles.TryGetValue(profileId, out var profile))
                 throw new ArgumentException($"Profile {profileId} not found");
 
+            // Validate file path to prevent path traversal attacks
+            var validatedPath = ValidateFilePath(filePath);
+
             var exportData = new
             {
                 Profile = profile,
@@ -746,19 +749,22 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             };
 
             var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
+            await File.WriteAllTextAsync(validatedPath, json).ConfigureAwait(false);
 
             // Store backup path
-            _currentSettings.Hotkeys.BackupProfilePath = filePath;
+            _currentSettings.Hotkeys.BackupProfilePath = validatedPath;
             await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task<HotkeyProfile> ImportHotkeyProfileAsync(string filePath)
         {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"Profile file not found: {filePath}");
+            // Validate file path to prevent path traversal attacks
+            var validatedPath = ValidateFilePath(filePath);
 
-            var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+            if (!File.Exists(validatedPath))
+                throw new FileNotFoundException($"Profile file not found: {validatedPath}");
+
+            var json = await File.ReadAllTextAsync(validatedPath).ConfigureAwait(false);
             var importData = JsonSerializer.Deserialize<JsonElement>(json);
             
             var profile = JsonSerializer.Deserialize<HotkeyProfile>(
@@ -777,6 +783,48 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
 
             await CreateHotkeyProfileAsync(profile).ConfigureAwait(false);
             return profile;
+        }
+
+        /// <summary>
+        /// Validates a file path to prevent path traversal attacks.
+        /// Ensures the resolved path is within allowed user directories.
+        /// </summary>
+        /// <param name="filePath">The file path to validate</param>
+        /// <returns>The validated full path</returns>
+        /// <exception cref="SecurityException">Thrown when path attempts directory traversal outside allowed directories</exception>
+        private string ValidateFilePath(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+                throw new ArgumentException("File path cannot be empty", nameof(filePath));
+
+            // Resolve to full path
+            var fullPath = Path.GetFullPath(filePath);
+
+            // Define allowed base directories (user-controlled locations only)
+            var allowedBasePaths = new[]
+            {
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                Path.GetTempPath()
+            };
+
+            // Check if the path is within any allowed directory
+            var isAllowed = allowedBasePaths.Any(basePath =>
+                !string.IsNullOrEmpty(basePath) && 
+                (fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase) ||
+                 fullPath.Equals(basePath, StringComparison.OrdinalIgnoreCase)));
+
+            if (!isAllowed)
+            {
+                throw new SecurityException(
+                    $"Access denied: Path '{filePath}' resolves to '{fullPath}' which is outside of allowed directories. " +
+                    "Files can only be accessed within ApplicationData, Documents, Desktop, UserProfile, or Temp directories.");
+            }
+
+            return fullPath;
         }
 
         public async Task<HotkeyValidationResult> ValidateHotkeyAsync(string combination)
