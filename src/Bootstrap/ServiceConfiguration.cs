@@ -3,10 +3,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
-using ScottWisper.Configuration;
-using ScottWisper.Services;
+using WhisperKey.Configuration;
+using WhisperKey.Services;
 
-namespace ScottWisper.Bootstrap
+namespace WhisperKey.Bootstrap
 {
     /// <summary>
     /// Configures dependency injection services for the application
@@ -46,7 +46,7 @@ namespace ScottWisper.Bootstrap
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile(Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-                    "ScottWisper", 
+                    "WhisperKey", 
                     "usersettings.json"), optional: true, reloadOnChange: true);
 
             var configuration = builder.Build();

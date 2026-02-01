@@ -1,7 +1,7 @@
-# ScottWisper Deployment Readiness Review
+# WhisperKey Deployment Readiness Review
 
 **Date:** 2026-01-31  
-**Application:** ScottWisper - Windows Voice Dictation Software  
+**Application:** WhisperKey - Windows Voice Dictation Software  
 **Framework:** .NET 8.0 WPF  
 **Target Runtime:** win-x64  
 
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-The ScottWisper application is **READY FOR DEPLOYMENT** with minor issues to address. The build succeeds with only 2 warnings related to package compatibility. The application uses a self-contained, single-file deployment model which simplifies distribution.
+The WhisperKey application is **READY FOR DEPLOYMENT** with minor issues to address. The build succeeds with only 2 warnings related to package compatibility. The application uses a self-contained, single-file deployment model which simplifies distribution.
 
 **Overall Status:** ✅ **DEPLOYABLE** with low risk
 
@@ -34,7 +34,7 @@ The ScottWisper application is **READY FOR DEPLOYMENT** with minor issues to add
 ## 2. Critical Issues (MUST FIX)
 
 ### ⚠️ ISSUE-001: Hardcoded Product Code in WiX Installer
-**Location:** `Installer/ScottWisper.wxs:21` and `src/Services/EnterpriseDeploymentService.cs:77`
+**Location:** `Installer/WhisperKey.wxs:21` and `src/Services/EnterpriseDeploymentService.cs:77`
 
 **Problem:**
 ```xml
@@ -118,7 +118,7 @@ return string.Empty;
 
 ### ⚠️ ISSUE-004: Version Number Hardcoded in Multiple Locations
 **Locations:**
-- `Installer/ScottWisper.wxs:19` - `Version="1.0.0"`
+- `Installer/WhisperKey.wxs:19` - `Version="1.0.0"`
 - `Installer/build-msi.ps1:5` - `[string]$Version = "1.0.0"`
 - `EnterpriseDeploymentService.cs` - References version from registry
 
@@ -129,7 +129,7 @@ return string.Empty;
 
 **Fix:**
 Use a single source of truth:
-1. Add `Version` property to `ScottWisper.csproj`
+1. Add `Version` property to `WhisperKey.csproj`
 2. Reference it in WiX using preprocessor variables
 3. Update build script to read from project file
 
@@ -141,7 +141,7 @@ Use a single source of truth:
 ## 3. Moderate Issues (SHOULD FIX)
 
 ### ⚠️ ISSUE-005: Missing Runtime Configuration in publish folder
-**Location:** `publish/ScottWisper.runtimeconfig.json`
+**Location:** `publish/WhisperKey.runtimeconfig.json`
 
 **Current:**
 ```json
@@ -213,7 +213,7 @@ jobs:
 ---
 
 ### ⚠️ ISSUE-007: Test Framework References in Release Build
-**Location:** `ScottWisper.csproj:34-37`
+**Location:** `WhisperKey.csproj:34-37`
 
 **Problem:**
 ```xml
@@ -262,7 +262,7 @@ All API communication uses HTTPS (OpenAI endpoint). Ensure this remains enforced
 ## 5. Deployment Configuration
 
 ### ✅ PASS - Self-Contained Deployment
-**Configuration in ScottWisper.csproj:**
+**Configuration in WhisperKey.csproj:**
 ```xml
 <SelfContained>true</SelfContained>
 <PublishSingleFile>true</PublishSingleFile>
@@ -328,7 +328,7 @@ All API communication uses HTTPS (OpenAI endpoint). Ensure this remains enforced
 # Build
 dotnet publish --configuration Release --self-contained
 
-# Result: publish/ScottWisper.exe (single file)
+# Result: publish/WhisperKey.exe (single file)
 # Size: ~150-200MB (includes .NET runtime)
 ```
 
@@ -348,13 +348,13 @@ dotnet publish --configuration Release --self-contained
 # Build
 ./Installer/build-msi.ps1 -Version "1.0.0" -PublishDir "./publish"
 
-# Result: ScottWisper.msi
+# Result: WhisperKey.msi
 
 # Install
-msiexec /i ScottWisper.msi /qn
+msiexec /i WhisperKey.msi /qn
 
 # Uninstall
-msiexec /x ScottWisper.msi /qn
+msiexec /x WhisperKey.msi /qn
 ```
 
 **Pros:**
@@ -461,7 +461,7 @@ dotnet test
 
 **Status:** ✅ **READY FOR DEPLOYMENT** (with minor fixes)
 
-ScottWisper is a well-architected Windows desktop application ready for deployment. The self-contained, single-file approach simplifies distribution significantly. 
+WhisperKey is a well-architected Windows desktop application ready for deployment. The self-contained, single-file approach simplifies distribution significantly. 
 
 **The only CRITICAL issue is the hardcoded Product Code (ISSUE-001)** which must be fixed before creating the MSI installer to avoid upgrade conflicts.
 

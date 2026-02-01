@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Models;
-using ScottWisper.Services;
+using WhisperKey.Models;
+using WhisperKey.Services;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Service for processing voice commands in transcription text

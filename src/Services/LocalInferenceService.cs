@@ -5,12 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NAudio.Wave;
-using ScottWisper.Configuration;
-using ScottWisper.Models;
+using WhisperKey.Configuration;
+using WhisperKey.Models;
 using Whisper.net;
-using Whisper.net.Ggml;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Interface for local inference service

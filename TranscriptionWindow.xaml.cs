@@ -6,7 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public partial class TranscriptionWindow : Window
     {

@@ -8,9 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public class AudioCaptureService : IAudioCaptureService
     {

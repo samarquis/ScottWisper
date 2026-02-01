@@ -4,12 +4,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Integration;
-using ScottWisper.Services;
-using ScottWisper.Validation;
-using ScottWisper; // For CrossApplicationValidationResult
+using WhisperKey.Integration;
+using WhisperKey.Services;
+using WhisperKey.Validation;
+using WhisperKey; // For CrossApplicationValidationResult
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class GapClosureValidationTests
@@ -50,7 +50,7 @@ namespace ScottWisper.Tests
                 .Returns(Task.FromResult(true));
             
             _crossAppMock.Setup(x => x.ValidateCrossApplicationInjectionAsync())
-                .Returns(Task.FromResult(new ScottWisper.CrossApplicationValidationResult { OverallSuccessRate = 100, TotalApplicationsTested = 1, SuccessfulApplications = 1 }));
+                .Returns(Task.FromResult(new WhisperKey.CrossApplicationValidationResult { OverallSuccessRate = 100, TotalApplicationsTested = 1, SuccessfulApplications = 1 }));
             
             _audioDeviceMock.Setup(x => x.GetInputDevicesAsync())
                 .Returns(Task.FromResult(new System.Collections.Generic.List<AudioDevice> { new AudioDevice { Id = "test-mic", Name = "Test Microphone" } }));

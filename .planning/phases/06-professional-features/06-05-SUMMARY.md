@@ -58,7 +58,7 @@ Enable enterprise-grade deployment and integration capabilities (PRIV-02).
      - Retry logic with exponential backoff
      - Event filtering by type
 
-4. **Installer/ScottWisperSetup.wxs** (350+ lines)
+4. **Installer/WhisperKeySetup.wxs** (350+ lines)
    - WiX MSI installer configuration:
      - Silent installation support (/qn)
      - Per-machine installation (ALLUSERS=1)
@@ -90,13 +90,13 @@ Enable enterprise-grade deployment and integration capabilities (PRIV-02).
 **Command Line Installation:**
 ```powershell
 # Basic silent install
-msiexec /i ScottWisper.msi /qn /norestart
+msiexec /i WhisperKey.msi /qn /norestart
 
 # Silent with logging
-msiexec /i ScottWisper.msi /qn /l*v install.log
+msiexec /i WhisperKey.msi /qn /l*v install.log
 
 # Silent with custom settings
-msiexec /i ScottWisper.msi /qn ORGANIZATION="MyCorp" LICENSEKEY="XXXX-XXXX-XXXX-XXXX"
+msiexec /i WhisperKey.msi /qn ORGANIZATION="MyCorp" LICENSEKEY="XXXX-XXXX-XXXX-XXXX"
 ```
 
 **Supported Properties:**
@@ -119,7 +119,7 @@ msiexec /i ScottWisper.msi /qn ORGANIZATION="MyCorp" LICENSEKEY="XXXX-XXXX-XXXX-
 $script = Generate-GPO-Script
 
 # Deploy via GPO
-.\Deploy-GPO.ps1 -MsiPath "\\server\share\ScottWisper.msi" -OrganizationalUnit "OU=Workstations,DC=corp,DC=com"
+.\Deploy-GPO.ps1 -MsiPath "\\server\share\WhisperKey.msi" -OrganizationalUnit "OU=Workstations,DC=corp,DC=com"
 ```
 
 **GPO Configuration:**
@@ -172,13 +172,13 @@ var service = new EnterpriseDeploymentService(logger);
 var config = await service.GenerateDeploymentConfigAsync("MyCorp", DeploymentType.MSI);
 config.LicenseKey = "AAAA-BBBB-CCCC-DDDD";
 config.Settings.ApiKey = "sk-xxx";
-config.Webhook.EndpointUrl = "https://hooks.example.com/scottwisper";
+config.Webhook.EndpointUrl = "https://hooks.example.com/WhisperKey";
 ```
 
 ### Silent Installation
 ```csharp
 // Install silently
-var result = await service.InstallSilentlyAsync("C:\\temp\\ScottWisper.msi", config);
+var result = await service.InstallSilentlyAsync("C:\\temp\\WhisperKey.msi", config);
 
 if (result.Success)
 {
@@ -213,7 +213,7 @@ await webhookService.SendTranscriptionCompletedAsync(
 ```csharp
 var gpoConfig = new GpoDeploymentConfig
 {
-    GpoName = "ScottWisper-Deployment",
+    GpoName = "WhisperKey-Deployment",
     OrganizationalUnit = "OU=Workstations,DC=corp,DC=com",
     AssignmentType = GpoAssignmentType.Computer
 };
@@ -282,7 +282,7 @@ The enterprise deployment integrates with:
 
 ### Scenario 1: Single Silent Install
 ```cmd
-msiexec /i ScottWisper.msi /qn LICENSEKEY="XXXX-XXXX-XXXX-XXXX"
+msiexec /i WhisperKey.msi /qn LICENSEKEY="XXXX-XXXX-XXXX-XXXX"
 ```
 
 ### Scenario 2: GPO Mass Deployment
@@ -291,7 +291,7 @@ msiexec /i ScottWisper.msi /qn LICENSEKEY="XXXX-XXXX-XXXX-XXXX"
 $script = Generate-GPO-Script
 
 # Deploy to entire domain
-New-GPO -Name "ScottWisper"
+New-GPO -Name "WhisperKey"
 # Link to OUs, assign MSI
 ```
 

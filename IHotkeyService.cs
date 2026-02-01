@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using ScottWisper.Configuration;
+using WhisperKey.Configuration;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public interface IHotkeyService : IDisposable
     {

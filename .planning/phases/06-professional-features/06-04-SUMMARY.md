@@ -43,7 +43,7 @@ Deliver industry-specific precision (PRIV-03) through vocabulary enhancements.
    - Full implementation with:
      - Built-in Medical vocabulary pack (50+ medical terms)
      - Built-in Legal vocabulary pack (50+ legal terms)
-     - JSON file storage in %APPDATA%/ScottWisper/Vocabulary
+     - JSON file storage in %APPDATA%/WhisperKey/Vocabulary
      - Transcription enhancement with term matching
      - Case-insensitive term correction
      - Custom vocabulary persistence

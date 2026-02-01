@@ -4,12 +4,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using ScottWisper.Services;
+using WhisperKey.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 using System.Text.Json;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Base class for integration testing framework
@@ -262,7 +262,7 @@ namespace ScottWisper
         private string GenerateTextReport()
         {
             var report = new System.Text.StringBuilder();
-            report.AppendLine("=== ScottWisper Integration Test Report ===");
+            report.AppendLine("=== WhisperKey Integration Test Report ===");
             report.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             report.AppendLine();
 

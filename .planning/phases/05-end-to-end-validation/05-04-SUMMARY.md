@@ -166,7 +166,7 @@ Expected performance characteristics:
 
 ---
 
-**Summary:** Performance and resource validation confirms that ScottWisper meets all professional standards:
+**Summary:** Performance and resource validation confirms that WhisperKey meets all professional standards:
 - End-to-end dictation latency is well under the 2 second threshold
 - Memory usage remains within the 200MB professional bound
 - CPU utilization is appropriate for a background utility

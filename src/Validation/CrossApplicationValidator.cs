@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Validation
+namespace WhisperKey.Validation
 {
     /// <summary>
     /// Implements comprehensive cross-application text injection validation.
@@ -37,9 +37,9 @@ namespace ScottWisper.Validation
         /// <summary>
         /// Validates text injection across all target applications.
         /// </summary>
-        public async Task<ScottWisper.CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync()
+        public async Task<WhisperKey.CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync()
         {
-            var overallResult = new ScottWisper.CrossApplicationValidationResult
+            var overallResult = new WhisperKey.CrossApplicationValidationResult
             {
                 StartTime = DateTime.UtcNow,
                 ApplicationResults = new List<ApplicationValidationResult>()
@@ -96,7 +96,7 @@ namespace ScottWisper.Validation
                 // Test cases
                 var testTexts = new[]
                 {
-                    "Hello from ScottWisper Validation!",
+                    "Hello from WhisperKey Validation!",
                     "Special characters: @#$%^&*()",
                     "Unicode test: αβγδεζ 你好世界",
                     "Multiple\nLines\nOf\nText"

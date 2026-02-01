@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     public class DictationFlowValidationResult
     {

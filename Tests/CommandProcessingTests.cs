@@ -2,10 +2,10 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ScottWisper.Models;
-using ScottWisper.Services;
+using WhisperKey.Models;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class CommandProcessingTests

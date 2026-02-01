@@ -1,6 +1,6 @@
 using System;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Event arguments for permission-related events

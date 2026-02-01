@@ -1,4 +1,4 @@
-# ScottWisper Competitive Analysis & Uniqueness Assessment
+# WhisperKey Competitive Analysis & Uniqueness Assessment
 
 **Date:** February 1, 2026  
 **Issue:** LEGAL-001  
@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-ScottWisper is a **privacy-focused professional voice dictation application** for Windows that differentiates itself through **system-level integration** and **universal text injection capabilities**. While there are other voice transcription tools available, ScottWisper's unique approach focuses on seamless Windows workflow integration rather than being a standalone transcription service.
+WhisperKey is a **privacy-focused professional voice dictation application** for Windows that differentiates itself through **system-level integration** and **universal text injection capabilities**. While there are other voice transcription tools available, WhisperKey's unique approach focuses on seamless Windows workflow integration rather than being a standalone transcription service.
 
 ---
 
@@ -25,12 +25,12 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 - Mobile apps (iOS/Android)
 - Cloud-based storage of transcripts
 
-**How ScottWisper DIFFERS:**
-- Otter is **meeting-focused** and web-based; ScottWisper is **dictation-focused** and desktop-native
-- Otter requires meetings/recordings; ScottWisper provides **instant dictation anywhere**
-- Otter stores transcripts in the cloud; ScottWisper is **privacy-first with no cloud storage**
-- Otter targets team collaboration; ScottWisper targets **individual productivity**
-- ScottWisper has **system tray integration** and **universal text injection** that Otter lacks
+**How WhisperKey DIFFERS:**
+- Otter is **meeting-focused** and web-based; WhisperKey is **dictation-focused** and desktop-native
+- Otter requires meetings/recordings; WhisperKey provides **instant dictation anywhere**
+- Otter stores transcripts in the cloud; WhisperKey is **privacy-first with no cloud storage**
+- Otter targets team collaboration; WhisperKey targets **individual productivity**
+- WhisperKey has **system tray integration** and **universal text injection** that Otter lacks
 
 ---
 
@@ -46,12 +46,12 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 - Mobile app for on-the-go use
 - Enterprise subscriptions available
 
-**How ScottWisper DIFFERS:**
-- Rev is a **service** (upload files, get transcripts back); ScottWisper is a **real-time tool** (instant dictation)
-- Rev charges per minute; ScottWisper uses **user's own OpenAI API key** with transparent cost tracking
-- Rev is for post-hoc transcription; ScottWisper is for **live dictation** with immediate text injection
-- ScottWisper has **zero wait time** vs Rev's processing time
-- ScottWisper provides **universal Windows text injection** that Rev doesn't offer
+**How WhisperKey DIFFERS:**
+- Rev is a **service** (upload files, get transcripts back); WhisperKey is a **real-time tool** (instant dictation)
+- Rev charges per minute; WhisperKey uses **user's own OpenAI API key** with transparent cost tracking
+- Rev is for post-hoc transcription; WhisperKey is for **live dictation** with immediate text injection
+- WhisperKey has **zero wait time** vs Rev's processing time
+- WhisperKey provides **universal Windows text injection** that Rev doesn't offer
 
 ---
 
@@ -67,12 +67,12 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 - Collaboration tools for teams
 - Social media clip creation
 
-**How ScottWisper DIFFERS:**
-- Descript is a **media creation studio**; ScottWisper is a **dictation utility**
-- Descript focuses on **content creation workflows**; ScottWisper focuses on **productivity/typing replacement**
-- Descript has no universal text injection; ScottWisper **injects text into any Windows application**
-- ScottWisper runs in **system tray** as a background utility; Descript is a foreground application
-- ScottWisper provides **instant dictation anywhere**; Descript requires importing media files
+**How WhisperKey DIFFERS:**
+- Descript is a **media creation studio**; WhisperKey is a **dictation utility**
+- Descript focuses on **content creation workflows**; WhisperKey focuses on **productivity/typing replacement**
+- Descript has no universal text injection; WhisperKey **injects text into any Windows application**
+- WhisperKey runs in **system tray** as a background utility; Descript is a foreground application
+- WhisperKey provides **instant dictation anywhere**; Descript requires importing media files
 
 ---
 
@@ -88,13 +88,13 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 - Free with Windows
 - Lock screen accessibility
 
-**How ScottWisper DIFFERS:**
-- Voice Access is **accessibility-focused** with limited apps; ScottWisper is **productivity-focused** with universal app support
-- Voice Access has **limited application compatibility**; ScottWisper has **universal text injection** via system-level integration
-- Voice Access is basic; ScottWisper has **professional features** (hotkey profiles, audio visualization, cost tracking)
-- Voice Access has **no system tray integration** or background operation like ScottWisper
-- ScottWisper provides **Whisper API quality** vs Windows' built-in speech recognition
-- ScottWisper has **cost tracking, usage monitoring, and advanced settings**
+**How WhisperKey DIFFERS:**
+- Voice Access is **accessibility-focused** with limited apps; WhisperKey is **productivity-focused** with universal app support
+- Voice Access has **limited application compatibility**; WhisperKey has **universal text injection** via system-level integration
+- Voice Access is basic; WhisperKey has **professional features** (hotkey profiles, audio visualization, cost tracking)
+- Voice Access has **no system tray integration** or background operation like WhisperKey
+- WhisperKey provides **Whisper API quality** vs Windows' built-in speech recognition
+- WhisperKey has **cost tracking, usage monitoring, and advanced settings**
 
 ---
 
@@ -111,14 +111,14 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 - Enterprise deployment options
 - Industry-specific versions (Medical, Legal)
 
-**How ScottWisper DIFFERS:**
-- Dragon is **expensive** ($500+); ScottWisper is **free/open source** with pay-as-you-go API costs
-- Dragon requires **training and setup**; ScottWisper works **immediately** with Whisper API
-- Dragon is **offline capable**; ScottWisper requires internet for API calls
-- Dragon focuses on **command & control**; ScottWisper focuses on **pure dictation**
-- ScottWisper is **privacy-focused** (no local speech model data); Dragon requires local voice profile storage
-- ScottWisper provides **modern UI** with audio visualization; Dragon has traditional interface
-- ScottWisper has **cost tracking and free tier monitoring** that Dragon lacks
+**How WhisperKey DIFFERS:**
+- Dragon is **expensive** ($500+); WhisperKey is **free/open source** with pay-as-you-go API costs
+- Dragon requires **training and setup**; WhisperKey works **immediately** with Whisper API
+- Dragon is **offline capable**; WhisperKey requires internet for API calls
+- Dragon focuses on **command & control**; WhisperKey focuses on **pure dictation**
+- WhisperKey is **privacy-focused** (no local speech model data); Dragon requires local voice profile storage
+- WhisperKey provides **modern UI** with audio visualization; Dragon has traditional interface
+- WhisperKey has **cost tracking and free tier monitoring** that Dragon lacks
 
 ---
 
@@ -134,26 +134,26 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 - **Quick Whisper** - Speech-to-text with copy editing
 - **whisper-desktop** (dniasoff) - Windows desktop with auto-paste
 
-**How ScottWisper DIFFERS (Critical Differentiation):**
-- ScottWisper is a **complete professional application** vs simple scripts/utilities
-- ScottWisper has **comprehensive system tray integration** with status indicators
-- ScottWisper provides **universal text injection** across all Windows applications
-- ScottWisper has **professional audio visualization** (waveform, level monitoring)
-- ScottWisper includes **hotkey profile management** with conflict detection
-- ScottWisper has **cost tracking and free tier management** for OpenAI API
-- ScottWisper includes **comprehensive settings interface** (6+ tabs)
-- ScottWisper has **audio device testing and management**
-- ScottWisper provides **visual and audio feedback systems**
-- ScottWisper has **enterprise features** (audit logging, deployment options)
-- ScottWisper is a **polished WPF application** vs simple Python scripts
+**How WhisperKey DIFFERS (Critical Differentiation):**
+- WhisperKey is a **complete professional application** vs simple scripts/utilities
+- WhisperKey has **comprehensive system tray integration** with status indicators
+- WhisperKey provides **universal text injection** across all Windows applications
+- WhisperKey has **professional audio visualization** (waveform, level monitoring)
+- WhisperKey includes **hotkey profile management** with conflict detection
+- WhisperKey has **cost tracking and free tier management** for OpenAI API
+- WhisperKey includes **comprehensive settings interface** (6+ tabs)
+- WhisperKey has **audio device testing and management**
+- WhisperKey provides **visual and audio feedback systems**
+- WhisperKey has **enterprise features** (audit logging, deployment options)
+- WhisperKey is a **polished WPF application** vs simple Python scripts
 
-**⚠️ IP CONCERN:** These open-source projects use similar Whisper API approach. ScottWisper MUST emphasize its **professional polish, Windows integration depth, and comprehensive feature set** to differentiate.
+**⚠️ IP CONCERN:** These open-source projects use similar Whisper API approach. WhisperKey MUST emphasize its **professional polish, Windows integration depth, and comprehensive feature set** to differentiate.
 
 ---
 
 ## Key Differentiation Matrix
 
-| Feature | Otter | Rev | Descript | Windows Voice Access | Dragon | Open-Source | **ScottWisper** |
+| Feature | Otter | Rev | Descript | Windows Voice Access | Dragon | Open-Source | **WhisperKey** |
 |---------|-------|-----|----------|---------------------|--------|-------------|-----------------|
 | **Universal Text Injection** | ❌ | ❌ | ❌ | Limited | ✅ | ⚠️ Partial | **✅ Full** |
 | **System Tray Integration** | ❌ | ❌ | ❌ | ❌ | ⚠️ Basic | ❌ | **✅ Professional** |
@@ -170,7 +170,7 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 
 ## Target Use Case Differentiation
 
-### ScottWisper's Unique Position:
+### WhisperKey's Unique Position:
 **"Professional Windows Dictation with Universal Application Support"**
 
 **Primary Use Cases:**
@@ -217,7 +217,7 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 
 2. **Dragon NaturallySpeaking**
    - Dragon has patents on certain speech recognition techniques
-   - **Mitigation:** ScottWisper uses OpenAI API (different tech stack), no local speech engine
+   - **Mitigation:** WhisperKey uses OpenAI API (different tech stack), no local speech engine
    - **Action:** Avoid implementing voice commands/control features (patent risk area)
 
 3. **Name & Branding**
@@ -231,7 +231,7 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 ### Immediate Actions:
 
 1. **✅ PROJECT RENAME** (BRAND-001)
-   - Current name "ScottWisper" is too similar to "Whisper"
+   - Current name "WhisperKey" is too similar to "Whisper"
    - Choose name that emphasizes Windows integration or professional dictation
 
 2. **📄 DOCUMENT UNIQUE FEATURES**
@@ -271,7 +271,7 @@ ScottWisper is a **privacy-focused professional voice dictation application** fo
 
 ## Conclusion
 
-**ScottWisper is sufficiently differentiated** from major competitors through its focus on:
+**WhisperKey is sufficiently differentiated** from major competitors through its focus on:
 - **Professional Windows integration** (system tray, universal injection)
 - **Real-time dictation workflow** (not post-hoc transcription)
 - **Privacy-first architecture** (no cloud storage)

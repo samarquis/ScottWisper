@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ScottWisper.Models;
-using ScottWisper.Services;
+using WhisperKey.Models;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class AuditLoggingTests
@@ -19,7 +19,7 @@ namespace ScottWisper.Tests
         public void Setup()
         {
             // Create a temporary test directory
-            _testLogDirectory = Path.Combine(Path.GetTempPath(), $"ScottWisperTest_{Guid.NewGuid():N}");
+            _testLogDirectory = Path.Combine(Path.GetTempPath(), $"WhisperKeyTest_{Guid.NewGuid():N}");
             Directory.CreateDirectory(_testLogDirectory);
             
             _service = new AuditLoggingService(

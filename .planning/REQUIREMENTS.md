@@ -1,4 +1,4 @@
-# ScottWisper Voice Dictation Requirements
+# WhisperKey Voice Dictation Requirements
 
 ## v1 Requirements
 

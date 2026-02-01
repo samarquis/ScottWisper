@@ -1,4 +1,4 @@
-# ScottWisper Interface Review
+# WhisperKey Interface Review
 
 **Date:** January 31, 2026  
 **Scope:** UI/UX Analysis of Main Window, Settings, and System Tray  
@@ -294,7 +294,7 @@ Advanced (collapsible):
 │ [Processing...                    45%] │ ← Progress (collapsible)
 ├────────────────────────────────────────┤
 │ ┌────────────────────────────────────┐ │
-│ │  ScottWisper Voice Dictation       │ │ ← Title Card
+│ │  WhisperKey Voice Dictation       │ │ ← Title Card
 │ │  Ready for dictation               │ │
 │ └────────────────────────────────────┘ │
 │ ┌────────────────────────────────────┐ │
@@ -345,7 +345,7 @@ Advanced (collapsible):
    **Recommendation:** Move technical buttons to Settings > Advanced
 
 2. **Title Confusing:**
-   - Window title says "ScottWisper Settings"
+   - Window title says "WhisperKey Settings"
    - But this is the main dashboard window
 
 3. **No Primary Action Button:**
@@ -455,7 +455,7 @@ Advanced (collapsible):
 ```
 1. Install → 2. Launch → 3. Welcome Dialog
                      ↓
-              "Welcome to ScottWisper!"
+              "Welcome to WhisperKey!"
               [Quick Setup] [Skip for Now]
                      ↓
               Setup Wizard (1-2 steps):

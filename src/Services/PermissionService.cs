@@ -1,4 +1,4 @@
-using ScottWisper.Configuration;
+using WhisperKey.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-using static ScottWisper.MicrophonePermissionStatus; // Use root namespace enum
+using static WhisperKey.MicrophonePermissionStatus; // Use root namespace enum
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Interface for permission management service

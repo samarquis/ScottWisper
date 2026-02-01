@@ -1,11 +1,11 @@
-using ScottWisper.Configuration;
+using WhisperKey.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public partial class ProfileDialog : Window
     {

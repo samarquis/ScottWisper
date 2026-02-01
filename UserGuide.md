@@ -1,4 +1,4 @@
-# ScottWisper User Guide - Windows Integration Features
+# WhisperKey User Guide - Windows Integration Features
 
 ## Table of Contents
 
@@ -16,8 +16,8 @@
 
 ### First-Time Setup
 
-1. **Launch ScottWisper**
-   - Double-click `ScottWisper.exe`
+1. **Launch WhisperKey**
+   - Double-click `WhisperKey.exe`
    - Application starts in background with system tray icon
    - First-launch setup wizard appears
 
@@ -33,14 +33,14 @@
 
 4. **Start Dictating**
    - Press default hotkey: `Ctrl + Win + Shift + V`
-   - ScottWisper is ready to use in any application
+   - WhisperKey is ready to use in any application
 
 ## System Tray Operation
 
 ### System Tray Features
 
 **Icon Status Indicators:**
-- 🟢 **Green** - ScottWisper ready, not recording
+- 🟢 **Green** - WhisperKey ready, not recording
 - 🔴 **Red** - Currently recording speech
 - 🟡 **Yellow** - Processing transcription
 - 🔵 **Blue** - Injecting text into application
@@ -49,7 +49,7 @@
 - **Start/Stop Recording** - Toggle dictation
 - **Show Status Window** - Display current transcription
 - **Settings** - Open configuration interface
-- **About ScottWisper** - Version and help information
+- **About WhisperKey** - Version and help information
 - **Exit** - Close application safely
 
 ### Professional Background Operation
@@ -116,7 +116,7 @@
 - Switch to clipboard injection method in settings
 - Use different hotkey to trigger injection
 - Restart target application
-- Try administrator mode for ScottWisper
+- Try administrator mode for WhisperKey
 
 ## Settings Configuration
 
@@ -319,7 +319,7 @@
 
 **Performance Issues:**
 - **Issue**: Slow response, high resource usage
-- **Solutions**: Close apps, check resources, update software, restart ScottWisper
+- **Solutions**: Close apps, check resources, update software, restart WhisperKey
 - **Prevention**: Regular maintenance, adequate system resources
 
 ### Diagnostic Tools
@@ -331,7 +331,7 @@
 - **Performance Monitor**: Real-time resource usage tracking
 
 **Log Files:**
-- **Location**: `%APPDATA%\ScottWisper\logs\`
+- **Location**: `%APPDATA%\WhisperKey\logs\`
 - **Content**: Detailed error messages and debugging info
 - **Usage**: Automatic log rotation and cleanup
 - **Support**: Export logs for support requests
@@ -386,10 +386,10 @@
 
 **Support Resources:**
 - **Built-in Help**: Press F1 in any settings window
-- **Online Documentation**: https://scottwisper.com/docs
-- **Community Forum**: https://github.com/your-repo/ScottWisper/discussions
-- **Email Support**: support@scottwisper.com
-- **Bug Reports**: https://github.com/your-repo/ScottWisper/issues
+- **Online Documentation**: https://WhisperKey.com/docs
+- **Community Forum**: https://github.com/your-repo/WhisperKey/discussions
+- **Email Support**: support@WhisperKey.com
+- **Bug Reports**: https://github.com/your-repo/WhisperKey/issues
 
 **Keyboard Shortcuts Reference:**
 - `F1` - Context-sensitive help
@@ -400,6 +400,6 @@
 
 ---
 
-**ScottWisper v2.0 - Professional Voice Dictation with Windows Integration**
+**WhisperKey v2.0 - Professional Voice Dictation with Windows Integration**
 
 *Last updated: January 27, 2026*

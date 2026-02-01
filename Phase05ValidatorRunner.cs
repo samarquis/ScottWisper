@@ -4,17 +4,17 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Moq;
-using ScottWisper.Services;
-using ScottWisper.Tests;
+using WhisperKey.Services;
+using WhisperKey.Tests;
 
-namespace ScottWisper.Testing
+namespace WhisperKey.Testing
 {
     class Phase05ValidatorRunner
     {
         static async Task Main(string[] args)
         {
             Console.WriteLine("=================================================");
-            Console.WriteLine("ScottWisper Phase 05 End-to-End Validation Tool");
+            Console.WriteLine("WhisperKey Phase 05 End-to-End Validation Tool");
             Console.WriteLine("=================================================\n");
 
             // Setup mock services

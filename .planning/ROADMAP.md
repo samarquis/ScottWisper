@@ -1,8 +1,8 @@
-# ScottWisper Voice Dictation Roadmap
+# WhisperKey Voice Dictation Roadmap
 
 ## Overview
 
-ScottWisper is a **privacy-focused professional voice dictation application** that provides secure voice-to-text conversion with offline-first architecture and enterprise compliance capabilities. Unlike cloud-only solutions, ScottWisper prioritizes data privacy, professional workflows, and air-gapped operation for medical, legal, and enterprise environments.
+WhisperKey is a **privacy-focused professional voice dictation application** that provides secure voice-to-text conversion with offline-first architecture and enterprise compliance capabilities. Unlike cloud-only solutions, WhisperKey prioritizes data privacy, professional workflows, and air-gapped operation for medical, legal, and enterprise environments.
 
 This roadmap delivers a professional dictation platform in 3 phases, starting with core technology validation and progressing through enterprise integration to compliance features.
 

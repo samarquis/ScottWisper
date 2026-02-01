@@ -6,15 +6,15 @@ using System.Threading;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Services;
-using ScottWisper.Configuration;
+using WhisperKey.Services;
+using WhisperKey.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Windows;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using static ScottWisper.ApplicationCategory;
+using static WhisperKey.ApplicationCategory;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     /// <summary>
     /// Test framework infrastructure for automated cross-application validation
@@ -572,14 +572,14 @@ namespace ScottWisper.Tests
             try
             {
                 var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-                var logger = loggerFactory.CreateLogger<ScottWisper.Validation.CrossApplicationValidator>();
-                var validator = new ScottWisper.Validation.CrossApplicationValidator(_textInjection, logger);
+                var logger = loggerFactory.CreateLogger<WhisperKey.Validation.CrossApplicationValidator>();
+                var validator = new WhisperKey.Validation.CrossApplicationValidator(_textInjection, logger);
                 
                 var validationResult = await validator.ValidateCrossApplicationInjectionAsync();
                 
                 foreach (var appResult in validationResult.ApplicationResults)
                 {
-                    suiteResult.TestResults.Add(new ScottWisper.TestResult
+                    suiteResult.TestResults.Add(new WhisperKey.TestResult
                     {
                         TestName = $"Injection Validation: {appResult.DisplayName}",
                         Success = appResult.IsSuccess,
@@ -593,7 +593,7 @@ namespace ScottWisper.Tests
             }
             catch (Exception ex)
             {
-                suiteResult.TestResults.Add(new ScottWisper.TestResult
+                suiteResult.TestResults.Add(new WhisperKey.TestResult
                 {
                     TestName = "Cross-Application Validation Suite Error",
                     Success = false,

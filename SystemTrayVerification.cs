@@ -1,8 +1,8 @@
 using System;
 using System.Threading.Tasks;
-using ScottWisper.Tests;
+using WhisperKey.Tests;
 
-namespace ScottWisper.Testing
+namespace WhisperKey.Testing
 {
     /// <summary>
     /// Quick verification of system tray validation implementation

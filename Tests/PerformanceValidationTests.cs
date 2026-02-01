@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class PerformanceValidationTests

@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using NAudio.Wave;
-using ScottWisper.Configuration;
-using ScottWisper.Services;
+using WhisperKey.Configuration;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     /// <summary>
     /// Mock implementation of IWaveIn for testing purposes.

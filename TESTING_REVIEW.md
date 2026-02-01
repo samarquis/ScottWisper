@@ -1,4 +1,4 @@
-# Testing Coverage & Quality Review - ScottWisper
+# Testing Coverage & Quality Review - WhisperKey
 
 **Date:** January 31, 2026  
 **Scope:** Unit tests, integration tests, coverage gaps  

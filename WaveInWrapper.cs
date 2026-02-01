@@ -1,7 +1,7 @@
 using System;
 using NAudio.Wave;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Wrapper around NAudio's WaveInEvent that implements IWaveIn interface.

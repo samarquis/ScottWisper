@@ -4,19 +4,19 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Console;
 using Moq;
-using ScottWisper.Integration;
-using ScottWisper.Services;
-using ScottWisper.Validation;
-using ScottWisper; // For CrossApplicationValidationResult
+using WhisperKey.Integration;
+using WhisperKey.Services;
+using WhisperKey.Validation;
+using WhisperKey; // For CrossApplicationValidationResult
 
-namespace ScottWisper.Testing
+namespace WhisperKey.Testing
 {
     class Phase04ValidatorRunner
     {
         static async Task Main(string[] args)
         {
             Console.WriteLine("=================================================");
-            Console.WriteLine("ScottWisper Phase 04 Comprehensive Validation Tool");
+            Console.WriteLine("WhisperKey Phase 04 Comprehensive Validation Tool");
             Console.WriteLine("=================================================\n");
 
             // Setup mock services for automated validation
@@ -31,7 +31,7 @@ namespace ScottWisper.Testing
                 .Returns(Task.FromResult(true));
             
             crossAppMock.Setup(x => x.ValidateCrossApplicationInjectionAsync())
-                .Returns(Task.FromResult(new ScottWisper.CrossApplicationValidationResult {
+                .Returns(Task.FromResult(new WhisperKey.CrossApplicationValidationResult {
                     OverallSuccessRate = 100,
                     TotalApplicationsTested = 7,
                     SuccessfulApplications = 7,

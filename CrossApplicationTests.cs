@@ -4,11 +4,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using ScottWisper.Services;
+using WhisperKey.Services;
 using Microsoft.Extensions.DependencyInjection;
-using static ScottWisper.IntegrationTestFramework; // Access TargetApplication enum
+using static WhisperKey.IntegrationTestFramework; // Access TargetApplication enum
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Cross-application testing implementation

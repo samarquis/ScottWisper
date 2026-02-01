@@ -48,7 +48,7 @@ re_verification:
 
 | Artifact | Expected | Status | Details |
 | -------- | --------- | ------ | ------- |
-| `ScottWisper.csproj` | WinUI 3 project configuration with .NET 8 | ✓ VERIFIED | WPF project builds successfully (151KB executable) |
+| `WhisperKey.csproj` | WinUI 3 project configuration with .NET 8 | ✓ VERIFIED | WPF project builds successfully (151KB executable) |
 | `App.xaml.cs` | Application entry point and system tray setup | ✓ VERIFIED | 233 lines, comprehensive service initialization |
 | `HotkeyService.cs` | Global hotkey registration using Windows API | ✓ VERIFIED | 93 lines, includes IsHotkeyRegistered property (line 22) |
 | `AudioCaptureService.cs` | Real-time microphone audio capture | ✓ VERIFIED | 206 lines, comprehensive NAudio implementation |
@@ -99,7 +99,7 @@ re_verification:
 
 **Test:** 
 1. Set OPENAI_API_KEY environment variable
-2. Run ScottWisper.exe 
+2. Run WhisperKey.exe 
 3. Press Ctrl+Win+Shift+V hotkey
 4. Speak clear English sentences
 5. Observe real-time transcription

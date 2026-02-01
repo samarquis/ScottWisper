@@ -13,7 +13,7 @@ using System.Windows.Shapes;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Simple wave provider for raw audio data
@@ -592,7 +592,7 @@ namespace ScottWisper
                 // Show balloon tip for status changes
                 var message = status switch
                 {
-                    IFeedbackService.DictationStatus.Ready => "ScottWisper is ready",
+                    IFeedbackService.DictationStatus.Ready => "WhisperKey is ready",
                     IFeedbackService.DictationStatus.Recording => "Recording started",
                     IFeedbackService.DictationStatus.Processing => "Processing speech...",
                     IFeedbackService.DictationStatus.Complete => "Transcription complete",
@@ -650,7 +650,7 @@ namespace ScottWisper
         {
             return status switch
             {
-                IFeedbackService.DictationStatus.Idle => "ScottWisper",
+                IFeedbackService.DictationStatus.Idle => "WhisperKey",
                 IFeedbackService.DictationStatus.Ready => "Ready",
                 IFeedbackService.DictationStatus.Recording => "Recording",
                 IFeedbackService.DictationStatus.Processing => "Processing",

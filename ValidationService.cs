@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Comprehensive validation service for Phase 1 requirements

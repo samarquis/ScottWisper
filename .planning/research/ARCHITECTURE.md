@@ -56,7 +56,7 @@
 
 ```
 src/
-├── ScottWisper.Core/           # Core dictation engine
+├── WhisperKey.Core/           # Core dictation engine
 │   ├── Audio/                  # Audio capture and processing
 │   │   ├── AudioCapture.cs    # WASAPI audio capture
 │   │   ├── AudioBuffer.cs     # Audio buffering management
@@ -72,7 +72,7 @@ src/
 │   └── Pipeline/               # Processing pipeline coordination
 │       ├── DictationPipeline.cs
 │       └── StreamManager.cs
-├── ScottWisper.UI/             # User interface components
+├── WhisperKey.UI/             # User interface components
 │   ├── Tray/                   # System tray functionality
 │   │   ├── TrayIconManager.cs
 │   │   └── TrayMenu.cs
@@ -82,7 +82,7 @@ src/
 │   │   └── Configuration.cs
 │   └── Notifications/          # User notifications
 │       └── NotificationManager.cs
-├── ScottWisper.Platform/       # Windows-specific integration
+├── WhisperKey.Platform/       # Windows-specific integration
 │   ├── Input/                  # Text injection
 │   │   ├── Win32InputInjector.cs
 │   │   └── SendInputWrapper.cs
@@ -91,7 +91,7 @@ src/
 │   │   └── KeyboardHook.cs
 │   └── Windows/                # Windows API wrappers
 │       └── WindowsApi.cs
-└── ScottWisper.Tests/          # Unit and integration tests
+└── WhisperKey.Tests/          # Unit and integration tests
     ├── Core/
     ├── UI/
     └── Platform/
@@ -99,9 +99,9 @@ src/
 
 ### Structure Rationale
 
-- **ScottWisper.Core/:** Isolated business logic, testable, provider-agnostic
-- **ScottWisper.UI/:** Separated presentation layer, MVVM pattern for WPF
-- **ScottWisper.Platform/:** Windows-specific code, easy to mock for testing
+- **WhisperKey.Core/:** Isolated business logic, testable, provider-agnostic
+- **WhisperKey.UI/:** Separated presentation layer, MVVM pattern for WPF
+- **WhisperKey.Platform/:** Windows-specific code, easy to mock for testing
 - **Provider Pattern:** Speech recognition providers can be swapped easily
 
 ## Architectural Patterns

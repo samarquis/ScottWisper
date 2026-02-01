@@ -1,9 +1,9 @@
-using ScottWisper.Services;
+using WhisperKey.Services;
 using System;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace ScottWisper.UI
+namespace WhisperKey.UI
 {
     /// <summary>
     /// Permission request dialog for user-friendly microphone permission handling

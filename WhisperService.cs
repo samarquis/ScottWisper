@@ -6,10 +6,10 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using ScottWisper.Services;
-using ScottWisper.Configuration;
+using WhisperKey.Services;
+using WhisperKey.Configuration;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public class WhisperService : IWhisperService
     {
@@ -246,7 +246,7 @@ namespace ScottWisper
             try
             {
                 var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var keyPath = Path.Combine(appDataPath, "ScottWisper", "api_key.encrypted");
+                var keyPath = Path.Combine(appDataPath, "WhisperKey", "api_key.encrypted");
                 if (File.Exists(keyPath))
                 {
                     var encryptedKey = File.ReadAllText(keyPath);

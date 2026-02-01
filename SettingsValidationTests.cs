@@ -1,18 +1,17 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using ScottWisper.Services;
-using ScottWisper.Configuration;
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Security.Cryptography;
+using WhisperKey.Services;
+using WhisperKey.Configuration;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     /// <summary>
     /// Validation exception for settings validation
@@ -34,7 +33,7 @@ namespace ScottWisper.Tests
         public void Setup()
         {
             // Create isolated test environment
-            _testAppDataPath = Path.Combine(Path.GetTempPath(), "ScottWisperTests", Guid.NewGuid().ToString());
+            _testAppDataPath = Path.Combine(Path.GetTempPath(), "WhisperKeyTests", Guid.NewGuid().ToString());
             Directory.CreateDirectory(_testAppDataPath);
             
             // Initialize settings service with test configuration
@@ -211,7 +210,7 @@ namespace ScottWisper.Tests
             };
 
             Assert.AreEqual("1.0", backup.Version, "Should preserve version information");
-            Assert.AreEqual("ScottWisper", backup.Application, "Should preserve application name");
+            Assert.AreEqual("WhisperKey", backup.Application, "Should preserve application name");
         }
 
         [TestMethod]

@@ -1,4 +1,4 @@
-# ScottWisper Quality Policy: Perfect 10/10 Standard
+# WhisperKey Quality Policy: Perfect 10/10 Standard
 
 **Effective Date:** January 31, 2026  
 **Policy Version:** 1.0  
@@ -10,7 +10,7 @@
 
 **"We do not ship until we achieve perfection."**
 
-ScottWisper is committed to delivering the highest quality voice dictation software. We do not compromise on quality, security, performance, or user experience. Every release must achieve a perfect 10/10 score across all quality dimensions.
+WhisperKey is committed to delivering the highest quality voice dictation software. We do not compromise on quality, security, performance, or user experience. Every release must achieve a perfect 10/10 score across all quality dimensions.
 
 ---
 
@@ -69,7 +69,7 @@ ScottWisper is committed to delivering the highest quality voice dictation softw
 ### Step 1: Run Review
 ```powershell
 # Run specific review
-.\Run-FullReview.ps1 -BeadsTaskId "ScottWisper-wfh" -ReviewTypes "Security"
+.\Run-FullReview.ps1 -BeadsTaskId "WhisperKey-wfh" -ReviewTypes "Security"
 ```
 
 ### Step 2: Check Results
@@ -93,7 +93,7 @@ bd update ISSUE-001 --status completed
 ### Step 4: Re-run Review
 ```powershell
 # Re-run to verify fixes
-.\Run-FullReview.ps1 -BeadsTaskId "ScottWisper-wfh" -ReviewTypes "Security"
+.\Run-FullReview.ps1 -BeadsTaskId "WhisperKey-wfh" -ReviewTypes "Security"
 ```
 
 ### Step 5: Repeat Until Perfect
@@ -121,7 +121,7 @@ bd list --priority P0,P1
 ### Pre-Release Gate
 ```powershell
 # Full production gate (strict mode)
-.\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate -FailOnCritical
+.\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate -FailOnCritical
 
 # Gate will FAIL if any review is not 10/10
 ```
@@ -264,7 +264,7 @@ bd list --priority P1
 
 ```powershell
 # Run full gate
-.\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate
+.\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate
 
 # Address any remaining gaps
 # Fine-tune until perfect
@@ -275,7 +275,7 @@ bd list --priority P1
 
 ```powershell
 # Final production gate
-.\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate -OpenReports
+.\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate -OpenReports
 
 # If all pass: 🎉 READY FOR PRODUCTION
 # If any fail: Return to Phase 3
@@ -342,7 +342,7 @@ A: Yes. Our users deserve nothing less.
 All reviews achieved PERFECT 10/10 scores!
 Zero P0 issues. Zero P1 issues.
 
-ScottWisper is ready for production.
+WhisperKey is ready for production.
 We have built something we are proud of.
 Our users will love the quality.
 

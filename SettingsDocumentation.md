@@ -1,8 +1,8 @@
-# ScottWisper Settings Guide
+# WhisperKey Settings Guide
 
 ## Overview
 
-ScottWisper provides a comprehensive settings management system that allows you to configure every aspect of the voice dictation experience. Settings are organized into logical categories and automatically saved with encryption for sensitive data.
+WhisperKey provides a comprehensive settings management system that allows you to configure every aspect of the voice dictation experience. Settings are organized into logical categories and automatically saved with encryption for sensitive data.
 
 ## Table of Contents
 
@@ -80,7 +80,7 @@ ScottWisper provides a comprehensive settings management system that allows you 
 ### API Key Management
 
 **Secure Storage**: API keys are encrypted using Windows DPAPI
-- **Location**: `%APPDATA%\ScottWisper\`
+- **Location**: `%APPDATA%\WhisperKey\`
 - **Encryption**: AES-256 with machine-specific key
 - **Backup**: Included in settings backup files
 
@@ -157,7 +157,7 @@ ScottWisper provides a comprehensive settings management system that allows you 
 - **Resolution**: Suggest alternative combinations
 - **Administrator Rights**: Required for some system-level hotkeys
 
-**Application Conflicts**: Hotkeys used within ScottWisper.
+**Application Conflicts**: Hotkeys used within WhisperKey.
 - **Prevention**: Duplicate hotkey detection
 - **Auto-fix**: One-click conflict resolution
 - **Warnings**: Optional notifications about potential conflicts
@@ -331,7 +331,7 @@ Checks:
 
 **Log Files**: Detailed logging for troubleshooting.
 ```
-Location: %APPDATA%\ScottWisper\Logs\
+Location: %APPDATA%\WhisperKey\Logs\
 Files:
 - settings.log - Settings operations
 - audio.log - Audio device issues
@@ -378,7 +378,7 @@ Location: User-specified path
 ```
 Frequency: Weekly
 Retention: 10 backups
-Location: %APPDATA%\ScottWisper\Backups\
+Location: %APPDATA%\WhisperKey\Backups\
 Naming: settings_backup_YYYYMMDD_HHMMSS.json
 ```
 
@@ -556,4 +556,4 @@ public class CustomValidationRule : IValidationRule
 
 *Settings Guide v2.1*  
 *Last updated: January 26, 2026*  
-*Compatible with ScottWisper v2.0 and later*
+*Compatible with WhisperKey v2.0 and later*

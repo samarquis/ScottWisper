@@ -1,10 +1,10 @@
-# ScottWisper - Professional Voice Dictation
+# WhisperKey - Professional Voice Dictation
 
 A **privacy-focused professional voice dictation** application with universal text injection and system-level integration for seamless Windows workflow automation.
 
 ## Overview
 
-ScottWisper enables secure, accurate voice-to-text conversion that works across **all Windows applications**. Unlike traditional dictation tools, ScottWisper integrates at the system level to provide universal text injection, professional system tray management, and comprehensive audio/visual feedback.
+WhisperKey enables secure, accurate voice-to-text conversion that works across **all Windows applications**. Unlike traditional dictation tools, WhisperKey integrates at the system level to provide universal text injection, professional system tray management, and comprehensive audio/visual feedback.
 
 **Core Features:**
 - 🎯 **System-wide hotkey activation** - Works from any application
@@ -29,28 +29,28 @@ ScottWisper enables secure, accurate voice-to-text conversion that works across 
 
 ### Setup Instructions
 
-1. **Download ScottWisper**
+1. **Download WhisperKey**
    ```
    Download latest release from GitHub Releases
-   Extract to a folder of your choice (e.g., C:\Program Files\ScottWisper)
+   Extract to a folder of your choice (e.g., C:\Program Files\WhisperKey)
    ```
 
 2. **Configure OpenAI API Key**
    ```
-   Right-click ScottWisper tray icon > Settings > Transcription
+   Right-click WhisperKey tray icon > Settings > Transcription
    Enter your OpenAI API key in the API Key field
    Click "Test API Key" to verify connection
    ```
 
 3. **Run Application**
    ```
-   Double-click ScottWisper.exe
+   Double-click WhisperKey.exe
    The application will start in background with a professional system tray icon
    ```
 
 4. **Configure Audio Device** (First time only)
    ```
-   Right-click ScottWisper tray icon > Settings > Audio
+   Right-click WhisperKey tray icon > Settings > Audio
    Select your preferred microphone from the dropdown
    Click "Test Microphone" to ensure it's working
    Adjust input volume if needed
@@ -179,7 +179,7 @@ ScottWisper enables secure, accurate voice-to-text conversion that works across 
 
 ### Usage Tracking
 
-ScottWisper includes comprehensive usage tracking to help you stay within free tier limits:
+WhisperKey includes comprehensive usage tracking to help you stay within free tier limits:
 
 **Real-time Monitoring:**
 - **Request counter** - Live transcription request count
@@ -240,7 +240,7 @@ ScottWisper includes comprehensive usage tracking to help you stay within free t
 - Check for hotkey conflicts in settings
 - Try different hotkey combinations
 - Ensure Windows Focus Assist isn't blocking
-- Restart ScottWisper to re-register hotkeys
+- Restart WhisperKey to re-register hotkeys
 
 **Poor transcription accuracy:**
 - Check microphone quality and positioning
@@ -250,7 +250,7 @@ ScottWisper includes comprehensive usage tracking to help you stay within free t
 
 **System tray icon missing:**
 - Check Windows notification settings
-- Ensure ScottWisper is running in Task Manager
+- Ensure WhisperKey is running in Task Manager
 - Restart Windows Explorer
 - Check for application crashes in Event Viewer
 
@@ -336,8 +336,8 @@ ScottWisper includes comprehensive usage tracking to help you stay within free t
 
 **Build Instructions:**
 ```bash
-git clone https://github.com/your-repo/ScottWisper.git
-cd ScottWisper
+git clone https://github.com/your-repo/WhisperKey.git
+cd WhisperKey
 dotnet restore
 dotnet build --configuration Release
 dotnet publish --configuration Release --self-contained
@@ -356,9 +356,9 @@ dotnet publish --configuration Release --self-contained
 
 - **Documentation**: Check this README and built-in help
 - **Settings Help**: Click help buttons in settings interface
-- **Issues**: Report bugs on [GitHub Issues](https://github.com/your-repo/ScottWisper/issues)
-- **Community**: Join discussions on [GitHub Discussions](https://github.com/your-repo/ScottWisper/discussions)
-- **Email Support**: support@scottwisper.com
+- **Issues**: Report bugs on [GitHub Issues](https://github.com/your-repo/WhisperKey/issues)
+- **Community**: Join discussions on [GitHub Discussions](https://github.com/your-repo/WhisperKey/discussions)
+- **Email Support**: support@whisperkey.com
 
 ### Contributing
 
@@ -373,7 +373,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ### License
 
-ScottWisper is released under MIT License. See [LICENSE](LICENSE) for details.
+WhisperKey is released under MIT License. See [LICENSE](LICENSE) for details.
 
 ## Version History
 
@@ -422,14 +422,14 @@ ScottWisper is released under MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Thank you for using ScottWisper!** 🎤
+**Thank you for using WhisperKey!** 🎤
 
-If you find ScottWisper helpful, please consider:
+If you find WhisperKey helpful, please consider:
 - ⭐ Starring the project on GitHub
 - 🐛 Reporting any issues you encounter
 - 💡 Suggesting features you'd like to see
 - 📝 Contributing to documentation or code
 
-For more information, visit [project website](https://github.com/your-repo/ScottWisper) or contact support@scottwisper.com.
+For more information, visit [project website](https://github.com/your-repo/WhisperKey) or contact support@whisperkey.com.
 
 **Professional dictation, seamlessly integrated into your Windows workflow.** ✨

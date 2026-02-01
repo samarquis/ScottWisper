@@ -1,13 +1,13 @@
-# Build script for ScottWisper MSI
+# Build script for WhisperKey MSI
 # This script generates WiX components from the publish folder and builds the MSI
 
 param(
     [string]$Version = "1.0.0",
     [string]$PublishDir = "./publish",
-    [string]$OutputMsi = "./ScottWisper.msi"
+    [string]$OutputMsi = "./WhisperKey.msi"
 )
 
-Write-Host "Building ScottWisper MSI v$Version..." -ForegroundColor Green
+Write-Host "Building WhisperKey MSI v$Version..." -ForegroundColor Green
 
 # Generate file components
 $files = Get-ChildItem -Path $PublishDir -File -Recurse
@@ -20,7 +20,7 @@ $filesXml = @"
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Fragment>
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="ScottWisper">
+      <Directory Id="INSTALLFOLDER" Name="WhisperKey">
 "@
 
 function Sanitize-WixId {
@@ -76,7 +76,7 @@ Write-Host "Generated Files.wxs with $($files.Count) files" -ForegroundColor Yel
 
 # Build the MSI
 Write-Host "Building MSI..." -ForegroundColor Green
-wix build ./Installer/ScottWisper.wxs ./Installer/Files.wxs -o $OutputMsi
+wix build ./Installer/WhisperKey.wxs ./Installer/Files.wxs -o $OutputMsi
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "MSI built successfully: $OutputMsi" -ForegroundColor Green

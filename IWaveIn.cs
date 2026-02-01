@@ -1,7 +1,7 @@
 using System;
 using NAudio.Wave;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Interface that abstracts NAudio's WaveInEvent for testability.

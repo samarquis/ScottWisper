@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Validation
+namespace WhisperKey.Validation
 {
     /// <summary>
     /// Result of comprehensive Phase 04 validation.
@@ -32,7 +32,7 @@ namespace ScottWisper.Validation
         public List<string> ValidationLog { get; set; } = new();
         public List<string> Errors { get; set; } = new();
         
-        public ScottWisper.CrossApplicationValidationResult? CrossAppResult { get; set; }
+        public WhisperKey.CrossApplicationValidationResult? CrossAppResult { get; set; }
     }
 
     /// <summary>

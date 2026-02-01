@@ -25,7 +25,7 @@ tech-stack:
 
 key-files:
   created: [TranscriptionWindow.xaml, TranscriptionWindow.xaml.cs, CostTrackingService.cs, VerificationRunner.cs]
-  modified: [App.xaml.cs, WhisperService.cs, ScottWisper.csproj, TranscriptionWindow.xaml.cs]
+  modified: [App.xaml.cs, WhisperService.cs, WhisperKey.csproj, TranscriptionWindow.xaml.cs]
 
 key-decisions:
   - "Implemented semi-transparent overlay window for unobtrusive dictation"
@@ -67,7 +67,7 @@ completed: 2026-01-26
 - **Always-on-top** capability during active dictation
 
 ### Cost Tracking Implementation
-- **Persistent storage** in %APPDATA%\ScottWisper\usage.json
+- **Persistent storage** in %APPDATA%\WhisperKey\usage.json
 - **Real-time monitoring** with automatic saving every minute
 - **Daily/weekly/monthly reporting** for usage analysis
 - **Free tier management** with configurable $5.00 monthly limit

@@ -5,11 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Services;
-using ScottWisper.Validation;
+using WhisperKey.Services;
+using WhisperKey.Validation;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class CrossAppCompatibilityTests

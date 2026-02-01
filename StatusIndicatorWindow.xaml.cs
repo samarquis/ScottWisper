@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using System.ComponentModel;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Interaction logic for StatusIndicatorWindow.xaml
@@ -172,13 +172,13 @@ namespace ScottWisper
         {
             var (title, details) = CurrentStatus switch
             {
-                IFeedbackService.DictationStatus.Idle => ("ScottWisper - Idle", "Ready to start dictation"),
-                IFeedbackService.DictationStatus.Ready => ("ScottWisper - Ready", "Press hotkey to begin recording"),
-                IFeedbackService.DictationStatus.Recording => ("ScottWisper - Recording", "Listening for speech..."),
-                IFeedbackService.DictationStatus.Processing => ("ScottWisper - Processing", "Transcribing audio to text"),
-                IFeedbackService.DictationStatus.Complete => ("ScottWisper - Complete", "Transcription finished successfully"),
-                IFeedbackService.DictationStatus.Error => ("ScottWisper - Error", "An error occurred during processing"),
-                _ => ("ScottWisper", "Status unknown")
+                IFeedbackService.DictationStatus.Idle => ("WhisperKey - Idle", "Ready to start dictation"),
+                IFeedbackService.DictationStatus.Ready => ("WhisperKey - Ready", "Press hotkey to begin recording"),
+                IFeedbackService.DictationStatus.Recording => ("WhisperKey - Recording", "Listening for speech..."),
+                IFeedbackService.DictationStatus.Processing => ("WhisperKey - Processing", "Transcribing audio to text"),
+                IFeedbackService.DictationStatus.Complete => ("WhisperKey - Complete", "Transcription finished successfully"),
+                IFeedbackService.DictationStatus.Error => ("WhisperKey - Error", "An error occurred during processing"),
+                _ => ("WhisperKey", "Status unknown")
             };
 
             TooltipTitle.Text = title;

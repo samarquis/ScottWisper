@@ -4,13 +4,13 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Services;
-using ScottWisper.Configuration;
-using ScottWisper.ViewModels;
+using WhisperKey.Services;
+using WhisperKey.Configuration;
+using WhisperKey.ViewModels;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class SettingsPersistenceTests

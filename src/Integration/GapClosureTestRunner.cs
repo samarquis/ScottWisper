@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Services;
-using ScottWisper.Validation;
+using WhisperKey.Services;
+using WhisperKey.Validation;
 
-namespace ScottWisper.Integration
+namespace WhisperKey.Integration
 {
     /// <summary>
     /// Orchestrates systematic validation of Phase 04 gap closure requirements.

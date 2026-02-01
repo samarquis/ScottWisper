@@ -48,7 +48,7 @@ Implement the compliance framework (PRIV-04) to support professional deployments
      - VerifyLogIntegrityAsync - Tamper detection
      - SetEnabled/IsEnabled - Service control
    - Comprehensive implementation:
-     - JSON file-based storage in %APPDATA%/ScottWisper/AuditLogs
+     - JSON file-based storage in %APPDATA%/WhisperKey/AuditLogs
      - Automatic monthly log rotation
      - SHA-256 integrity hashing for tamper detection
      - User ID hashing for privacy protection
@@ -253,7 +253,7 @@ The compliance framework integrates with:
 
 ## Professional Deployment Readiness
 
-The compliance framework makes ScottWisper ready for:
+The compliance framework makes WhisperKey ready for:
 
 1. **Healthcare Environments** - HIPAA-compliant audit trails
 2. **EU Deployments** - GDPR-compliant data handling

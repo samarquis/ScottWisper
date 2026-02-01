@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Window information for injection targeting

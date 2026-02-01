@@ -2,10 +2,10 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <RootNamespace>ScottWisper</RootNamespace>
+    <RootNamespace>WhisperKey</RootNamespace>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-    <ApplicationIcon>Resources\ScottWisper.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\WhisperKey.ico</ApplicationIcon>
   </PropertyGroup>
   
   <ItemGroup>

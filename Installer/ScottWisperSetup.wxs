@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ScottWisper Enterprise MSI Installer Configuration
+  WhisperKey Enterprise MSI Installer Configuration
   
   Usage:
-    Silent install: msiexec /i ScottWisper.msi /qn
-    Silent with logging: msiexec /i ScottWisper.msi /qn /l*v install.log
+    Silent install: msiexec /i WhisperKey.msi /qn
+    Silent with logging: msiexec /i WhisperKey.msi /qn /l*v install.log
     Uninstall: msiexec /x {PRODUCT-CODE-GUID} /qn
     
   Properties (can be set via command line):
-    INSTALLDIR - Installation directory (default: C:\Program Files\ScottWisper)
+    INSTALLDIR - Installation directory (default: C:\Program Files\WhisperKey)
     ALLUSERS - 1 for all users, 2 for per-user (default: 1)
     DESKTOPSHORTCUT - 1 to create desktop shortcut (default: 0)
     STARTMENUSHORTCUT - 1 to create Start Menu shortcut (default: 1)
@@ -20,9 +20,9 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
      
-  <?define ProductName = "ScottWisper" ?>
+  <?define ProductName = "WhisperKey" ?>
   <?define ProductVersion = "1.0.0" ?>
-  <?define ProductManufacturer = "ScottWisper" ?>
+  <?define ProductManufacturer = "WhisperKey" ?>
   <?define ProductCode = "*" ?>
   <?define UpgradeCode = "12345678-1234-1234-1234-123456789012" ?>
   <?define MinimumNetFramework = "461808" ?>
@@ -38,8 +38,8 @@
              Compressed="yes" 
              InstallScope="perMachine" 
              Platform="x64"
-             Description="ScottWisper Voice-to-Text Dictation Software"
-             Comments="Enterprise deployment package for ScottWisper"
+             Description="WhisperKey Voice-to-Text Dictation Software"
+             Comments="Enterprise deployment package for WhisperKey"
              Keywords="dictation,voice,text,transcription" />
     
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -47,7 +47,7 @@
     <MediaTemplate EmbedCab="yes" />
     
     <!-- Features -->
-    <Feature Id="ProductFeature" Title="ScottWisper" Level="1">
+    <Feature Id="ProductFeature" Title="WhisperKey" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
       <ComponentGroupRef Id="ApplicationShortcuts" />
       <ComponentRef Id="RegistryEntries" />
@@ -56,8 +56,8 @@
     <!-- Properties -->
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <Property Id="ARPPRODUCTICON" Value="ProductIcon.ico" />
-    <Property Id="ARPHELPLINK" Value="https://scottwisper.com/support" />
-    <Property Id="ARPURLINFOABOUT" Value="https://scottwisper.com" />
+    <Property Id="ARPHELPLINK" Value="https://WhisperKey.com/support" />
+    <Property Id="ARPURLINFOABOUT" Value="https://WhisperKey.com" />
     <Property Id="ARPNOREPAIR" Value="yes" />
     <Property Id="ARPNOMODIFY" Value="yes" />
     
@@ -110,14 +110,14 @@
     <!-- Directory Structure -->
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
-        <Directory Id="INSTALLFOLDER" Name="ScottWisper">
+        <Directory Id="INSTALLFOLDER" Name="WhisperKey">
           
           <!-- Main Application Files -->
           <Component Id="MainExecutable" Guid="*">
-            <File Id="ScottWisperEXE" Source="..\..\bin\Release\net8.0-windows\ScottWisper.exe" KeyPath="yes">
+            <File Id="WhisperKeyEXE" Source="..\..\bin\Release\net8.0-windows\WhisperKey.exe" KeyPath="yes">
               <Shortcut Id="StartMenuShortcut" 
                         Directory="ProgramMenuFolder" 
-                        Name="ScottWisper" 
+                        Name="WhisperKey" 
                         Description="Voice-to-Text Dictation Software"
                         WorkingDirectory="INSTALLFOLDER"
                         Icon="ProductIcon.ico"
@@ -127,8 +127,8 @@
           
           <!-- Supporting Files -->
           <Component Id="AppFiles" Guid="*">
-            <File Id="ScottWisperDLL" Source="..\..\bin\Release\net8.0-windows\ScottWisper.dll" />
-            <File Id="AppConfig" Source="..\..\bin\Release\net8.0-windows\ScottWisper.dll.config" />
+            <File Id="WhisperKeyDLL" Source="..\..\bin\Release\net8.0-windows\WhisperKey.dll" />
+            <File Id="AppConfig" Source="..\..\bin\Release\net8.0-windows\WhisperKey.dll.config" />
           </Component>
           
           <!-- Dependencies -->
@@ -153,11 +153,11 @@
       
       <!-- Start Menu -->
       <Directory Id="ProgramMenuFolder">
-        <Directory Id="ApplicationProgramsFolder" Name="ScottWisper">
+        <Directory Id="ApplicationProgramsFolder" Name="WhisperKey">
           <Component Id="ApplicationShortcuts" Guid="*">
             <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
             <RegistryValue Root="HKCU" 
-                          Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper" 
+                          Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\WhisperKey" 
                           Name="StartMenuFolder" 
                           Type="string" 
                           Value="[ApplicationProgramsFolder]" 
@@ -171,13 +171,13 @@
         <Component Id="DesktopShortcut" Guid="*" Condition="DESKTOPSHORTCUT=1">
           <Shortcut Id="DesktopShortcut" 
                     Directory="DesktopFolder" 
-                    Name="ScottWisper" 
-                    Target="[INSTALLFOLDER]ScottWisper.exe"
+                    Name="WhisperKey" 
+                    Target="[INSTALLFOLDER]WhisperKey.exe"
                     WorkingDirectory="INSTALLFOLDER"
                     Icon="ProductIcon.ico" />
           <RemoveFolder Id="DesktopFolder" On="uninstall" />
           <RegistryValue Root="HKCU" 
-                        Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper" 
+                        Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\WhisperKey" 
                         Name="DesktopShortcut" 
                         Type="integer" 
                         Value="1" 
@@ -187,7 +187,7 @@
       
       <!-- ProgramData for shared settings -->
       <Directory Id="CommonAppDataFolder">
-        <Directory Id="AppDataFolder" Name="ScottWisper">
+        <Directory Id="AppDataFolder" Name="WhisperKey">
           <Component Id="SharedSettings" Guid="*">
             <CreateFolder />
             <PermissionEx Sddl="D:PAI(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;FA;;;AU)" />
@@ -213,7 +213,7 @@
     <!-- Registry Entries -->
     <DirectoryRef Id="TARGETDIR">
       <Component Id="RegistryEntries" Guid="*">
-        <RegistryKey Root="HKLM" Key="Software\ScottWisper">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey">
           <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" />
           <RegistryValue Type="string" Name="Version" Value="$(var.ProductVersion)" />
           <RegistryValue Type="string" Name="Organization" Value="[ORGANIZATION]" />
@@ -221,7 +221,7 @@
           <RegistryValue Type="string" Name="ComplianceFramework" Value="[COMPLIANCEFRAMEWORK]" />
         </RegistryKey>
         
-        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper">
+        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\WhisperKey">
           <RegistryValue Type="string" Name="DisplayName" Value="$(var.ProductName)" />
           <RegistryValue Type="string" Name="DisplayVersion" Value="$(var.ProductVersion)" />
           <RegistryValue Type="string" Name="Publisher" Value="$(var.ProductManufacturer)" />
@@ -234,7 +234,7 @@
     </DirectoryRef>
     
     <!-- Icons -->
-    <Icon Id="ProductIcon.ico" SourceFile="..\..\Resources\ScottWisper.ico" />
+    <Icon Id="ProductIcon.ico" SourceFile="..\..\Resources\WhisperKey.ico" />
     
     <!-- UI -->
     <UIRef Id="WixUI_InstallDir" />

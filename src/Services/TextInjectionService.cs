@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     #region Windows API Declarations for Window Information
 

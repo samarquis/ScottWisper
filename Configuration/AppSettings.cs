@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 
-namespace ScottWisper.Configuration
+namespace WhisperKey.Configuration
 {
     public class AudioSettings
     {

@@ -8,7 +8,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// System tray service for background application management
@@ -31,7 +31,7 @@ namespace ScottWisper
         private TrayStatus _currentStatus = TrayStatus.Idle;
         private readonly Dictionary<TrayStatus, Icon> _statusIcons;
         private DateTime _lastStatusChange;
-        private string _statusMessage = "ScottWisper - Ready";
+        private string _statusMessage = "WhisperKey - Ready";
         
         // Performance optimization fields
         private readonly System.Timers.Timer _memoryMonitorTimer;
@@ -71,7 +71,7 @@ namespace ScottWisper
             _notifyIcon = new System.Windows.Forms.NotifyIcon
             {
                 Icon = _statusIcons[TrayStatus.Ready],
-                Text = "ScottWisper - Ready"
+                Text = "WhisperKey - Ready"
             };
 
             // Create context menu
@@ -360,13 +360,13 @@ namespace ScottWisper
         {
             return status switch
             {
-                TrayStatus.Idle => "ScottWisper - Idle",
-                TrayStatus.Ready => "ScottWisper - Ready",
-                TrayStatus.Recording => "ScottWisper - Recording",
-                TrayStatus.Processing => "ScottWisper - Processing",
-                TrayStatus.Error => "ScottWisper - Error",
-                TrayStatus.Offline => "ScottWisper - Offline",
-                _ => "ScottWisper - Unknown"
+                TrayStatus.Idle => "WhisperKey - Idle",
+                TrayStatus.Ready => "WhisperKey - Ready",
+                TrayStatus.Recording => "WhisperKey - Recording",
+                TrayStatus.Processing => "WhisperKey - Processing",
+                TrayStatus.Error => "WhisperKey - Error",
+                TrayStatus.Offline => "WhisperKey - Offline",
+                _ => "WhisperKey - Unknown"
             };
         }
 
@@ -427,7 +427,7 @@ namespace ScottWisper
             switch (oldStatus, newStatus)
             {
                 case (TrayStatus.Idle, TrayStatus.Ready):
-                    ShowNotification("ScottWisper is ready to use", "Ready");
+                    ShowNotification("WhisperKey is ready to use", "Ready");
                     break;
                 
                 case (TrayStatus.Ready, TrayStatus.Recording):
@@ -468,7 +468,7 @@ namespace ScottWisper
             }
         }
 
-        public void ShowNotification(string message, string title = "ScottWisper", int durationMs = 5000)
+        public void ShowNotification(string message, string title = "WhisperKey", int durationMs = 5000)
         {
             if (_notifyIcon != null && !_isDisposed)
             {

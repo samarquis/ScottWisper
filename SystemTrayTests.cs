@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Services;
+using WhisperKey.Services;
 using System.Runtime.InteropServices;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class SystemTrayTests

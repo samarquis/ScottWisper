@@ -9,11 +9,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Moq.Protected;
 using Newtonsoft.Json;
-using ScottWisper.Configuration;
-using ScottWisper.Models;
-using ScottWisper.Services;
+using WhisperKey.Configuration;
+using WhisperKey.Models;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class WhisperServiceTests

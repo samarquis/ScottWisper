@@ -7,10 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
-    /// Comprehensive performance testing framework for ScottWisper Phase 1 validation
+    /// Comprehensive performance testing framework for WhisperKey Phase 1 validation
     /// </summary>
     public class PerformanceTests
     {

@@ -2,14 +2,14 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public class VerificationRunner
     {
         public static async Task<bool> RunVerificationAsync()
         {
             await Task.Yield();
-            Console.WriteLine("=== ScottWisper Verification Tests ===");
+            Console.WriteLine("=== WhisperKey Verification Tests ===");
             
             try
             {

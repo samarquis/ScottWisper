@@ -1,6 +1,6 @@
 using System;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Represents application compatibility information for text injection

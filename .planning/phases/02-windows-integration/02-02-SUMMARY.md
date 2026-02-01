@@ -24,7 +24,7 @@ tech-stack:
 
 key-files:
   created: [SystemTrayService.cs]
-  modified: [App.xaml.cs, ScottWisper.csproj]
+  modified: [App.xaml.cs, WhisperKey.csproj]
 
 key-decisions:
   - "Used Windows Forms NotifyIcon for maximum compatibility over H.NotifyIcon.Wpf"
@@ -73,7 +73,7 @@ Each task was committed atomically:
 ## Files Created/Modified
 - `SystemTrayService.cs` - Core system tray service with NotifyIcon, context menu, and event integration
 - `App.xaml.cs` - Updated to initialize and manage SystemTrayService, hide main window, handle events
-- `ScottWisper.csproj` - Added H.NotifyIcon.Wpf and H.NotifyIcon package references
+- `WhisperKey.csproj` - Added H.NotifyIcon.Wpf and H.NotifyIcon package references
 
 ## Decisions Made
 
@@ -91,7 +91,7 @@ Each task was committed atomically:
 - **Found during:** Task 2 (SystemTrayService implementation)
 - **Issue:** H.NotifyIcon.Wpf namespace not available in .NET 8, package targeted older frameworks
 - **Fix:** Switched to System.Windows.Forms.NotifyIcon for maximum compatibility
-- **Files modified:** SystemTrayService.cs, ScottWisper.csproj
+- **Files modified:** SystemTrayService.cs, WhisperKey.csproj
 - **Verification:** Build succeeds, NotifyIcon works correctly
 - **Committed in:** 62dc562 (Task 2 commit)
 

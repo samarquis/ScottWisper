@@ -1,9 +1,9 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Legacy TextInjectionService for backward compatibility

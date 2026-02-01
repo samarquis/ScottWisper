@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using ScottWisper.Configuration;
-using ScottWisper.Models;
-using ScottWisper.Services;
+using WhisperKey.Configuration;
+using WhisperKey.Models;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class LocalInferenceTests
@@ -23,7 +23,7 @@ namespace ScottWisper.Tests
         [TestInitialize]
         public void Setup()
         {
-            _testModelsDirectory = Path.Combine(Path.GetTempPath(), $"ScottWisperModelsTest_{Guid.NewGuid():N}");
+            _testModelsDirectory = Path.Combine(Path.GetTempPath(), $"WhisperKeyModelsTest_{Guid.NewGuid():N}");
             Directory.CreateDirectory(_testModelsDirectory);
 
             _modelManager = new ModelManagerService(

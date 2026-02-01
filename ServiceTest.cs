@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     // Simple test class to verify service functionality
     public class ServiceTest

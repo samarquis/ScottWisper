@@ -1,18 +1,18 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using ScottWisper.Services;
-using ScottWisper.Configuration;
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
+using WhisperKey.Services;
+using WhisperKey.Configuration;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     public class TestOptionsMonitor<T> : IOptionsMonitor<T>
     {
@@ -36,7 +36,7 @@ namespace ScottWisper.Tests
         public void Setup()
         {
             // Create isolated test environment
-            _testAppDataPath = Path.Combine(Path.GetTempPath(), "ScottWisperFunctionalityTests", Guid.NewGuid().ToString());
+            _testAppDataPath = Path.Combine(Path.GetTempPath(), "WhisperKeyFunctionalityTests", Guid.NewGuid().ToString());
             Directory.CreateDirectory(_testAppDataPath);
             
             // Initialize settings service with test configuration

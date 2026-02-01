@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    ScottWisper Full Review - Beads Integrated Edition
+    WhisperKey Full Review - Beads Integrated Edition
     
 .DESCRIPTION
     Comprehensive review tool that integrates with beads workflow.
@@ -18,10 +18,10 @@
     .\Run-FullReview.ps1
     
     # Run as beads task (updates task status)
-    .\Run-FullReview.ps1 -BeadsTaskId "ScottWisper-md1" -ReviewTypes "Deployment"
+    .\Run-FullReview.ps1 -BeadsTaskId "WhisperKey-md1" -ReviewTypes "Deployment"
     
     # Run full review gate (all 7 reviews)
-    .\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate
+    .\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate
 #>
 
 [CmdletBinding()]
@@ -203,7 +203,7 @@ function Test-ReviewPass {
     }
 }
 
-Write-Host "`n🔍 ScottWisper Review System - Beads Integrated`n" -ForegroundColor Cyan
+Write-Host "`n🔍 WhisperKey Review System - Beads Integrated`n" -ForegroundColor Cyan
 Write-Host "========================================`n" -ForegroundColor Cyan
 
 # Show mode

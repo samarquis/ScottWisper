@@ -38,7 +38,7 @@ tech_debt:
       - "Critical: Settings UI incomplete for hotkey and audio device configuration"
 ---
 
-# ScottWisper v1 Milestone Audit Report
+# WhisperKey v1 Milestone Audit Report
 
 **Milestone:** v1 - Core Voice Dictation Platform  
 **Audited:** 2026-01-26T20:30:00Z  

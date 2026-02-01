@@ -1,4 +1,4 @@
-# Performance & Optimization Review - ScottWisper
+# Performance & Optimization Review - WhisperKey
 
 **Date:** January 31, 2026  
 **Scope:** Memory, CPU, Audio, File I/O, UI, and Network Performance  

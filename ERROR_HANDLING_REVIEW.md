@@ -1,4 +1,4 @@
-# Error Handling & Resilience Review - ScottWisper
+# Error Handling & Resilience Review - WhisperKey
 
 **Date:** January 31, 2026  
 **Scope:** Exception handling, recovery mechanisms, user experience  

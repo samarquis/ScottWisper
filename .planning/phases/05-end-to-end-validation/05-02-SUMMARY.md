@@ -83,7 +83,7 @@ Build succeeded.
 ## Success Criteria
 
 ✅ **Settings changes correctly persist to storage and restore on application launch**
-- File persistence to `%APPDATA%/ScottWisper/usersettings.json` validated
+- File persistence to `%APPDATA%/WhisperKey/usersettings.json` validated
 - Service restart simulation confirms settings restoration
 - Encrypted values (API keys) persist and decrypt correctly
 

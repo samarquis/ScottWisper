@@ -1,4 +1,4 @@
-# ScottWisper Voice Dictation
+# WhisperKey Voice Dictation
 
 ## What This Is
 

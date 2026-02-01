@@ -1,20 +1,17 @@
-using Microsoft.Extensions.DependencyInjection;
-using ScottWisper.Configuration;
-using ScottWisper.Services;
-using ScottWisper.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Microsoft.Win32;
+using Microsoft.Extensions.DependencyInjection;
+using WhisperKey.Configuration;
+using WhisperKey.Services;
+using WhisperKey.ViewModels;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public partial class SettingsWindow : Window
     {
@@ -430,7 +427,7 @@ namespace ScottWisper
                 var comprehensiveTest = await _audioDeviceService.PerformComprehensiveTestAsync(deviceId);
                 var capabilities = await _audioDeviceService.GetDeviceCapabilitiesAsync(deviceId);
                 
-                var testResult = new ScottWisper.Configuration.DeviceTestingResult
+                var testResult = new WhisperKey.Configuration.DeviceTestingResult
                 {
                     DeviceId = deviceId,
                     DeviceName = selectedItem.Content.ToString()!,
@@ -474,14 +471,14 @@ namespace ScottWisper
         private async void TestAllDevices_Click(object sender, RoutedEventArgs e)
         {
             UpdateDeviceStatus("Testing all devices...");
-            var testResults = new List<ScottWisper.Configuration.DeviceTestingResult>();
+            var testResults = new List<WhisperKey.Configuration.DeviceTestingResult>();
             
             foreach (var device in _inputDevices)
             {
                 try
                 {
                     var testPassed = await _audioDeviceService.TestDeviceAsync(device.Id);
-                    testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
+                    testResults.Add(new WhisperKey.Configuration.DeviceTestingResult
                     {
                         DeviceId = device.Id,
                         DeviceName = device.Name,
@@ -492,7 +489,7 @@ namespace ScottWisper
                 }
                 catch (InvalidOperationException ex)
                 {
-                    testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
+                    testResults.Add(new WhisperKey.Configuration.DeviceTestingResult
                     {
                         DeviceId = device.Id,
                         DeviceName = device.Name,
@@ -503,7 +500,7 @@ namespace ScottWisper
                 }
                 catch (IOException ex)
                 {
-                    testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
+                    testResults.Add(new WhisperKey.Configuration.DeviceTestingResult
                     {
                         DeviceId = device.Id,
                         DeviceName = device.Name,
@@ -514,7 +511,7 @@ namespace ScottWisper
                 }
                 catch (TimeoutException ex)
                 {
-                    testResults.Add(new ScottWisper.Configuration.DeviceTestingResult
+                    testResults.Add(new WhisperKey.Configuration.DeviceTestingResult
                     {
                         DeviceId = device.Id,
                         DeviceName = device.Name,
@@ -1070,7 +1067,7 @@ namespace ScottWisper
 
     public class DeviceTestResultDialog : Window
     {
-        public ScottWisper.Configuration.DeviceTestingResult? TestResult { get; set; }
+        public WhisperKey.Configuration.DeviceTestingResult? TestResult { get; set; }
         public AudioDeviceCapabilities? Capabilities { get; set; }
         public DeviceTestResultDialog() { }
     }

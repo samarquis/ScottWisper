@@ -26,7 +26,7 @@ tech-stack:
 
 key-files:
   created: [TextInjectionService.cs]
-  modified: [ScottWisper.csproj]
+  modified: [WhisperKey.csproj]
 
 key-decisions:
   - "Chose Windows SendInput API over H.InputSimulator wrapper due to namespace issues"
@@ -74,7 +74,7 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `ScottWisper.csproj` - Added H.InputSimulator v1.4.0 package for keyboard simulation fallback
+- `WhisperKey.csproj` - Added H.InputSimulator v1.4.0 package for keyboard simulation fallback
 - `TextInjectionService.cs` - Comprehensive text injection service with:
   - ITextInjection interface with async methods
   - Windows SendInput API implementation for direct injection

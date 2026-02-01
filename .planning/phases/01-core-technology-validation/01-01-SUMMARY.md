@@ -10,7 +10,7 @@ tech-stack:
   added: ["WPF", "Windows API (user32.dll)", "P/Invoke"]
   patterns: ["Global hotkey registration", "Windows message handling"]
 key-files:
-  created: ["ScottWisper.csproj", "App.xaml", "App.xaml.cs", "MainWindow.xaml", "MainWindow.xaml.cs", "HotkeyService.cs"]
+  created: ["WhisperKey.csproj", "App.xaml", "App.xaml.cs", "MainWindow.xaml", "MainWindow.xaml.cs", "HotkeyService.cs"]
   modified: []
 decisions:
   - "Switched from WinUI 3 to WPF due to WindowsAppSDK runtime identifier issues"
@@ -55,7 +55,7 @@ Successfully established the foundational desktop application infrastructure wit
 - **Found during:** Task 1
 - **Issue:** WindowsAppSDK 1.5.240802000 uses unsupported win10-* runtime identifiers
 - **Fix:** Switched to WPF with .NET 8-windows target framework
-- **Files modified:** ScottWisper.csproj, App.xaml, App.xaml.cs, MainWindow.xaml, MainWindow.xaml.cs
+- **Files modified:** WhisperKey.csproj, App.xaml, App.xaml.cs, MainWindow.xaml, MainWindow.xaml.cs
 - **Impact:** Maintained all functionality while ensuring build compatibility
 
 **2. [Rule 2 - Missing Critical] Proper namespace imports**

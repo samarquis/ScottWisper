@@ -11,9 +11,9 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
-using ScottWisper.Configuration;
+using WhisperKey.Configuration;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     public class SettingsChangedEventArgs : EventArgs
     {
@@ -31,7 +31,7 @@ namespace ScottWisper.Services
         public string Description { get; set; } = string.Empty;
         public AppSettings Settings { get; set; } = new AppSettings();
         public string Version { get; set; } = "1.0";
-        public string Application { get; set; } = "ScottWisper";
+        public string Application { get; set; } = "WhisperKey";
     }
 
     public class SettingsValidationResult
@@ -109,7 +109,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             
             // Initialize user settings path in %APPDATA%
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var appFolder = Path.Combine(appDataPath, "ScottWisper");
+            var appFolder = Path.Combine(appDataPath, "WhisperKey");
             Directory.CreateDirectory(appFolder);
             _userSettingsPath = Path.Combine(appFolder, "usersettings.json");
             
@@ -583,7 +583,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         {
             // Use Windows DPAPI with optional entropy tied to machine and user
             // This provides secure encryption without managing keys ourselves
-            var entropySource = $"{Environment.MachineName}_{Environment.UserName}_ScottWisper_v1";
+            var entropySource = $"{Environment.MachineName}_{Environment.UserName}_WhisperKey_v1";
             using var sha256 = SHA256.Create();
             return sha256.ComputeHash(Encoding.UTF8.GetBytes(entropySource));
         }
@@ -736,7 +736,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                 Profile = profile,
                 ExportedAt = DateTime.Now,
                 Version = "1.0",
-                Application = "ScottWisper",
+                Application = "WhisperKey",
                 Settings = new
                 {
                     _currentSettings.Hotkeys.ShowConflictWarnings,
@@ -803,7 +803,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                 result.Conflicts.Add(new Configuration.HotkeyConflict
                 {
                     ConflictingHotkey = conflictingHotkey.Combination,
-                    ConflictingApplication = "ScottWisper",
+                    ConflictingApplication = "WhisperKey",
                     ConflictType = "profile"
                 });
             }
@@ -814,7 +814,7 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         private string GetEncryptedFilePath(string key)
         {
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var appFolder = Path.Combine(appDataPath, "ScottWisper");
+            var appFolder = Path.Combine(appDataPath, "WhisperKey");
             Directory.CreateDirectory(appFolder);
             return Path.Combine(appFolder, $"{key}.encrypted");
         }

@@ -1,4 +1,4 @@
-<Window x:Class="ScottWisper.StatusIndicatorWindow"
+<Window x:Class="WhisperKey.StatusIndicatorWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Status Indicator"
@@ -50,7 +50,7 @@
         <Border.ToolTip>
             <ToolTip Background="#333333" Foreground="White" BorderThickness="0">
                 <StackPanel>
-                    <TextBlock Name="TooltipTitle" FontWeight="Bold" Text="ScottWisper Status"/>
+                    <TextBlock Name="TooltipTitle" FontWeight="Bold" Text="WhisperKey Status"/>
                     <TextBlock Name="TooltipDetails" Text="Current status and actions"/>
                 </StackPanel>
             </ToolTip>

@@ -1,6 +1,3 @@
-using NAudio.CoreAudioApi;
-using NAudio.Wave;
-using ScottWisper.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,9 +7,11 @@ using System.Security;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
+using NAudio.CoreAudioApi;
+using NAudio.Wave;
+using WhisperKey.Configuration;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     public interface IAudioDeviceService
     {
@@ -71,9 +70,10 @@ namespace ScottWisper.Services
 
     public class AudioDeviceService : IAudioDeviceService, IDisposable
     {
-        private readonly MMDeviceEnumerator _enumerator;
+        private readonly IAudioDeviceEnumerator _enumerator;
         private readonly object _lockObject = new object();
         private bool _disposed = false;
+        private readonly bool _ownsEnumerator;
         private WaveInEvent? _monitoringWaveIn;
         private System.Threading.Timer? _levelUpdateTimer;
         private float _currentAudioLevel = 0f;
@@ -186,9 +186,27 @@ namespace ScottWisper.Services
         private const int WS_VISIBLE = 0x10000000;
         private const uint WS_EX_NOACTIVATE = 0x08000000;
 
+    /// <summary>
+    /// Creates a new AudioDeviceService with the default hardware enumerator.
+    /// </summary>
     public AudioDeviceService()
     {
-        _enumerator = new MMDeviceEnumerator();
+        _enumerator = new AudioDeviceEnumerator();
+        _ownsEnumerator = true;
+        
+        // Initialize device change monitoring
+        InitializeMonitoringAsync();
+    }
+
+    /// <summary>
+    /// Creates a new AudioDeviceService with a custom enumerator for testing.
+    /// </summary>
+    /// <param name="enumerator">The device enumerator to use (can be a mock for testing).</param>
+    /// <param name="ownsEnumerator">Whether this service owns the enumerator and should dispose it.</param>
+    public AudioDeviceService(IAudioDeviceEnumerator enumerator, bool ownsEnumerator = false)
+    {
+        _enumerator = enumerator ?? throw new ArgumentNullException(nameof(enumerator));
+        _ownsEnumerator = ownsEnumerator;
         
         // Initialize device change monitoring
         InitializeMonitoringAsync();
@@ -519,7 +537,7 @@ namespace ScottWisper.Services
         {
             if (_disposed) return new AudioQualityMetrics();
 
-            MMDevice? device;
+            IMMDeviceWrapper? device;
             lock (_lockObject)
             {
                 device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
@@ -708,7 +726,7 @@ namespace ScottWisper.Services
         {
             if (_disposed) return false;
 
-            MMDevice? device;
+            IMMDeviceWrapper? device;
             lock (_lockObject)
             {
                 device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
@@ -910,7 +928,7 @@ namespace ScottWisper.Services
             AudioLevelUpdated?.Invoke(this, new AudioLevelEventArgs("current", _currentAudioLevel, DateTime.Now));
         }
 
-        private List<string> GetSupportedFormats(MMDevice device)
+        private List<string> GetSupportedFormats(IMMDeviceWrapper device)
         {
             var formats = new List<string>();
             
@@ -965,7 +983,7 @@ namespace ScottWisper.Services
             return formats;
         }
 
-        private async Task<float> AssessDeviceQualityAsync(MMDevice device)
+        private async Task<float> AssessDeviceQualityAsync(IMMDeviceWrapper device)
         {
             try
             {
@@ -1007,7 +1025,7 @@ namespace ScottWisper.Services
             }
         }
 
-        private async Task<int> MeasureDeviceLatencyAsync(MMDevice device)
+        private async Task<int> MeasureDeviceLatencyAsync(IMMDeviceWrapper device)
         {
             try
             {
@@ -1050,7 +1068,7 @@ namespace ScottWisper.Services
             }
         }
 
-        private async Task<float> MeasureNoiseFloorAsync(MMDevice device)
+        private async Task<float> MeasureNoiseFloorAsync(IMMDeviceWrapper device)
         {
             try
             {
@@ -1259,7 +1277,7 @@ namespace ScottWisper.Services
             }
         }
 
-        private AudioDevice? CreateAudioDevice(MMDevice device)
+        private AudioDevice? CreateAudioDevice(IMMDeviceWrapper device)
         {
             try
             {
@@ -1855,7 +1873,7 @@ namespace ScottWisper.Services
                     report.AppendLine("- Microphone access is denied. Please enable it in Windows Settings.");
                     report.AppendLine("- Go to Settings > Privacy & Security > Microphone");
                     report.AppendLine("- Ensure 'Let apps access your microphone' is turned on");
-                    report.AppendLine("- Ensure ScottWisper is listed and allowed to access microphone");
+                    report.AppendLine("- Ensure WhisperKey is listed and allowed to access microphone");
                 }
                 else if (status == MicrophonePermissionStatus.Unknown)
                 {
@@ -2167,6 +2185,12 @@ namespace ScottWisper.Services
                     
                     // Dispose wave input
                     _monitoringWaveIn?.Dispose();
+                    
+                    // Dispose enumerator only if we own it
+                    if (_ownsEnumerator)
+                    {
+                        _enumerator?.Dispose();
+                    }
                     
                     System.Diagnostics.Debug.WriteLine("AudioDeviceService disposed successfully");
                 }

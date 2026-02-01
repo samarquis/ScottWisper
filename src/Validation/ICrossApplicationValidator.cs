@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Validation
+namespace WhisperKey.Validation
 {
     public interface ICrossApplicationValidator
     {
-        Task<ScottWisper.CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync();
+        Task<WhisperKey.CrossApplicationValidationResult> ValidateCrossApplicationInjectionAsync();
     }
 }

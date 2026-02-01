@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public class CostTrackingService : IDisposable
     {
@@ -33,7 +33,7 @@ namespace ScottWisper
         {
             _usageDataPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "ScottWisper",
+                "WhisperKey",
                 "usage.json"
             );
             
@@ -49,7 +49,7 @@ namespace ScottWisper
             
             _usageDataPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "ScottWisper",
+                "WhisperKey",
                 "usage.json"
             );
             

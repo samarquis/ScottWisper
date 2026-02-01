@@ -8,10 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Interop;
 using System.Windows.Input;
-using ScottWisper.Configuration;
-using ScottWisper.Services;
+using WhisperKey.Configuration;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public class HotkeyPressedEventArgs : EventArgs
     {
@@ -50,6 +50,7 @@ namespace ScottWisper
         private readonly Dictionary<string, int> _registeredHotkeys = new Dictionary<string, int>();
         private readonly Dictionary<int, HotkeyDefinition> _hotkeyById = new Dictionary<int, HotkeyDefinition>();
         private readonly ISettingsService _settingsService;
+        private readonly IHotkeyRegistrar _hotkeyRegistrar;
         private Timer? _conflictCheckTimer;
         private int _nextHotkeyId = HOTKEY_ID_BASE;
 
@@ -59,15 +60,27 @@ namespace ScottWisper
         public bool IsHotkeyRegistered => _registeredHotkeys.Any();
         public HotkeyProfile CurrentProfile { get; private set; } = new HotkeyProfile { Id = "Default", Name = "Default" };
 
-        public HotkeyService(ISettingsService settingsService)
+        public HotkeyService(ISettingsService settingsService) : this(settingsService, new Win32HotkeyRegistrar(), null)
+        {
+        }
+
+        public HotkeyService(ISettingsService settingsService, IHotkeyRegistrar hotkeyRegistrar, IntPtr? windowHandle = null)
         {
             _settingsService = settingsService;
+            _hotkeyRegistrar = hotkeyRegistrar;
             
-            // Get the main window handle
-            var mainWindow = System.Windows.Application.Current.MainWindow;
-            if (mainWindow != null)
+            if (windowHandle.HasValue)
             {
-                _windowHandle = new WindowInteropHelper(mainWindow).Handle;
+                _windowHandle = windowHandle.Value;
+            }
+            else
+            {
+                // Get the main window handle
+                var mainWindow = System.Windows.Application.Current?.MainWindow;
+                if (mainWindow != null)
+                {
+                    _windowHandle = new WindowInteropHelper(mainWindow).Handle;
+                }
             }
             
             InitializeAsync();
@@ -173,14 +186,14 @@ namespace ScottWisper
             {
                 int hotkeyId = _nextHotkeyId++;
                 
-                bool success = RegisterHotKey(_windowHandle, hotkeyId, modifiers | MOD_NOREPEAT, virtualKey);
+                bool success = _hotkeyRegistrar.RegisterHotKey(_windowHandle, hotkeyId, modifiers | MOD_NOREPEAT, virtualKey);
                 
                 if (success)
                 {
                     _registeredHotkeys[hotkey.Id] = hotkeyId;
                     _hotkeyById[hotkeyId] = hotkey;
                     
-                    if (_source == null)
+                    if (_source == null && _windowHandle != IntPtr.Zero)
                     {
                         _source = HwndSource.FromHwnd(_windowHandle);
                         if (_source != null)
@@ -193,7 +206,7 @@ namespace ScottWisper
                 }
                 else
                 {
-                    int errorCode = Marshal.GetLastWin32Error();
+                    int errorCode = _hotkeyRegistrar.GetLastWin32Error();
                     var conflict = DetectConflict(hotkey, errorCode);
                     if (conflict != null)
                     {
@@ -230,7 +243,7 @@ namespace ScottWisper
         {
             if (_registeredHotkeys.TryGetValue(hotkeyId, out var id))
             {
-                UnregisterHotKey(_windowHandle, id);
+                _hotkeyRegistrar.UnregisterHotKey(_windowHandle, id);
                 _registeredHotkeys.Remove(hotkeyId);
                 _hotkeyById.Remove(id);
             }
@@ -240,7 +253,7 @@ namespace ScottWisper
         {
             foreach (var kvp in _registeredHotkeys.ToList())
             {
-                UnregisterHotKey(_windowHandle, kvp.Value);
+                _hotkeyRegistrar.UnregisterHotKey(_windowHandle, kvp.Value);
             }
             
             _registeredHotkeys.Clear();
@@ -279,7 +292,7 @@ namespace ScottWisper
                 result.Conflicts.Add(new Configuration.HotkeyConflict
                 {
                     ConflictingHotkey = conflictDef.Combination,
-                    ConflictingApplication = "ScottWisper",
+                    ConflictingApplication = "WhisperKey",
                     ConflictType = "application",
                     SuggestedHotkey = SuggestAlternativeHotkey(modifiers, virtualKey)
                 });
@@ -567,7 +580,7 @@ namespace ScottWisper
                 Profile = profile,
                 ExportedAt = DateTime.Now,
                 Version = "1.0",
-                Application = "ScottWisper"
+                Application = "WhisperKey"
             };
 
             var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
@@ -628,11 +641,5 @@ namespace ScottWisper
                 _source = null;
             }
         }
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     }
 }

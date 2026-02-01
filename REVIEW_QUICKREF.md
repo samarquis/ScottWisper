@@ -1,4 +1,4 @@
-# ScottWisper Review Quick Reference
+# WhisperKey Review Quick Reference
 
 ## ⚡ One-Liners
 
@@ -238,7 +238,7 @@ $date = Get-Date -Format "yyyy-MM-dd"
 .\Run-FullReview.ps1 -OutputDirectory "./reviews/$date"
 
 # Save to specific path
-.\Run-FullReview.ps1 -OutputDirectory "C:\Reviews\ScottWisper"
+.\Run-FullReview.ps1 -OutputDirectory "C:\Reviews\WhisperKey"
 ```
 
 ### Multiple Review Types
@@ -280,7 +280,7 @@ which bd
 bd --version
 
 # If missing, install or navigate to project
-cd C:\Programming\ScottWisper
+cd C:\Programming\WhisperKey
 bd onboard
 ```
 

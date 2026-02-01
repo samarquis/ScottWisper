@@ -2,7 +2,7 @@
 
 ## Phase Goal
 
-Deliver enterprise-ready privacy features and professional workflow integrations that differentiate ScottWisper from consumer-focused alternatives, enabling deployment in medical, legal, and enterprise environments.
+Deliver enterprise-ready privacy features and professional workflow integrations that differentiate WhisperKey from consumer-focused alternatives, enabling deployment in medical, legal, and enterprise environments.
 
 ## Dependencies
 

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ScottWisper.Models
+namespace WhisperKey.Models
 {
     /// <summary>
     /// Enterprise deployment configuration for MSI/GPO deployment
@@ -181,7 +181,7 @@ namespace ScottWisper.Models
         /// </summary>
         public Dictionary<string, string> MsiProperties { get; set; } = new()
         {
-            ["INSTALLDIR"] = "[ProgramFiles64Folder]ScottWisper",
+            ["INSTALLDIR"] = "[ProgramFiles64Folder]WhisperKey",
             ["ALLUSERS"] = "1",
             ["MSIINSTALLPERUSER"] = "0"
         };

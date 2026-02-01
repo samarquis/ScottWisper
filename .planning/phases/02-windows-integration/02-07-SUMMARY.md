@@ -22,7 +22,7 @@ tech-stack:
 
 key-files:
   created: [StatusIndicatorWindow.xaml, StatusIndicatorWindow.xaml.cs]
-  modified: [FeedbackService.cs, ScottWisper.csproj]
+  modified: [FeedbackService.cs, WhisperKey.csproj]
 
 key-decisions:
   - "Used NAudio for programmatically generated sine wave tones instead of simple sound players"
@@ -72,7 +72,7 @@ Each task was committed atomically:
 - `FeedbackService.cs` - Enhanced with programmatically generated tones and volume control
 - `StatusIndicatorWindow.xaml` - Professional visual feedback interface design
 - `StatusIndicatorWindow.xaml.cs` - Status indicator implementation with real-time updates
-- `ScottWisper.csproj` - Updated with NAudio reference
+- `WhisperKey.csproj` - Updated with NAudio reference
 
 ## Decisions Made
 

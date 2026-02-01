@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Bootstrap
+namespace WhisperKey.Bootstrap
 {
     /// <summary>
     /// Handles application startup and service initialization
@@ -85,13 +85,13 @@ namespace ScottWisper.Bootstrap
             }
             catch (InvalidOperationException ex)
             {
-                MessageBox.Show($"Service initialization failed: {ex.Message}", "ScottWisper Error", 
+                MessageBox.Show($"Service initialization failed: {ex.Message}", "WhisperKey Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             catch (System.IO.IOException ex)
             {
-                MessageBox.Show($"I/O error during initialization: {ex.Message}", "ScottWisper Error", 
+                MessageBox.Show($"I/O error during initialization: {ex.Message}", "WhisperKey Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -118,13 +118,13 @@ namespace ScottWisper.Bootstrap
             catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to initialize SystemTrayService: {ex.Message}");
-                MessageBox.Show($"Failed to initialize system tray: {ex.Message}", "ScottWisper Warning", 
+                MessageBox.Show($"Failed to initialize system tray: {ex.Message}", "WhisperKey Warning", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (System.IO.IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"I/O error initializing SystemTrayService: {ex.Message}");
-                MessageBox.Show($"System tray I/O error: {ex.Message}", "ScottWisper Warning", 
+                MessageBox.Show($"System tray I/O error: {ex.Message}", "WhisperKey Warning", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -149,13 +149,13 @@ namespace ScottWisper.Bootstrap
             {
                 await FeedbackService.ShowToastNotificationAsync(
                     "Application Started", 
-                    "ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", 
+                    "WhisperKey is ready. Press Ctrl+Alt+V to start dictation.", 
                     IFeedbackService.NotificationType.Completion
                 ).ConfigureAwait(false);
             }
             else if (SystemTrayService != null)
             {
-                SystemTrayService.ShowNotification("ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", "Application Started");
+                SystemTrayService.ShowNotification("WhisperKey is ready. Press Ctrl+Alt+V to start dictation.", "Application Started");
             }
         }
         

@@ -1,13 +1,13 @@
 # Project Research Summary
 
-**Project:** ScottWisper - Windows Voice Dictation Application
+**Project:** WhisperKey - Windows Voice Dictation Application
 **Domain:** Voice Dictation Desktop Application
 **Researched:** January 26, 2026
 **Confidence:** HIGH
 
 ## Executive Summary
 
-ScottWisper is a Windows desktop voice dictation application that competes with expensive solutions like Dragon Professional ($300-700) and limited built-in Windows tools. Research indicates the optimal approach is a native WinUI 3 application with .NET 8, leveraging cloud-based speech-to-text APIs (OpenAI Whisper or Azure Speech) with a freemium business model. The critical technical challenge is achieving sub-100ms end-to-end latency while managing API costs sustainably.
+WhisperKey is a Windows desktop voice dictation application that competes with expensive solutions like Dragon Professional ($300-700) and limited built-in Windows tools. Research indicates the optimal approach is a native WinUI 3 application with .NET 8, leveraging cloud-based speech-to-text APIs (OpenAI Whisper or Azure Speech) with a freemium business model. The critical technical challenge is achieving sub-100ms end-to-end latency while managing API costs sustainably.
 
 Experts build these applications using a layered architecture: presentation layer (system tray + settings), application layer (dictation engine with audio/speech/text managers), and integration layer (Windows APIs for input injection and hotkeys). The most significant risks are latency performance, cost model sustainability, and universal text injection compatibility. Success requires implementing streaming APIs, intelligent usage monitoring, and multiple fallback injection methods.
 

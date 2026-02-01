@@ -2,10 +2,10 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using ScottWisper.Services;
-using ScottWisper;
+using WhisperKey.Services;
+using WhisperKey;
 
-namespace ScottWisper.Bootstrap
+namespace WhisperKey.Bootstrap
 {
     /// <summary>
     /// Coordinates and routes events between application components

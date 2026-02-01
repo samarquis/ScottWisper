@@ -11,10 +11,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using ScottWisper.Configuration;
-using ScottWisper.Services;
+using WhisperKey.Configuration;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Enhanced status history item for display
@@ -80,7 +80,7 @@ namespace ScottWisper
     public partial class MainWindow : Window
     {
         private IFeedbackService? _feedbackService;
-        private ScottWisper.Services.ISettingsService? _settingsService;
+        private WhisperKey.Services.ISettingsService? _settingsService;
         private ITextInjection? _textInjectionService;
         private bool _isHidden = false;
         private readonly List<StatusHistoryItem> _displayHistory = new();
@@ -119,7 +119,7 @@ namespace ScottWisper
             _feedbackService = Application.Current.Properties["FeedbackService"] as FeedbackService;
             
             // Get settings service from application properties or create new one
-            if (Application.Current.Properties["SettingsService"] is ScottWisper.Services.ISettingsService settingsService)
+            if (Application.Current.Properties["SettingsService"] is WhisperKey.Services.ISettingsService settingsService)
             {
                 _settingsService = settingsService;
             }
@@ -351,7 +351,7 @@ namespace ScottWisper
         public bool IsWindowHidden => _isHidden;
 
         // Public method for external components to update status
-        private void OnStatusHistoryUpdated(object? sender, ScottWisper.StatusHistoryEntry entry)
+        private void OnStatusHistoryUpdated(object? sender, WhisperKey.StatusHistoryEntry entry)
         {
             Dispatcher.Invoke(() =>
             {
@@ -375,7 +375,7 @@ namespace ScottWisper
             });
         }
 
-        private void OnProgressUpdated(object? sender, ScottWisper.ProgressState progress)
+        private void OnProgressUpdated(object? sender, WhisperKey.ProgressState progress)
         {
             Dispatcher.Invoke(() =>
             {
@@ -738,7 +738,7 @@ namespace ScottWisper
             }
         }
 
-        private void ShowNotification(string message, string title = "ScottWisper", bool showDetailedDialog = false)
+        private void ShowNotification(string message, string title = "WhisperKey", bool showDetailedDialog = false)
         {
             if (_feedbackService != null)
             {
@@ -756,7 +756,7 @@ namespace ScottWisper
 
         public IFeedbackService? FeedbackService => _feedbackService;
 
-        private async void OnSettingsChanged(object? sender, ScottWisper.Services.SettingsChangedEventArgs e)
+        private async void OnSettingsChanged(object? sender, WhisperKey.Services.SettingsChangedEventArgs e)
         {
             try
             {

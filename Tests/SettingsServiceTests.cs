@@ -2,13 +2,13 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ScottWisper.Services;
-using ScottWisper.Configuration;
+using WhisperKey.Services;
+using WhisperKey.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class SettingsServiceTests
@@ -19,7 +19,7 @@ namespace ScottWisper.Tests
         [TestInitialize]
         public void Setup()
         {
-            _testAppDataPath = Path.Combine(Path.GetTempPath(), "ScottWisperTests_" + Guid.NewGuid().ToString());
+            _testAppDataPath = Path.Combine(Path.GetTempPath(), "WhisperKeyTests_" + Guid.NewGuid().ToString());
             Directory.CreateDirectory(_testAppDataPath);
             // We can't easily redirect SettingsService without refactoring it to accept a path
             // But we can test its logic or mock the parts that use the path if we had interfaces.

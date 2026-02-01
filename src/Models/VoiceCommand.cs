@@ -1,6 +1,6 @@
 using System;
 
-namespace ScottWisper.Models
+namespace WhisperKey.Models
 {
     /// <summary>
     /// Represents a voice command detected in transcription text

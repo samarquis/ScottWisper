@@ -1,8 +1,8 @@
-# ScottWisper Project State
+# WhisperKey Project State
 
 ## Project Reference
 
-**ScottWisper Voice Dictation** - A Windows desktop application providing universal voice dictation with system-wide hotkey activation and cloud-based speech recognition.
+**WhisperKey Voice Dictation** - A Windows desktop application providing universal voice dictation with system-wide hotkey activation and cloud-based speech recognition.
 
 **Core Value:** Accurate, instantaneous voice-to-text conversion that seamlessly integrates with any Windows application, making typing completely optional.
 

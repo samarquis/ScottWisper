@@ -4,9 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Comprehensive validation test runner for Phase 02 gap closure validation
@@ -614,7 +614,7 @@ namespace ScottWisper
             {
                 var report = new System.Text.StringBuilder();
                 
-                report.AppendLine("# ScottWisper Phase 02 Gap Closure Validation Report");
+                report.AppendLine("# WhisperKey Phase 02 Gap Closure Validation Report");
                 report.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss UTC}");
                 report.AppendLine($"Test Suite: {results.TestSuiteName}");
                 report.AppendLine();
@@ -724,7 +724,7 @@ namespace ScottWisper
                 if (results.AllPassed)
                 {
                     report.AppendLine("✅ **VALIDATION SUCCESSFUL**: All Phase 02 gap closure requirements have been met.");
-                    report.AppendLine("The ScottWisper application demonstrates excellent cross-application compatibility,");
+                    report.AppendLine("The WhisperKey application demonstrates excellent cross-application compatibility,");
                     report.AppendLine("robust permission handling, comprehensive settings management, and reliable");
                     report.AppendLine("performance across all target applications. The integration testing framework");
                     report.AppendLine("provides thorough validation and reporting capabilities.");

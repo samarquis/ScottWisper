@@ -8,9 +8,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Models;
+using WhisperKey.Models;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Interface for model management service
@@ -93,7 +93,7 @@ namespace ScottWisper.Services
             
             // Default models directory in AppData
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _modelsDirectory = modelsDirectory ?? Path.Combine(appDataPath, "ScottWisper", "Models");
+            _modelsDirectory = modelsDirectory ?? Path.Combine(appDataPath, "WhisperKey", "Models");
             
             Directory.CreateDirectory(_modelsDirectory);
             

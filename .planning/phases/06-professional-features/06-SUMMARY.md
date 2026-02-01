@@ -87,7 +87,7 @@ Phase 6 focused on implementing professional-grade features for enterprise deplo
 - Estimated effort: 2-3 days
 
 **Status:** Not implemented - planned for v1.1 release  
-**Open Task:** ScottWisper-87v
+**Open Task:** WhisperKey-87v
 
 ---
 
@@ -107,7 +107,7 @@ Phase 6 focused on implementing professional-grade features for enterprise deplo
 - Estimated effort: 1-2 days
 
 **Status:** Not implemented - planned for v1.1 release  
-**Open Task:** ScottWisper-88q
+**Open Task:** WhisperKey-88q
 
 ---
 
@@ -127,7 +127,7 @@ Phase 6 focused on implementing professional-grade features for enterprise deplo
 - Estimated effort: 2-3 days
 
 **Status:** Not implemented - planned for v1.1 release  
-**Open Task:** ScottWisper-oet
+**Open Task:** WhisperKey-oet
 
 ---
 

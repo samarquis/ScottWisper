@@ -1,10 +1,10 @@
-# ScottWisper Differentiation Strategy
+# WhisperKey Differentiation Strategy
 
 ## Positioning vs SuperWhisper
 
 **Core Philosophy Difference:**
 - **SuperWhisper**: Cloud-first AI productivity platform with multiple modes
-- **ScottWisper**: Privacy-focused offline-capable dictation for professionals
+- **WhisperKey**: Privacy-focused offline-capable dictation for professionals
 
 ## Key Differentiators
 
@@ -49,7 +49,7 @@
 ## Market Positioning
 
 **Tagline:**
-> "ScottWisper - Secure Voice Dictation for Professionals"
+> "WhisperKey - Secure Voice Dictation for Professionals"
 
 **Key Messages:**
 - Privacy-first design
@@ -59,7 +59,7 @@
 
 ## Competitive Advantages
 
-| Feature | SuperWhisper | ScottWisper |
+| Feature | SuperWhisper | WhisperKey |
 |----------|---------------|--------------|
 | Internet Required | Yes | No (local mode) |
 | Privacy Focus | Moderate | High |

@@ -4,23 +4,23 @@ This guide shows how to use the review system as part of your beads workflow.
 
 ## 🚪 Production Review Gate Epic
 
-**Epic ID:** `ScottWisper-qku`
+**Epic ID:** `WhisperKey-qku`
 
 This epic represents the final validation gate before production deployment. It contains 8 tasks that must all pass before release.
 
 ### Epic Structure
 
 ```
-EPIC: Final Production Review Gate (ScottWisper-qku)
+EPIC: Final Production Review Gate (WhisperKey-qku)
 │
-├── TASK: Run Deployment Review (ScottWisper-md1)
-├── TASK: Run Security Review (ScottWisper-wfh)
-├── TASK: Run Architecture Review (ScottWisper-svs)
-├── TASK: Run UI/UX Review (ScottWisper-c35)
-├── TASK: Run Performance Review (ScottWisper-e9w)
-├── TASK: Run Error Handling Review (ScottWisper-ivi)
-├── TASK: Run Testing Review (ScottWisper-qsw)
-└── TASK: Generate Final Review Report (ScottWisper-b43)
+├── TASK: Run Deployment Review (WhisperKey-md1)
+├── TASK: Run Security Review (WhisperKey-wfh)
+├── TASK: Run Architecture Review (WhisperKey-svs)
+├── TASK: Run UI/UX Review (WhisperKey-c35)
+├── TASK: Run Performance Review (WhisperKey-e9w)
+├── TASK: Run Error Handling Review (WhisperKey-ivi)
+├── TASK: Run Testing Review (WhisperKey-qsw)
+└── TASK: Generate Final Review Report (WhisperKey-b43)
 ```
 
 ## 🎯 Usage Patterns
@@ -32,7 +32,7 @@ Run a specific review and update its beads task automatically:
 ```powershell
 # Run deployment review and update task status
 .\Run-FullReview.ps1 `
-    -BeadsTaskId "ScottWisper-md1" `
+    -BeadsTaskId "WhisperKey-md1" `
     -ReviewTypes "Deployment"
 
 # The script will:
@@ -49,7 +49,7 @@ Run all 7 reviews as the final production gate:
 ```powershell
 # Run full review gate
 .\Run-FullReview.ps1 `
-    -BeadsEpicId "ScottWisper-qku" `
+    -BeadsEpicId "WhisperKey-qku" `
     -RunAsGate `
     -FailOnCritical
 
@@ -71,7 +71,7 @@ Use in GitHub Actions or Azure DevOps:
   shell: pwsh
   run: |
     .\Run-FullReview.ps1 `
-      -BeadsEpicId "ScottWisper-qku" `
+      -BeadsEpicId "WhisperKey-qku" `
       -RunAsGate `
       -FailOnCritical
   continue-on-error: false
@@ -84,7 +84,7 @@ Auto-close task on successful review:
 ```powershell
 # Run and auto-close if pass
 .\Run-FullReview.ps1 `
-    -BeadsTaskId "ScottWisper-wfh" `
+    -BeadsTaskId "WhisperKey-wfh" `
     -ReviewTypes "Security" `
     -AutoCloseOnPass
 ```
@@ -117,19 +117,19 @@ Each review has specific criteria that must be met:
 2. **Run individual reviews as needed**
    ```powershell
    # After security fix
-   .\Run-FullReview.ps1 -ReviewTypes "Security" -BeadsTaskId "ScottWisper-wfh"
+   .\Run-FullReview.ps1 -ReviewTypes "Security" -BeadsTaskId "WhisperKey-wfh"
    ```
 
 ### Phase 2: Pre-Release Validation
 
 3. **Start review gate epic**
    ```bash
-   bd update ScottWisper-qku --status in_progress
+   bd update WhisperKey-qku --status in_progress
    ```
 
 4. **Run all reviews**
    ```powershell
-   .\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate
+   .\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate
    ```
 
 5. **Check results**
@@ -140,13 +140,13 @@ Each review has specific criteria that must be met:
 
 6. **Generate final report**
    ```powershell
-   .\Run-FullReview.ps1 -BeadsTaskId "ScottWisper-b43" -OpenReports
+   .\Run-FullReview.ps1 -BeadsTaskId "WhisperKey-b43" -OpenReports
    ```
 
 7. **Close epic**
    ```bash
-   bd update ScottWisper-qku --status completed
-   bd close ScottWisper-qku
+   bd update WhisperKey-qku --status completed
+   bd close WhisperKey-qku
    ```
 
 ## 🎛️ Command Reference
@@ -160,23 +160,23 @@ Each review has specific criteria that must be met:
 ### Task Mode
 ```powershell
 # Update specific task
-.\Run-FullReview.ps1 -BeadsTaskId "ScottWisper-md1" -ReviewTypes "Deployment"
+.\Run-FullReview.ps1 -BeadsTaskId "WhisperKey-md1" -ReviewTypes "Deployment"
 ```
 
 ### Gate Mode
 ```powershell
 # Full production gate
-.\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate
+.\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate
 
 # With auto-fail for CI/CD
-.\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate -FailOnCritical
+.\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate -FailOnCritical
 ```
 
 ### Combined Options
 ```powershell
 # Complete workflow
 .\Run-FullReview.ps1 `
-    -BeadsEpicId "ScottWisper-qku" `
+    -BeadsEpicId "WhisperKey-qku" `
     -RunAsGate `
     -FailOnCritical `
     -AutoCloseOnPass `
@@ -189,10 +189,10 @@ Each review has specific criteria that must be met:
 ### Check Epic Status
 ```bash
 # View epic details
-bd show ScottWisper-qku
+bd show WhisperKey-qku
 
 # List all tasks in epic
-bd children ScottWisper-qku
+bd children WhisperKey-qku
 
 # Check task statuses
 bd list | grep "md1\|wfh\|svs\|c35\|e9w\|ivi\|qsw\|b43"
@@ -201,10 +201,10 @@ bd list | grep "md1\|wfh\|svs\|c35\|e9w\|ivi\|qsw\|b43"
 ### Track Completion
 ```bash
 # Count completed tasks
-bd children ScottWisper-qku | grep "completed" | wc -l
+bd children WhisperKey-qku | grep "completed" | wc -l
 
 # View epic progress
-bd epic status ScottWisper-qku
+bd epic status WhisperKey-qku
 ```
 
 ## 🚨 Handling Failures
@@ -227,13 +227,13 @@ bd epic status ScottWisper-qku
 3. **Re-run the review**
    ```powershell
    # Re-run just the failed review
-   .\Run-FullReview.ps1 -BeadsTaskId "ScottWisper-wfh" -ReviewTypes "Security"
+   .\Run-FullReview.ps1 -BeadsTaskId "WhisperKey-wfh" -ReviewTypes "Security"
    ```
 
 4. **Re-run full gate if needed**
    ```powershell
    # After all fixes, run full gate again
-   .\Run-FullReview.ps1 -BeadsEpicId "ScottWisper-qku" -RunAsGate
+   .\Run-FullReview.ps1 -BeadsEpicId "WhisperKey-qku" -RunAsGate
    ```
 
 ## 🔄 Continuous Integration
@@ -283,7 +283,7 @@ jobs:
         shell: pwsh
         run: |
           .\Run-FullReview.ps1 `
-            -BeadsEpicId "ScottWisper-qku" `
+            -BeadsEpicId "WhisperKey-qku" `
             -RunAsGate `
             -FailOnCritical `
             -OutputDirectory "./reviews"
@@ -315,7 +315,7 @@ For the production gate to pass:
 bd list --status closed | grep "TASK: Run.*Review"
 
 # Compare review runs
-bd history ScottWisper-qku
+bd history WhisperKey-qku
 ```
 
 ## 🎓 Best Practices
@@ -382,4 +382,4 @@ For issues with the review system:
 
 **Integration Version:** 2.0  
 **Last Updated:** January 31, 2026  
-**Beads Epic:** ScottWisper-qku
+**Beads Epic:** WhisperKey-qku

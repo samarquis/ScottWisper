@@ -27,7 +27,7 @@ tech-stack:
 
 key-files:
   created: [Core/TextInjectionService.cs, Services/SystemTrayService.cs, Services/FeedbackService.cs, Services/SettingsService.cs, UI/SettingsWindow.xaml, Services/HotkeyService.cs, Services/AudioDeviceService.cs, UI/AudioVisualizer.xaml, IntegrationTests.cs]
-  modified: [MainWindow.xaml.cs, Services/TranscriptionService.cs, ScottWisper.csproj]
+  modified: [MainWindow.xaml.cs, Services/TranscriptionService.cs, WhisperKey.csproj]
 
 key-decisions:
   - "Windows SendInput API for universal text injection over H.InputSimulator library"

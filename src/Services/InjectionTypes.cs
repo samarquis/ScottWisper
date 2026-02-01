@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Target applications for text injection (reference from ApplicationDetector)

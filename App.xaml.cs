@@ -2,10 +2,10 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
-using ScottWisper.Bootstrap;
-using ScottWisper.Services;
+using WhisperKey.Bootstrap;
+using WhisperKey.Services;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Interaction logic for App.xaml
@@ -45,7 +45,7 @@ namespace ScottWisper
                     {
                         MessageBox.Show(
                             $"An unexpected error occurred:\n\n{exception.Message}\n\nThe application will continue running, but may be in an unstable state.",
-                            "ScottWisper Error",
+                            "WhisperKey Error",
                             MessageBoxButton.OK,
                             MessageBoxImage.Warning);
                     });
@@ -75,7 +75,7 @@ namespace ScottWisper
                     // Show error and mark as handled to prevent application crash
                     MessageBox.Show(
                         $"An unexpected UI error occurred:\n\n{exception.Message}\n\nThe application will continue running.",
-                        "ScottWisper Error",
+                        "WhisperKey Error",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                     
@@ -90,7 +90,7 @@ namespace ScottWisper
             {
                 var logPath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "ScottWisper",
+                    "WhisperKey",
                     "logs");
                 
                 System.IO.Directory.CreateDirectory(logPath);
@@ -160,7 +160,7 @@ namespace ScottWisper
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    MessageBox.Show($"Failed to start application: {ex.Message}", "ScottWisper Error",
+                    MessageBox.Show($"Failed to start application: {ex.Message}", "WhisperKey Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     Shutdown();
                 });
@@ -169,7 +169,7 @@ namespace ScottWisper
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    MessageBox.Show($"Required file not found: {ex.Message}", "ScottWisper Error",
+                    MessageBox.Show($"Required file not found: {ex.Message}", "WhisperKey Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     Shutdown();
                 });
@@ -178,7 +178,7 @@ namespace ScottWisper
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    MessageBox.Show($"Configuration error: {ex.Message}", "ScottWisper Error",
+                    MessageBox.Show($"Configuration error: {ex.Message}", "WhisperKey Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     Shutdown();
                 });

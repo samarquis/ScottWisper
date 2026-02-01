@@ -1,18 +1,15 @@
-using Microsoft.Extensions.Configuration;
-using ScottWisper.Configuration;
-using ScottWisper.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
+using Microsoft.Extensions.Configuration;
+using WhisperKey.Configuration;
+using WhisperKey.Services;
 
-namespace ScottWisper.ViewModels
+namespace WhisperKey.ViewModels
 {
     public class SettingsViewModel : INotifyPropertyChanged
     {

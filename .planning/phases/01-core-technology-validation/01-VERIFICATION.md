@@ -8,7 +8,7 @@ gaps:
     status: failed
     reason: "Project has compilation errors preventing successful build and launch"
     artifacts:
-      - path: "ScottWisper.csproj"
+      - path: "WhisperKey.csproj"
         issue: "Project fails to build due to compilation errors"
       - path: "ValidationService.cs"
         issue: "Calls non-existent methods IsHotkeyRegistered, GetTodayUsage, GetMonthlyUsage"
@@ -100,7 +100,7 @@ gaps:
     status: failed
     reason: "Compilation errors prevent application from running"
     artifacts:
-      - path: "ScottWisper.csproj"
+      - path: "WhisperKey.csproj"
         issue: "Build fails due to compilation errors"
     missing:
       - "Fix all compilation errors to enable Windows testing"
@@ -138,7 +138,7 @@ gaps:
 
 | Artifact | Expected | Status | Details |
 | -------- | --------- | ------ | ------- |
-| `ScottWisper.csproj` | WinUI 3 project configuration with .NET 8 | ✗ FAILED | Build fails due to compilation errors |
+| `WhisperKey.csproj` | WinUI 3 project configuration with .NET 8 | ✗ FAILED | Build fails due to compilation errors |
 | `App.xaml.cs` | Application entry point and system tray setup | ✓ VERIFIED | 234 lines, comprehensive service initialization |
 | `HotkeyService.cs` | Global hotkey registration using Windows API | ✗ FAILED | 92 lines, missing IsHotkeyRegistered property |
 | `AudioCaptureService.cs` | Real-time microphone audio capture | ✓ VERIFIED | 207 lines, comprehensive NAudio implementation |

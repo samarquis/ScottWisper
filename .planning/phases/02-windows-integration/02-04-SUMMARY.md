@@ -22,7 +22,7 @@ tech-stack:
 
 key-files:
   created: [SystemTrayService.cs]
-  modified: [ScottWisper.csproj]
+  modified: [WhisperKey.csproj]
 
 key-decisions:
   - "Used Windows Forms NotifyIcon instead of H.NotifyIcon.Wpf for better .NET 8 compatibility"
@@ -78,7 +78,7 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `ScottWisper.csproj` - Added H.NotifyIcon.Wpf v2.4.1 package reference
+- `WhisperKey.csproj` - Added H.NotifyIcon.Wpf v2.4.1 package reference
 - `SystemTrayService.cs` - Complete system tray service implementation (227 lines)
 
 ## Decisions Made

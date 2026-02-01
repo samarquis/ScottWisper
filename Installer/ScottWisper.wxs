@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ScottWisper MSI Installer - WiX v4
+  WhisperKey MSI Installer - WiX v4
   
   Build Commands:
     1. Harvest files: wix harvest dir ./publish -o ./Installer/Files.wxs -cg ProductComponents -gg
-    2. Build MSI: wix build ./Installer/ScottWisper.wxs ./Installer/Files.wxs -o ./ScottWisper.msi
+    2. Build MSI: wix build ./Installer/WhisperKey.wxs ./Installer/Files.wxs -o ./WhisperKey.msi
   
   Silent Install:
-    msiexec /i ScottWisper.msi /qn
+    msiexec /i WhisperKey.msi /qn
     
   Uninstall:
-    msiexec /x ScottWisper.msi /qn
+    msiexec /x WhisperKey.msi /qn
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
      
-  <Package Name="ScottWisper" 
+  <Package Name="WhisperKey" 
            Language="1033" 
            Version="1.0.0" 
-           Manufacturer="ScottWisper" 
+           Manufacturer="WhisperKey" 
            UpgradeCode="a3ef09de-38b1-4068-87c0-9a7d707d1a88">
     
-    <MajorUpgrade DowngradeErrorMessage="A newer version of ScottWisper is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of WhisperKey is already installed." />
     
     <MediaTemplate EmbedCab="yes" />
     
     <!-- Features -->
-    <Feature Id="ProductFeature" Title="ScottWisper" Level="1">
+    <Feature Id="ProductFeature" Title="WhisperKey" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
       <ComponentRef Id="ApplicationShortcuts" />
       <ComponentRef Id="RegistryEntries" />
@@ -33,12 +33,12 @@
     
     <!-- Standard Install Location -->
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="ScottWisper" />
+      <Directory Id="INSTALLFOLDER" Name="WhisperKey" />
     </StandardDirectory>
     
     <!-- Start Menu -->
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ApplicationProgramsFolder" Name="ScottWisper" />
+      <Directory Id="ApplicationProgramsFolder" Name="WhisperKey" />
     </StandardDirectory>
     
     <!-- Desktop -->
@@ -49,14 +49,14 @@
       <Component Id="ApplicationShortcuts" Guid="*">
         <Shortcut Id="StartMenuShortcut"
                   Directory="ApplicationProgramsFolder"
-                  Name="ScottWisper"
+                  Name="WhisperKey"
                   Description="Voice-to-Text Dictation Software"
-                  Target="[INSTALLFOLDER]ScottWisper.exe"
+                  Target="[INSTALLFOLDER]WhisperKey.exe"
                   WorkingDirectory="INSTALLFOLDER"
                    />
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
         <RegistryValue Root="HKCU" 
-                      Key="Software\ScottWisper" 
+                      Key="Software\WhisperKey" 
                       Name="Installed" 
                       Type="integer" 
                       Value="1" 
@@ -69,11 +69,11 @@
       <Component Id="DesktopShortcutComp" Guid="*" Condition="DESKTOPSHORTCUT">
         <Shortcut Id="DesktopShortcut"
                   Directory="DesktopFolder"
-                  Name="ScottWisper"
-                  Target="[INSTALLFOLDER]ScottWisper.exe"
+                  Name="WhisperKey"
+                  Target="[INSTALLFOLDER]WhisperKey.exe"
                   WorkingDirectory="INSTALLFOLDER" />
         <RegistryValue Root="HKCU" 
-                      Key="Software\ScottWisper" 
+                      Key="Software\WhisperKey" 
                       Name="DesktopShortcut" 
                       Type="integer" 
                       Value="1" 
@@ -83,7 +83,7 @@
     
     <!-- Registry Entries -->
     <Component Id="RegistryEntries" Guid="*" Directory="INSTALLFOLDER">
-      <RegistryKey Root="HKLM" Key="Software\ScottWisper">
+      <RegistryKey Root="HKLM" Key="Software\WhisperKey">
         <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" />
         <RegistryValue Type="string" Name="Version" Value="1.0.0" />
       </RegistryKey>

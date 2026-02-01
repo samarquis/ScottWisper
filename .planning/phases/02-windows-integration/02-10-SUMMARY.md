@@ -25,12 +25,12 @@ tech-stack:
 
 key-files:
   created: [Configuration/AppSettings.cs, Services/SettingsService.cs, appsettings.json]
-  modified: [ScottWisper.csproj, App.xaml.cs]
+  modified: [WhisperKey.csproj, App.xaml.cs]
 
 key-decisions:
   - "Used .NET 8 Configuration system instead of custom JSON handling for better maintainability"
   - "Implemented machine-specific encryption for API keys using Windows machine/user data"
-  - "Chosen %APPDATA%/ScottWisper for user settings following Windows conventions"
+  - "Chosen %APPDATA%/WhisperKey for user settings following Windows conventions"
 
 patterns-established:
   - "Pattern: Configuration injection using IOptionsMonitor pattern"
@@ -75,14 +75,14 @@ Each task was committed atomically:
 - `Configuration/AppSettings.cs` - Strongly-typed configuration models (AudioSettings, TranscriptionSettings, HotkeySettings, UISettings, AppSettings)
 - `Services/SettingsService.cs` - Core settings service with JSON persistence, encryption, and dependency injection integration
 - `appsettings.json` - Default configuration structure with all basic settings categories
-- `ScottWisper.csproj` - Added Microsoft.Extensions.Configuration packages (Configuration, Json, Binder, Options, DI)
+- `WhisperKey.csproj` - Added Microsoft.Extensions.Configuration packages (Configuration, Json, Binder, Options, DI)
 - `App.xaml.cs` - Updated with dependency injection setup and configuration binding
 
 ## Decisions Made
 
 - **Configuration Framework Choice:** Selected Microsoft.Extensions.Configuration over custom JSON handling for better maintainability and .NET ecosystem integration
 - **Encryption Strategy:** Used machine-specific AES encryption with combined machine+user key for API key security
-- **Storage Location:** Chose %APPDATA%/ScottWisper for user settings following Windows conventions
+- **Storage Location:** Chose %APPDATA%/WhisperKey for user settings following Windows conventions
 - **DI Pattern:** Implemented IOptionsMonitor pattern for real-time configuration updates
 
 ## Deviations from Plan

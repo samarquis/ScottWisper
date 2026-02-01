@@ -1,7 +1,7 @@
 ╔══════════════════════════════════════════════════════════════╗
 ║  PROJECT STATUS                                               ║
 ╠══════════════════════════════════════════════════════════════╣
-║  Building: ScottWisper Voice Dictation - Windows desktop      ║
+║  Building: WhisperKey Voice Dictation - Windows desktop      ║
 ║           universal voice dictation with hotkey activation   ║
 ║                                                               ║
 ║  Phase: Research Complete → Ready for Roadmap               ║

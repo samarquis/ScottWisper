@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Audio device information for device selection and management

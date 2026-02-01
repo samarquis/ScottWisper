@@ -129,7 +129,7 @@ human_verification:
 | `Services/SettingsService.cs` | Settings persistence and management | ✓ VERIFIED | 773 lines, complete backend implementation |
 | `SettingsWindow.xaml.cs` | Complete settings configuration interface | ✓ VERIFIED | 1568 lines, full hotkey, device, API configuration |
 | `IntegrationTests.cs` | Cross-application compatibility testing | ⚠️ ORPHANED | 689 lines of comprehensive tests but cannot run with compilation errors |
-| `ScottWisper.csproj` | Required NuGet packages for input injection | ✓ VERIFIED | H.InputSimulator, NAudio, system packages |
+| `WhisperKey.csproj` | Required NuGet packages for input injection | ✓ VERIFIED | H.InputSimulator, NAudio, system packages |
 
 ### Key Link Verification
 
@@ -163,7 +163,7 @@ human_verification:
 
 #### 1. Application Build and Run Test
 
-**Test:** Resolve compilation errors and attempt to build and run the ScottWisper application
+**Test:** Resolve compilation errors and attempt to build and run the WhisperKey application
 **Expected:** Application should compile successfully and start with system tray icon, allowing testing of the now-properly-defined interface methods
 **Why human:** Interface fixes are complete but widespread compilation errors prevent any functional verification - need to verify if fixing compilation issues enables the now-correct interface methods to function properly
 

@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Models;
+using WhisperKey.Models;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Interface for vocabulary management service
@@ -127,7 +127,7 @@ namespace ScottWisper.Services
             
             // Default data directory in AppData
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _dataDirectory = dataDirectory ?? Path.Combine(appDataPath, "ScottWisper", "Vocabulary");
+            _dataDirectory = dataDirectory ?? Path.Combine(appDataPath, "WhisperKey", "Vocabulary");
             
             Directory.CreateDirectory(_dataDirectory);
             
@@ -803,7 +803,7 @@ namespace ScottWisper.Services
         {
             filePath ??= Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                $"ScottWisper_Vocabulary_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                $"WhisperKey_Vocabulary_{DateTime.Now:yyyyMMdd_HHmmss}.json"
             );
             
             CustomVocabulary exportData;

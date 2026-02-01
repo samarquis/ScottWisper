@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Defines feedback service for providing audio and visual status notifications

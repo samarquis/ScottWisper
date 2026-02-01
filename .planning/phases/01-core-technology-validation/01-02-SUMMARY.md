@@ -22,7 +22,7 @@ tech-stack:
 
 key-files:
   created: [AudioCaptureService.cs, WhisperService.cs, ServiceTest.cs]
-  modified: [ScottWisper.csproj]
+  modified: [WhisperKey.csproj]
 
 key-decisions:
   - "Removed Microsoft.Windows.SDK.Contracts due to .NET 8 compatibility issues"
@@ -74,7 +74,7 @@ Each task was committed atomically:
 
 ## Files Created/Modified
 
-- `ScottWisper.csproj` - Added Newtonsoft.Json and NAudio dependencies
+- `WhisperKey.csproj` - Added Newtonsoft.Json and NAudio dependencies
 - `AudioCaptureService.cs` - Real-time audio capture using NAudio with 16kHz mono recording
 - `WhisperService.cs` - OpenAI Whisper API integration with usage tracking
 - `ServiceTest.cs` - Basic verification tests for service instantiation

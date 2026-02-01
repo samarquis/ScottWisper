@@ -11,7 +11,7 @@ using System.Windows.Threading;
 using NAudio.Wave;
 using NAudio.Dsp;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     /// <summary>
     /// Real-time audio visualization component with waveform display and level monitoring

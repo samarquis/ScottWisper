@@ -1,14 +1,14 @@
 using System;
 using System.Threading.Tasks;
-using ScottWisper.Tests;
+using WhisperKey.Tests;
 
-namespace ScottWisper.Testing
+namespace WhisperKey.Testing
 {
     class Program
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("ScottWisper Quick Test Entry Point");
+            Console.WriteLine("WhisperKey Quick Test Entry Point");
             
             if (args.Length > 0 && args[0] == "phase04")
             {

@@ -2,9 +2,9 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using ScottWisper.Services;
+using WhisperKey.Services;
 
-namespace ScottWisper.Bootstrap
+namespace WhisperKey.Bootstrap
 {
     /// <summary>
     /// Manages dictation state and operations
@@ -180,7 +180,7 @@ namespace ScottWisper.Bootstrap
             {
                 await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    MessageBox.Show($"{message}: {ex.Message}", "ScottWisper Error",
+                    MessageBox.Show($"{message}: {ex.Message}", "WhisperKey Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 });
             }

@@ -7,9 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using ScottWisper.Models;
+using WhisperKey.Models;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Interface for audit logging service
@@ -117,7 +117,7 @@ namespace ScottWisper.Services
             
             // Default log directory in AppData
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _logDirectory = logDirectory ?? Path.Combine(appDataPath, "ScottWisper", "AuditLogs");
+            _logDirectory = logDirectory ?? Path.Combine(appDataPath, "WhisperKey", "AuditLogs");
             
             // Ensure directory exists
             Directory.CreateDirectory(_logDirectory);
@@ -419,7 +419,7 @@ namespace ScottWisper.Services
             
             filePath ??= Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                $"ScottWisper_AuditExport_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                $"WhisperKey_AuditExport_{DateTime.Now:yyyyMMdd_HHmmss}.json"
             );
             
             var export = new

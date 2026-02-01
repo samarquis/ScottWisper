@@ -131,7 +131,7 @@ Features to defer until product-market fit is established.
 
 ## Competitor Feature Analysis
 
-| Feature | Windows Voice Typing | Dragon Professional | Wispr Flow | ScottWisper Approach |
+| Feature | Windows Voice Typing | Dragon Professional | Wispr Flow | WhisperKey Approach |
 |---------|--------------------|---------------------|------------|---------------------|
 | Global Hotkey | Windows+H (limited) | Custom configurable | Custom configurable | Custom configurable |
 | Universal App Support | Limited | Windows apps only | macOS only | Full Windows universal |

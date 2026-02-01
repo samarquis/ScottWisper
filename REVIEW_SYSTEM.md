@@ -1,6 +1,6 @@
-# ScottWisper Review System
+# WhisperKey Review System
 
-A comprehensive automated review system for the ScottWisper codebase covering 7 critical dimensions.
+A comprehensive automated review system for the WhisperKey codebase covering 7 critical dimensions.
 
 ## 📋 Available Reviews
 
@@ -76,7 +76,7 @@ Run-FullReview.ps1 [
 .\Run-FullReview.ps1 -ReviewTypes "Architecture,Performance,ErrorHandling"
 
 # Generate reports in specific directory
-.\Run-FullReview.ps1 -OutputDirectory "C:\Reviews\ScottWisper-$(Get-Date -Format 'yyyy-MM-dd')"
+.\Run-FullReview.ps1 -OutputDirectory "C:\Reviews\WhisperKey-$(Get-Date -Format 'yyyy-MM-dd')"
 ```
 
 ### Command Prompt (Batch File)
@@ -149,7 +149,7 @@ Refactoring, optimization opportunities, enhancements
 ## 📁 File Structure
 
 ```
-ScottWisper/
+WhisperKey/
 ├── Run-FullReview.ps1          # Main PowerShell script
 ├── Run-FullReview.bat          # Windows batch wrapper
 ├── REVIEW_SYSTEM.md            # This documentation
@@ -256,7 +256,7 @@ Ensure beads (bd) is installed and in PATH:
 bd --version
 
 # If not found, check installation
-cd C:\Programming\ScottWisper
+cd C:\Programming\WhisperKey
 bd onboard
 ```
 
@@ -334,4 +334,4 @@ A healthy codebase should have:
 
 **Version:** 1.0  
 **Last Updated:** January 31, 2026  
-**Compatible with:** ScottWisper v1.0+
+**Compatible with:** WhisperKey v1.0+

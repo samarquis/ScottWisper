@@ -8,9 +8,9 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
-using ScottWisper.Models;
+using WhisperKey.Models;
 
-namespace ScottWisper.Services
+namespace WhisperKey.Services
 {
     /// <summary>
     /// Interface for enterprise deployment service
@@ -18,7 +18,7 @@ namespace ScottWisper.Services
     public interface IEnterpriseDeploymentService
     {
         /// <summary>
-        /// Detect if ScottWisper is installed
+        /// Detect if WhisperKey is installed
         /// </summary>
         Task<InstallationInfo> DetectInstallationAsync();
         
@@ -82,7 +82,7 @@ namespace ScottWisper.Services
         }
         
         /// <summary>
-        /// Detect if ScottWisper is installed
+        /// Detect if WhisperKey is installed
         /// </summary>
         public Task<InstallationInfo> DetectInstallationAsync()
         {
@@ -91,7 +91,7 @@ namespace ScottWisper.Services
             try
             {
                 // Check registry for installation
-                using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\ScottWisper");
+                using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WhisperKey");
                 if (key != null)
                 {
                     info.IsInstalled = true;
@@ -100,13 +100,13 @@ namespace ScottWisper.Services
                     info.ProductCode = _msiProductCode;
                     
                     // Check if per-user or per-machine
-                    info.Scope = File.Exists(Path.Combine(info.InstallPath ?? "", "ScottWisper.exe"))
+                    info.Scope = File.Exists(Path.Combine(info.InstallPath ?? "", "WhisperKey.exe"))
                         ? InstallationScope.PerMachine
                         : InstallationScope.PerUser;
                 }
                 
                 // Check uninstall registry for install date
-                using var uninstallKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ScottWisper");
+                using var uninstallKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WhisperKey");
                 if (uninstallKey != null)
                 {
                     var installDateStr = uninstallKey.GetValue("InstallDate")?.ToString();
@@ -176,7 +176,7 @@ namespace ScottWisper.Services
                 }
                 
                 // Build MSI arguments using ArgumentList to prevent command injection
-                var logPath = Path.Combine(Path.GetTempPath(), $"ScottWisper_Install_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+                var logPath = Path.Combine(Path.GetTempPath(), $"WhisperKey_Install_{DateTime.Now:yyyyMMdd_HHmmss}.log");
                 
                 _logger.LogInformation("Starting silent installation from: {MsiPath}", msiPath);
                 
@@ -272,7 +272,7 @@ namespace ScottWisper.Services
                 var arguments = $"/x \"{productCode}\" /qn /norestart";
                 
                 // Add logging
-                var logPath = Path.Combine(Path.GetTempPath(), $"ScottWisper_Uninstall_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+                var logPath = Path.Combine(Path.GetTempPath(), $"WhisperKey_Uninstall_{DateTime.Now:yyyyMMdd_HHmmss}.log");
                 arguments += $" /l*v \"{logPath}\"";
                 
                 _logger.LogInformation("Starting uninstallation with product code: {ProductCode}", productCode);
@@ -326,7 +326,7 @@ namespace ScottWisper.Services
         {
             // Build PowerShell script using StringBuilder to avoid quote issues
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("# ScottWisper GPO Deployment Script");
+            sb.AppendLine("# WhisperKey GPO Deployment Script");
             sb.AppendLine("# Generated: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
             sb.AppendLine();
             sb.AppendLine("param(");
@@ -350,7 +350,7 @@ namespace ScottWisper.Services
             sb.AppendLine(")");
             sb.AppendLine();
             sb.AppendLine("# Create GPO");
-            sb.AppendLine("$GPOName = 'ScottWisper-Deployment'");
+            sb.AppendLine("$GPOName = 'WhisperKey-Deployment'");
             sb.AppendLine();
             sb.AppendLine("Write-Host \"Creating GPO: $GPOName\" -ForegroundColor Green");
             sb.AppendLine();
@@ -421,7 +421,7 @@ namespace ScottWisper.Services
                 // Write configuration to ProgramData
                 var configDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "ScottWisper",
+                    "WhisperKey",
                     "Enterprise");
                 
                 Directory.CreateDirectory(configDir);
@@ -463,7 +463,7 @@ namespace ScottWisper.Services
         {
             // Find the most recent installation log
             var tempPath = Path.GetTempPath();
-            var logFiles = Directory.GetFiles(tempPath, "ScottWisper_Install_*.log")
+            var logFiles = Directory.GetFiles(tempPath, "WhisperKey_Install_*.log")
                 .OrderByDescending(f => File.GetCreationTime(f))
                 .ToList();
             

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ScottWisper.Models
+namespace WhisperKey.Models
 {
     /// <summary>
     /// Represents an audit log entry for compliance tracking (HIPAA/GDPR)

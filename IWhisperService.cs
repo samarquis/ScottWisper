@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace ScottWisper
+namespace WhisperKey
 {
     public interface IWhisperService : IDisposable
     {

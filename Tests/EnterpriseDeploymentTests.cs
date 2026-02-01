@@ -3,10 +3,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ScottWisper.Models;
-using ScottWisper.Services;
+using WhisperKey.Models;
+using WhisperKey.Services;
 
-namespace ScottWisper.Tests
+namespace WhisperKey.Tests
 {
     [TestClass]
     public class EnterpriseDeploymentTests
@@ -309,7 +309,7 @@ namespace ScottWisper.Tests
         {
             var config = new GpoDeploymentConfig
             {
-                GpoName = "ScottWisper-Test",
+                GpoName = "WhisperKey-Test",
                 OrganizationalUnit = "OU=Workstations,DC=example,DC=com",
                 AssignmentType = GpoAssignmentType.Computer,
                 ForceReinstall = false,
@@ -319,7 +319,7 @@ namespace ScottWisper.Tests
             var script = await _deploymentService.GenerateGpoScriptAsync(config);
 
             Assert.IsNotNull(script);
-            Assert.IsTrue(script.Contains("ScottWisper GPO Deployment Script"));
+            Assert.IsTrue(script.Contains("WhisperKey GPO Deployment Script"));
             Assert.IsTrue(script.Contains("New-GPO"));
             Assert.IsTrue(script.Contains("Import-Module GroupPolicy"));
         }
@@ -369,7 +369,7 @@ namespace ScottWisper.Tests
             var config = new WebhookConfig
             {
                 Enabled = true,
-                EndpointUrl = "https://hooks.example.com/scottwisper",
+                EndpointUrl = "https://hooks.example.com/WhisperKey",
                 AuthToken = "auth-123",
                 Secret = "webhook-secret",
                 TimeoutSeconds = 60,
@@ -382,12 +382,12 @@ namespace ScottWisper.Tests
                 CustomHeaders = new System.Collections.Generic.Dictionary<string, string>
                 {
                     ["X-Organization-ID"] = "org-123",
-                    ["X-Source"] = "ScottWisper"
+                    ["X-Source"] = "WhisperKey"
                 }
             };
 
             Assert.IsTrue(config.Enabled);
-            Assert.AreEqual("https://hooks.example.com/scottwisper", config.EndpointUrl);
+            Assert.AreEqual("https://hooks.example.com/WhisperKey", config.EndpointUrl);
             Assert.AreEqual("auth-123", config.AuthToken);
             Assert.AreEqual("webhook-secret", config.Secret);
             Assert.AreEqual(60, config.TimeoutSeconds);
@@ -407,14 +407,14 @@ namespace ScottWisper.Tests
             {
                 Success = true,
                 ExitCode = 0,
-                InstallPath = "C:\\Program Files\\ScottWisper",
+                InstallPath = "C:\\Program Files\\WhisperKey",
                 Version = "1.0.0",
                 Duration = TimeSpan.FromSeconds(30)
             };
 
             Assert.IsTrue(result.Success);
             Assert.AreEqual(0, result.ExitCode);
-            Assert.AreEqual("C:\\Program Files\\ScottWisper", result.InstallPath);
+            Assert.AreEqual("C:\\Program Files\\WhisperKey", result.InstallPath);
             Assert.AreEqual("1.0.0", result.Version);
             Assert.AreEqual(30, result.Duration.TotalSeconds);
         }
@@ -425,14 +425,14 @@ namespace ScottWisper.Tests
             var info = new InstallationInfo
             {
                 IsInstalled = true,
-                InstallPath = "C:\\Program Files\\ScottWisper",
+                InstallPath = "C:\\Program Files\\WhisperKey",
                 Version = "1.0.0",
                 ProductCode = "{12345678-1234-1234-1234-123456789012}",
                 Scope = InstallationScope.PerMachine
             };
 
             Assert.IsTrue(info.IsInstalled);
-            Assert.AreEqual("C:\\Program Files\\ScottWisper", info.InstallPath);
+            Assert.AreEqual("C:\\Program Files\\WhisperKey", info.InstallPath);
             Assert.AreEqual("1.0.0", info.Version);
             Assert.AreEqual("{12345678-1234-1234-1234-123456789012}", info.ProductCode);
             Assert.AreEqual(InstallationScope.PerMachine, info.Scope);
