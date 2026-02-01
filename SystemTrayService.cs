@@ -25,11 +25,18 @@ namespace WhisperKey
             Offline      // Gray - Disconnected or unavailable
         }
 
+        public enum IconTheme
+        {
+            Light,      // For dark taskbars
+            Dark        // For light taskbars
+        }
+
         private System.Windows.Forms.NotifyIcon? _notifyIcon;
         private bool _isDisposed = false;
         private bool _isDictating = false;
         private TrayStatus _currentStatus = TrayStatus.Idle;
-        private readonly Dictionary<TrayStatus, Icon> _statusIcons;
+        private IconTheme _currentTheme = IconTheme.Light;
+        private readonly Dictionary<(TrayStatus, IconTheme), Icon> _statusIcons;
         private DateTime _lastStatusChange;
         private string _statusMessage = "WhisperKey - Ready";
         
@@ -49,14 +56,66 @@ namespace WhisperKey
 
         public SystemTrayService()
         {
-            _statusIcons = new Dictionary<TrayStatus, Icon>();
+            _statusIcons = new Dictionary<(TrayStatus, IconTheme), Icon>();
             _lastStatusChange = DateTime.Now;
             _lastGcMemory = GC.GetTotalMemory(false);
+            
+            // Auto-detect system theme
+            _currentTheme = DetectSystemTheme();
             
             // Initialize memory monitoring timer (checks every 30 seconds)
             _memoryMonitorTimer = new System.Timers.Timer(30000);
             _memoryMonitorTimer.Elapsed += OnMemoryMonitorTimer;
             _memoryMonitorTimer.AutoReset = true;
+        }
+
+        /// <summary>
+        /// Auto-detects the system theme based on OS settings
+        /// </summary>
+        private IconTheme DetectSystemTheme()
+        {
+            try
+            {
+                // Check Windows theme using registry
+                using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"))
+                {
+                    if (key != null)
+                    {
+                        var value = key.GetValue("SystemUsesLightTheme");
+                        if (value is int lightTheme)
+                        {
+                            return lightTheme == 1 ? IconTheme.Dark : IconTheme.Light;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to light theme if detection fails
+            }
+            
+            return IconTheme.Light;
+        }
+
+        /// <summary>
+        /// Sets the icon theme explicitly
+        /// </summary>
+        public void SetIconTheme(IconTheme theme)
+        {
+            if (_currentTheme == theme)
+                return;
+
+            _currentTheme = theme;
+            
+            // Recreate icons with new theme
+            CreateStatusIcons();
+            
+            // Update current icon
+            if (_notifyIcon != null && _statusIcons.TryGetValue((_currentStatus, _currentTheme), out var icon))
+            {
+                _notifyIcon.Icon = icon;
+            }
         }
 
         public void Initialize()
@@ -70,7 +129,7 @@ namespace WhisperKey
             // Create notify icon
             _notifyIcon = new System.Windows.Forms.NotifyIcon
             {
-                Icon = _statusIcons[TrayStatus.Ready],
+                Icon = _statusIcons[(TrayStatus.Ready, _currentTheme)],
                 Text = "WhisperKey - Ready"
             };
 
@@ -93,74 +152,190 @@ namespace WhisperKey
 
         private void CreateStatusIcons()
         {
-            // Create different colored icons for each status
-            _statusIcons[TrayStatus.Idle] = CreateStatusIcon(Color.Gray, "Idle");
-            _statusIcons[TrayStatus.Ready] = CreateStatusIcon(Color.Green, "Ready");
-            _statusIcons[TrayStatus.Recording] = CreateStatusIcon(Color.Red, "Recording");
-            _statusIcons[TrayStatus.Processing] = CreateStatusIcon(Color.FromArgb(255, 165, 0), "Processing"); // Orange
-            _statusIcons[TrayStatus.Error] = CreateStatusIcon(Color.FromArgb(220, 53, 69), "Error"); // Red
-            _statusIcons[TrayStatus.Offline] = CreateStatusIcon(Color.DarkGray, "Offline");
+            // Clear existing icons to support theme switching
+            foreach (var icon in _statusIcons.Values)
+            {
+                icon?.Dispose();
+            }
+            _statusIcons.Clear();
+
+            // Create themed icons for each status
+            foreach (IconTheme theme in Enum.GetValues(typeof(IconTheme)))
+            {
+                _statusIcons[(TrayStatus.Idle, theme)] = CreateStatusIcon(TrayStatus.Idle, theme);
+                _statusIcons[(TrayStatus.Ready, theme)] = CreateStatusIcon(TrayStatus.Ready, theme);
+                _statusIcons[(TrayStatus.Recording, theme)] = CreateStatusIcon(TrayStatus.Recording, theme);
+                _statusIcons[(TrayStatus.Processing, theme)] = CreateStatusIcon(TrayStatus.Processing, theme);
+                _statusIcons[(TrayStatus.Error, theme)] = CreateStatusIcon(TrayStatus.Error, theme);
+                _statusIcons[(TrayStatus.Offline, theme)] = CreateStatusIcon(TrayStatus.Offline, theme);
+            }
         }
 
-        private Icon CreateStatusIcon(Color statusColor, string status)
+        private Icon CreateStatusIcon(TrayStatus status, IconTheme theme)
         {
-            var bitmap = new Bitmap(16, 16);
+            // Use 32x32 for higher quality, system will scale down
+            var bitmap = new Bitmap(32, 32, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var graphics = Graphics.FromImage(bitmap))
             {
                 // Set high quality rendering
                 graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
                 graphics.Clear(Color.Transparent);
-                
-                // Professional microphone design with status color
-                using (var brush = new SolidBrush(statusColor))
-                using (var pen = new Pen(brush, 1))
-                {
-                    // Microphone head (rounded top)
-                    graphics.FillEllipse(brush, 6, 3, 4, 3);
-                    
-                    // Microphone body
-                    graphics.FillRectangle(brush, 7, 5, 2, 4);
-                    
-                    // Microphone base
-                    graphics.FillRectangle(brush, 7, 9, 2, 2);
-                    
-                    // Microphone stand
-                    graphics.FillRectangle(brush, 4, 11, 8, 1);
-                }
 
-                // Add status-specific details
-                switch (status)
-                {
-                    case "Recording":
-                        // Add recording indicator (pulsing red dot)
-                        using (var recordingBrush = new SolidBrush(Color.White))
-                        {
-                            graphics.FillEllipse(recordingBrush, 12, 2, 2, 2);
-                        }
-                        break;
-                    
-                    case "Processing":
-                        // Add processing indicator (small gear)
-                        using (var processingBrush = new SolidBrush(Color.White))
-                        {
-                            graphics.FillRectangle(processingBrush, 11, 1, 3, 3);
-                            graphics.FillRectangle(processingBrush, 13, 3, 3, 3);
-                            graphics.FillRectangle(processingBrush, 11, 5, 3, 3);
-                        }
-                        break;
-                    
-                    case "Error":
-                        // Add error indicator (X)
-                        using (var errorBrush = new SolidBrush(Color.White))
-                        {
-                            graphics.DrawLine(new Pen(errorBrush, 1), 11, 1, 14, 4);
-                            graphics.DrawLine(new Pen(errorBrush, 1), 14, 1, 11, 4);
-                        }
-                        break;
-                }
+                // Define colors based on status and theme
+                var (primaryColor, secondaryColor, accentColor) = GetStatusColors(status, theme);
+                
+                // Draw the distinctive WhisperKey icon - stylized sound wave "W"
+                DrawWhisperKeyIcon(graphics, primaryColor, secondaryColor, accentColor);
+                
+                // Draw status indicator overlay
+                DrawStatusIndicator(graphics, status, accentColor);
             }
 
             return Icon.FromHandle(bitmap.GetHicon());
+        }
+
+        private (Color primary, Color secondary, Color accent) GetStatusColors(TrayStatus status, IconTheme theme)
+        {
+            // Base colors for light theme (dark icons on light taskbar)
+            // Base colors for dark theme (light icons on dark taskbar)
+            var isDarkTheme = theme == IconTheme.Dark;
+            
+            return status switch
+            {
+                TrayStatus.Idle => isDarkTheme 
+                    ? (Color.FromArgb(160, 160, 160), Color.FromArgb(120, 120, 120), Color.FromArgb(140, 140, 140))
+                    : (Color.FromArgb(128, 128, 128), Color.FromArgb(160, 160, 160), Color.FromArgb(100, 100, 100)),
+                
+                TrayStatus.Ready => isDarkTheme
+                    ? (Color.FromArgb(76, 175, 80), Color.FromArgb(129, 199, 132), Color.FromArgb(46, 125, 50))
+                    : (Color.FromArgb(46, 125, 50), Color.FromArgb(76, 175, 80), Color.FromArgb(27, 94, 32)),
+                
+                TrayStatus.Recording => isDarkTheme
+                    ? (Color.FromArgb(244, 67, 54), Color.FromArgb(255, 138, 128), Color.FromArgb(198, 40, 40))
+                    : (Color.FromArgb(198, 40, 40), Color.FromArgb(244, 67, 54), Color.FromArgb(183, 28, 28)),
+                
+                TrayStatus.Processing => isDarkTheme
+                    ? (Color.FromArgb(255, 152, 0), Color.FromArgb(255, 204, 128), Color.FromArgb(245, 124, 0))
+                    : (Color.FromArgb(245, 124, 0), Color.FromArgb(255, 152, 0), Color.FromArgb(230, 81, 0)),
+                
+                TrayStatus.Error => isDarkTheme
+                    ? (Color.FromArgb(220, 53, 69), Color.FromArgb(255, 205, 210), Color.FromArgb(176, 0, 32))
+                    : (Color.FromArgb(176, 0, 32), Color.FromArgb(220, 53, 69), Color.FromArgb(136, 14, 79)),
+                
+                TrayStatus.Offline => isDarkTheme
+                    ? (Color.FromArgb(158, 158, 158), Color.FromArgb(189, 189, 189), Color.FromArgb(117, 117, 117))
+                    : (Color.FromArgb(117, 117, 117), Color.FromArgb(158, 158, 158), Color.FromArgb(97, 97, 97)),
+                
+                _ => isDarkTheme
+                    ? (Color.FromArgb(128, 128, 128), Color.FromArgb(160, 160, 160), Color.FromArgb(100, 100, 100))
+                    : (Color.FromArgb(100, 100, 100), Color.FromArgb(128, 128, 128), Color.FromArgb(80, 80, 80))
+            };
+        }
+
+        private void DrawWhisperKeyIcon(Graphics graphics, Color primary, Color secondary, Color accent)
+        {
+            // Draw a distinctive sound wave / "W" shape that represents WhisperKey
+            // This is a unique, memorable design unlike generic microphone icons
+            
+            using (var primaryBrush = new SolidBrush(primary))
+            using (var secondaryBrush = new SolidBrush(secondary))
+            using (var accentBrush = new SolidBrush(accent))
+            using (var primaryPen = new Pen(primary, 2.5f))
+            using (var secondaryPen = new Pen(secondary, 2f))
+            {
+                // Main "W" shape - stylized sound wave
+                // Center the design in the 32x32 canvas
+                var points = new PointF[]
+                {
+                    new PointF(6, 12),   // Left start
+                    new PointF(10, 22),  // First valley
+                    new PointF(16, 8),   // Peak center (higher for prominence)
+                    new PointF(22, 22),  // Second valley
+                    new PointF(26, 12)   // Right end
+                };
+                
+                // Draw the main wave with rounded caps
+                primaryPen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                primaryPen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                primaryPen.LineJoin = System.Drawing.Drawing2D.LineJoin.Round;
+                
+                // Draw thick wave line
+                graphics.DrawCurve(primaryPen, points, 0.3f);
+                
+                // Add subtle echo/secondary wave behind
+                var echoPoints = new PointF[]
+                {
+                    new PointF(6, 16),
+                    new PointF(11, 24),
+                    new PointF(16, 12),
+                    new PointF(21, 24),
+                    new PointF(26, 16)
+                };
+                
+                secondaryPen.StartCap = System.Drawing.Drawing2D.LineCap.Round;
+                secondaryPen.EndCap = System.Drawing.Drawing2D.LineCap.Round;
+                graphics.DrawCurve(secondaryPen, echoPoints, 0.3f);
+                
+                // Add small accent dots at wave peaks (sound pulses)
+                graphics.FillEllipse(accentBrush, 14, 6, 4, 4);   // Center peak dot
+                graphics.FillEllipse(accentBrush, 8, 20, 3, 3);   // Left valley dot
+                graphics.FillEllipse(accentBrush, 21, 20, 3, 3);  // Right valley dot
+            }
+        }
+
+        private void DrawStatusIndicator(Graphics graphics, TrayStatus status, Color accentColor)
+        {
+            using (var indicatorBrush = new SolidBrush(accentColor))
+            using (var whiteBrush = new SolidBrush(Color.White))
+            using (var indicatorPen = new Pen(indicatorBrush, 1.5f))
+            {
+                // Position indicators in the bottom-right corner
+                var indicatorX = 24;
+                var indicatorY = 24;
+                var indicatorSize = 7;
+                
+                switch (status)
+                {
+                    case TrayStatus.Recording:
+                        // Recording: Solid red circle with inner white dot
+                        graphics.FillEllipse(indicatorBrush, indicatorX, indicatorY, indicatorSize, indicatorSize);
+                        graphics.FillEllipse(whiteBrush, indicatorX + 2, indicatorY + 2, 3, 3);
+                        break;
+                    
+                    case TrayStatus.Processing:
+                        // Processing: Small rotating-like indicator (dashed circle effect)
+                        graphics.DrawArc(indicatorPen, indicatorX, indicatorY, indicatorSize, indicatorSize, 0, 270);
+                        graphics.FillEllipse(indicatorBrush, indicatorX + 2, indicatorY + 1, 3, 3);
+                        break;
+                    
+                    case TrayStatus.Error:
+                        // Error: Small X mark
+                        var x1 = indicatorX + 1;
+                        var y1 = indicatorY + 1;
+                        var x2 = indicatorX + indicatorSize - 1;
+                        var y2 = indicatorY + indicatorSize - 1;
+                        graphics.DrawLine(indicatorPen, x1, y1, x2, y2);
+                        graphics.DrawLine(indicatorPen, x2, y1, x1, y2);
+                        break;
+                    
+                    case TrayStatus.Ready:
+                        // Ready: Small checkmark or dot
+                        graphics.FillEllipse(indicatorBrush, indicatorX + 2, indicatorY + 2, 3, 3);
+                        break;
+                    
+                    case TrayStatus.Idle:
+                        // Idle: Hollow circle
+                        graphics.DrawEllipse(indicatorPen, indicatorX + 1, indicatorY + 1, indicatorSize - 2, indicatorSize - 2);
+                        break;
+                    
+                    case TrayStatus.Offline:
+                        // Offline: Small dash/line
+                        graphics.DrawLine(indicatorPen, indicatorX + 1, indicatorY + 3, indicatorX + indicatorSize - 1, indicatorY + 3);
+                        break;
+                }
+            }
         }
 
         private void CreateContextMenu()
@@ -334,8 +509,8 @@ namespace WhisperKey
 
             if (_notifyIcon != null)
             {
-                // Update icon efficiently
-                if (_statusIcons.TryGetValue(status, out var icon))
+                // Update icon efficiently with theme
+                if (_statusIcons.TryGetValue((status, _currentTheme), out var icon))
                 {
                     _notifyIcon.Icon = icon;
                 }
@@ -570,10 +745,10 @@ namespace WhisperKey
                 GC.Collect();
                 
                 // Clean up any unused status icons
-                var currentStatus = _currentStatus;
+                var currentKey = (_currentStatus, _currentTheme);
                 foreach (var kvp in _statusIcons.ToList())
                 {
-                    if (kvp.Key != currentStatus && kvp.Value != null)
+                    if (!kvp.Key.Equals(currentKey) && kvp.Value != null)
                     {
                         // Only dispose icons that aren't currently in use
                         // Note: We keep all icons for reuse, so no disposal here
