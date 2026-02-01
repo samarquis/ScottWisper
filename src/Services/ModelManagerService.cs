@@ -286,7 +286,7 @@ namespace ScottWisper.Services
             
             foreach (var model in _availableModels.Values)
             {
-                if (await IsModelDownloadedAsync(model.Id))
+                if (await IsModelDownloadedAsync(model.Id).ConfigureAwait(false))
                 {
                     downloaded.Add(model);
                 }
@@ -311,7 +311,7 @@ namespace ScottWisper.Services
             }
             
             // Check if already downloaded
-            if (await IsModelDownloadedAsync(modelId))
+            if (await IsModelDownloadedAsync(modelId).ConfigureAwait(false))
             {
                 _logger.LogInformation("Model {ModelId} is already downloaded", modelId);
                 return new ModelDownloadStatus
@@ -320,7 +320,7 @@ namespace ScottWisper.Services
                     State = DownloadState.Completed,
                     TotalBytes = modelInfo.SizeBytes,
                     DownloadedBytes = modelInfo.SizeBytes,
-                    LocalPath = await GetModelPathAsync(modelId)
+                    LocalPath = await GetModelPathAsync(modelId).ConfigureAwait(false)
                 };
             }
             
@@ -355,13 +355,13 @@ namespace ScottWisper.Services
                 _logger.LogInformation("Starting download of model {ModelId} from {Url}", modelId, modelInfo.DownloadUrl);
                 
                 // Download with progress tracking
-                using var response = await _httpClient.GetAsync(modelInfo.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                using var response = await _httpClient.GetAsync(modelInfo.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 
                 var totalBytes = response.Content.Headers.ContentLength ?? modelInfo.SizeBytes;
                 status.TotalBytes = totalBytes;
                 
-                using var contentStream = await response.Content.ReadAsStreamAsync();
+                using var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
                 
                 var buffer = new byte[81920]; // 80KB buffer
@@ -370,10 +370,10 @@ namespace ScottWisper.Services
                 
                 while (true)
                 {
-                    var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                    var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
                     if (read == 0) break;
                     
-                    await fileStream.WriteAsync(buffer, 0, read, cancellationToken);
+                    await fileStream.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
                     downloadedBytes += read;
                     
                     // Update status
@@ -421,11 +421,23 @@ namespace ScottWisper.Services
                 status.State = DownloadState.Cancelled;
                 _logger.LogWarning("Download of model {ModelId} was cancelled", modelId);
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
+            {
+                status.State = DownloadState.Failed;
+                status.ErrorMessage = $"Network error: {ex.Message}";
+                _logger.LogError(ex, "Network error downloading model {ModelId}", modelId);
+            }
+            catch (IOException ex)
+            {
+                status.State = DownloadState.Failed;
+                status.ErrorMessage = $"File I/O error: {ex.Message}";
+                _logger.LogError(ex, "File I/O error downloading model {ModelId}", modelId);
+            }
+            catch (InvalidOperationException ex)
             {
                 status.State = DownloadState.Failed;
                 status.ErrorMessage = ex.Message;
-                _logger.LogError(ex, "Failed to download model {ModelId}", modelId);
+                _logger.LogError(ex, "Invalid operation while downloading model {ModelId}", modelId);
             }
             finally
             {
@@ -442,7 +454,14 @@ namespace ScottWisper.Services
                     {
                         File.Delete(tempPath);
                     }
-                    catch { }
+                    catch (IOException ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to delete temporary file: {TempPath}", tempPath);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        _logger.LogWarning(ex, "Access denied deleting temporary file: {TempPath}", tempPath);
+                    }
                 }
                 
                 // Report final status
@@ -490,7 +509,7 @@ namespace ScottWisper.Services
         {
             try
             {
-                var modelPath = await GetModelPathAsync(modelId);
+                var modelPath = await GetModelPathAsync(modelId).ConfigureAwait(false);
                 if (modelPath != null && File.Exists(modelPath))
                 {
                     File.Delete(modelPath);
@@ -500,9 +519,14 @@ namespace ScottWisper.Services
                 
                 return false;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Failed to delete model {ModelId}", modelId);
+                _logger.LogError(ex, "I/O error deleting model {ModelId}", modelId);
+                return false;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied deleting model {ModelId}", modelId);
                 return false;
             }
         }
@@ -519,7 +543,7 @@ namespace ScottWisper.Services
                     return false;
                 }
                 
-                var modelPath = await GetModelPathAsync(modelId);
+                var modelPath = await GetModelPathAsync(modelId).ConfigureAwait(false);
                 if (modelPath == null || !File.Exists(modelPath))
                 {
                     return false;
@@ -533,9 +557,9 @@ namespace ScottWisper.Services
                 
                 return sizeDifference <= tolerance;
             }
-            catch (Exception ex)
+            catch (IOException ex)
             {
-                _logger.LogError(ex, "Failed to verify model {ModelId}", modelId);
+                _logger.LogError(ex, "I/O error verifying model {ModelId}", modelId);
                 return false;
             }
         }
@@ -580,7 +604,7 @@ namespace ScottWisper.Services
         /// </summary>
         public async Task<bool> IsModelDownloadedAsync(string modelId)
         {
-            var path = await GetModelPathAsync(modelId);
+            var path = await GetModelPathAsync(modelId).ConfigureAwait(false);
             return path != null;
         }
         
@@ -589,7 +613,7 @@ namespace ScottWisper.Services
         /// </summary>
         public async Task<long> GetTotalDiskSpaceUsedAsync()
         {
-            var downloadedModels = await GetDownloadedModelsAsync();
+            var downloadedModels = await GetDownloadedModelsAsync().ConfigureAwait(false);
             return downloadedModels.Sum(m => m.SizeBytes);
         }
         
@@ -605,9 +629,14 @@ namespace ScottWisper.Services
                 var totalPhysicalMemory = new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory;
                 return (long)(totalPhysicalMemory / (1024 * 1024));
             }
-            catch
+            catch (PlatformNotSupportedException)
             {
-                // Default to 4GB if we can't determine
+                _logger.LogWarning("Platform not supported for memory detection, defaulting to 4GB");
+                return 4096;
+            }
+            catch (InvalidOperationException)
+            {
+                _logger.LogWarning("Could not determine available memory, defaulting to 4GB");
                 return 4096;
             }
         }

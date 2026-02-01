@@ -75,11 +75,29 @@ namespace ScottWisper
                 // Show startup notification
                 await _bootstrapper.ShowStartupNotificationAsync();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
                     MessageBox.Show($"Failed to start application: {ex.Message}", "ScottWisper Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown();
+                });
+            }
+            catch (System.IO.FileNotFoundException ex)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    MessageBox.Show($"Required file not found: {ex.Message}", "ScottWisper Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown();
+                });
+            }
+            catch (System.Configuration.ConfigurationErrorsException ex)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    MessageBox.Show($"Configuration error: {ex.Message}", "ScottWisper Error",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     Shutdown();
                 });
@@ -103,17 +121,29 @@ namespace ScottWisper
             base.OnExit(e);
         }
         
+        /// <summary>
+        /// Determines if an exception is fatal and should not be caught.
+        /// </summary>
+        private static bool IsFatalException(Exception ex)
+        {
+            return ex is OutOfMemoryException ||
+                   ex is StackOverflowException ||
+                   ex is AccessViolationException;
+        }
+        
         private void ShowSettings()
         {
             Dispatcher.Invoke(() =>
             {
-                if (_mainWindow != null)
+                if (_mainWindow != null && _serviceProvider != null)
                 {
                     _mainWindow.Show();
                     _mainWindow.Activate();
                     
-                    // Open settings window
-                    var settingsWindow = new SettingsWindow();
+                    // Open settings window with dependencies from service provider
+                    var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
+                    var audioDeviceService = _serviceProvider.GetRequiredService<IAudioDeviceService>();
+                    var settingsWindow = new SettingsWindow(settingsService, audioDeviceService);
                     settingsWindow.Show();
                 }
             });
@@ -148,7 +178,7 @@ namespace ScottWisper
                         await _dictationManager.ToggleAsync();
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!IsFatalException(ex))
                 {
                     System.Diagnostics.Debug.WriteLine($"Start dictation error: {ex.Message}");
                 }

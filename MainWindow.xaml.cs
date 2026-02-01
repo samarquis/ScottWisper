@@ -458,7 +458,7 @@ namespace ScottWisper
                     ShowNotification("Settings Updated", $"Debug mode {(newDebugMode ? "enabled" : "disabled")}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 ShowNotification("Settings Error", $"Error showing settings: {ex.Message}");
             }
@@ -548,7 +548,7 @@ namespace ScottWisper
                 
                 ShowNotification("Injection Issues Report", message, true); // true = show detailed dialog
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 ShowNotification("Error", $"Error generating issues report: {ex.Message}");
             }
@@ -587,7 +587,7 @@ namespace ScottWisper
                 
                 ShowNotification("Debug Mode", $"Debug mode {(newDebugMode ? "enabled" : "disabled")}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 ShowNotification("Error", $"Debug mode toggle failed: {ex.Message}");
             }
@@ -650,7 +650,7 @@ namespace ScottWisper
                 _displayHistory.Insert(0, historyItem);
                 UpdateHistoryDisplay();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 ShowNotification("Error", $"Compatibility check error: {ex.Message}");
             }
@@ -694,7 +694,7 @@ namespace ScottWisper
                     await _feedbackService.CompleteProgressAsync(testResult.Success ? "Injection test completed" : "Injection test failed");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 ShowNotification("Test Error", $"Injection test error: {ex.Message}");
                 if (_feedbackService != null)
@@ -719,7 +719,7 @@ namespace ScottWisper
                     ShowNotification("Debug Mode", $"Debug mode {(isCurrentlyDebug ? "disabled" : "enabled")}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 ShowNotification("Error", $"Debug mode toggle failed: {ex.Message}");
             }
@@ -774,7 +774,7 @@ namespace ScottWisper
                         break;
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to apply settings change in MainWindow: {ex.Message}");
             }
@@ -792,7 +792,7 @@ namespace ScottWisper
                 // Apply UI settings
                 await ApplyUISettingsAsync();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to apply current settings: {ex.Message}");
             }
@@ -833,7 +833,7 @@ namespace ScottWisper
                 // Apply other UI settings as needed
                 await Task.CompletedTask;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to apply UI settings: {ex.Message}");
             }

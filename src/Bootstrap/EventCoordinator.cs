@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using ScottWisper.Services;
+using ScottWisper;
 
 namespace ScottWisper.Bootstrap
 {
@@ -135,11 +136,15 @@ namespace ScottWisper.Bootstrap
             {
                 try
                 {
-                    await _dictationToggleHandler();
+                    await _dictationToggleHandler().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    await HandleExceptionAsync("Hotkey handling error", ex);
+                    await HandleExceptionAsync("Hotkey handling error", ex).ConfigureAwait(false);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    await HandleExceptionAsync("Hotkey I/O error", ex).ConfigureAwait(false);
                 }
             }).ConfigureAwait(false);
         }
@@ -154,11 +159,15 @@ namespace ScottWisper.Bootstrap
             {
                 try
                 {
-                    await _startDictationHandler();
+                    await _startDictationHandler().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    await HandleExceptionAsync("Start dictation error", ex);
+                    await HandleExceptionAsync("Start dictation error", ex).ConfigureAwait(false);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    await HandleExceptionAsync("Start dictation I/O error", ex).ConfigureAwait(false);
                 }
             }).ConfigureAwait(false);
         }
@@ -169,11 +178,15 @@ namespace ScottWisper.Bootstrap
             {
                 try
                 {
-                    await _stopDictationHandler();
+                    await _stopDictationHandler().ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    await HandleExceptionAsync("Stop dictation error", ex);
+                    await HandleExceptionAsync("Stop dictation error", ex).ConfigureAwait(false);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    await HandleExceptionAsync("Stop dictation I/O error", ex).ConfigureAwait(false);
                 }
             }).ConfigureAwait(false);
         }
@@ -184,9 +197,13 @@ namespace ScottWisper.Bootstrap
             {
                 _settingsHandler();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 HandleException("Settings error", ex);
+            }
+            catch (System.IO.IOException ex)
+            {
+                HandleException("Settings I/O error", ex);
             }
         }
         
@@ -196,9 +213,13 @@ namespace ScottWisper.Bootstrap
             {
                 _toggleWindowHandler();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 HandleException("Toggle window error", ex);
+            }
+            catch (System.IO.IOException ex)
+            {
+                HandleException("Toggle window I/O error", ex);
             }
         }
         
@@ -208,9 +229,13 @@ namespace ScottWisper.Bootstrap
             {
                 _exitHandler();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 HandleException("Exit error", ex);
+            }
+            catch (System.IO.IOException ex)
+            {
+                HandleException("Exit I/O error", ex);
             }
         }
         
@@ -218,7 +243,7 @@ namespace ScottWisper.Bootstrap
         
         #region Core Service Events
         
-        private void OnTranscriptionError(object? sender, string error)
+        private void OnTranscriptionError(object? sender, Exception ex)
         {
             Task.Run(async () =>
             {
@@ -228,14 +253,14 @@ namespace ScottWisper.Bootstrap
                     {
                         await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
                             "Transcription Error",
-                            error,
+                            ex.Message,
                             IFeedbackService.NotificationType.Error
-                        );
+                        ).ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException handlerEx)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error showing transcription error: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error showing transcription error: {handlerEx.Message}");
                 }
             }).ConfigureAwait(false);
         }
@@ -248,17 +273,21 @@ namespace ScottWisper.Bootstrap
                 {
                     if (_bootstrapper.TextInjectionService != null)
                     {
-                        await _bootstrapper.TextInjectionService.InjectTextAsync(transcription);
+                        await _bootstrapper.TextInjectionService.InjectTextAsync(transcription).ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    await HandleExceptionAsync("Text injection error", ex);
+                    await HandleExceptionAsync("Text injection error", ex).ConfigureAwait(false);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    await HandleExceptionAsync("Text injection I/O error", ex).ConfigureAwait(false);
                 }
             }).ConfigureAwait(false);
         }
         
-        private void OnFreeTierWarning(object? sender, string message)
+        private void OnFreeTierWarning(object? sender, FreeTierWarning e)
         {
             Task.Run(async () =>
             {
@@ -266,21 +295,22 @@ namespace ScottWisper.Bootstrap
                 {
                     if (_bootstrapper.FeedbackService != null)
                     {
+                        var message = $"You've used {e.UsagePercentage:F1}% of your ${e.Limit:F2} free tier limit";
                         await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
                             "Usage Warning",
                             message,
                             IFeedbackService.NotificationType.Warning
-                        );
+                        ).ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error showing free tier warning: {ex.Message}");
                 }
             }).ConfigureAwait(false);
         }
         
-        private void OnFreeTierExceeded(object? sender, string message)
+        private void OnFreeTierExceeded(object? sender, FreeTierExceeded e)
         {
             Task.Run(async () =>
             {
@@ -288,14 +318,15 @@ namespace ScottWisper.Bootstrap
                 {
                     if (_bootstrapper.FeedbackService != null)
                     {
+                        var message = $"Free tier limit of ${e.Limit:F2} exceeded. Total cost: ${e.MonthlyUsage.Cost:F2}";
                         await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
                             "Usage Limit Exceeded",
                             message,
                             IFeedbackService.NotificationType.Error
-                        );
+                        ).ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error showing free tier exceeded: {ex.Message}");
                 }
@@ -310,12 +341,16 @@ namespace ScottWisper.Bootstrap
                 {
                     if (_bootstrapper.WhisperService != null)
                     {
-                        await _bootstrapper.WhisperService.TranscribeAsync(audioData);
+                        await _bootstrapper.WhisperService.TranscribeAudioAsync(audioData).ConfigureAwait(false);
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    await HandleExceptionAsync("Audio transcription error", ex);
+                    await HandleExceptionAsync("Audio transcription error", ex).ConfigureAwait(false);
+                }
+                catch (System.IO.IOException ex)
+                {
+                    await HandleExceptionAsync("Audio transcription I/O error", ex).ConfigureAwait(false);
                 }
             }).ConfigureAwait(false);
         }
@@ -334,11 +369,11 @@ namespace ScottWisper.Bootstrap
                         _bootstrapper.InitializeHotkeyService();
                     }
                     
-                    await Task.CompletedTask;
+                    await Task.CompletedTask.ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
-                    await HandleExceptionAsync("Settings change error", ex);
+                    await HandleExceptionAsync("Settings change error", ex).ConfigureAwait(false);
                 }
             }).ConfigureAwait(false);
         }
@@ -357,7 +392,7 @@ namespace ScottWisper.Bootstrap
                     "Error",
                     $"{context}: {ex.Message}",
                     IFeedbackService.NotificationType.Error
-                );
+                ).ConfigureAwait(false);
             }
         }
         
@@ -374,7 +409,7 @@ namespace ScottWisper.Bootstrap
                         "Error",
                         $"{context}: {ex.Message}",
                         IFeedbackService.NotificationType.Error
-                    );
+                    ).ConfigureAwait(false);
                 }).ConfigureAwait(false);
             }
         }

@@ -196,9 +196,13 @@ namespace ScottWisper
                 _waveOut = new WaveOut();
                 _deviceEnumerator = new MMDeviceEnumerator();
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"NAudio initialization failed: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"NAudio CoreAudio API error: {ex.Message}");
             }
             
             // Initialize enhanced feedback features
@@ -220,7 +224,7 @@ namespace ScottWisper
 
         public async Task InitializeAsync()
         {
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
             // Initialize any UI components if needed
         }
 
@@ -234,7 +238,7 @@ namespace ScottWisper
             // Play audio feedback based on preferences
             if (_preferences.AudioEnabled)
             {
-                await PlayAudioFeedbackAsync(status);
+                await PlayAudioFeedbackAsync(status).ConfigureAwait(false);
             }
 
             // Show visual feedback if message provided and enabled
@@ -243,7 +247,7 @@ namespace ScottWisper
                 var notificationType = DetermineNotificationType(status);
                 if (_preferences.EnabledNotifications.Any(nt => nt == notificationType))
                 {
-                    await ShowNotificationAsync(GetStatusTitle(status), message, _preferences.ToastDuration);
+                    await ShowNotificationAsync(GetStatusTitle(status), message, _preferences.ToastDuration).ConfigureAwait(false);
                 }
             }
 
@@ -251,15 +255,15 @@ namespace ScottWisper
             UpdateSystemTrayStatus(status);
 
             // Handle visualization
-            await HandleVisualizationAsync(status);
+            await HandleVisualizationAsync(status).ConfigureAwait(false);
 
             // Show enhanced visual feedback if enabled
             if (_preferences.VisualEnabled)
             {
-                await ShowEnhancedVisualFeedbackAsync(status, message);
+                await ShowEnhancedVisualFeedbackAsync(status, message).ConfigureAwait(false);
             }
 
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
 
         public async Task ShowNotificationAsync(string title, string message, int duration = 3000)
@@ -307,9 +311,13 @@ namespace ScottWisper
                     };
                     timer.Start();
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Toast notification error: {ex.Message}");
+                }
+                catch (System.Windows.Markup.XamlParseException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Toast XAML error: {ex.Message}");
                 }
             });
         }
@@ -344,12 +352,16 @@ namespace ScottWisper
                         soundPlayer?.Play();
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     // Fail silently for audio errors to not interrupt main functionality
                     System.Diagnostics.Debug.WriteLine($"Audio feedback error: {ex.Message}");
                 }
-            });
+                catch (TimeoutException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Audio playback timeout: {ex.Message}");
+                }
+            }).ConfigureAwait(false);
         }
 
         public async Task StartProgressAsync(string operation, TimeSpan? estimatedDuration = null)
@@ -466,9 +478,13 @@ namespace ScottWisper
                     }
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Tone playback error: {ex.Message}");
+            }
+            catch (TimeoutException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Tone playback timeout: {ex.Message}");
             }
         }
 
@@ -527,9 +543,13 @@ namespace ScottWisper
                     };
                     timer.Start();
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Status indicator error: {ex.Message}");
+                }
+                catch (System.Windows.Markup.XamlParseException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Status indicator XAML error: {ex.Message}");
                 }
             });
         }
@@ -615,9 +635,13 @@ namespace ScottWisper
                             break;
                     }
                 }
-                catch (Exception ex)
+                catch (InvalidOperationException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Visualization error: {ex.Message}");
+                }
+                catch (NullReferenceException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Visualization null reference: {ex.Message}");
                 }
             });
         }
@@ -680,13 +704,13 @@ namespace ScottWisper
         public async Task StartProgressAsync(string title, TimeSpan timeout)
         {
             // Simple implementation - could be enhanced with actual progress UI
-            await ShowStatusIndicatorAsync(IFeedbackService.DictationStatus.Processing, (int)timeout.TotalMilliseconds);
+            await ShowStatusIndicatorAsync(IFeedbackService.DictationStatus.Processing, (int)timeout.TotalMilliseconds).ConfigureAwait(false);
         }
 
         public async Task UpdateProgressAsync(int percentage, string message)
         {
             // Simple implementation - could be enhanced with actual progress UI
-            await SetStatusAsync(IFeedbackService.DictationStatus.Processing, $"{percentage}% - {message}");
+            await SetStatusAsync(IFeedbackService.DictationStatus.Processing, $"{percentage}% - {message}").ConfigureAwait(false);
         }
 
         public async Task DisposeAsync()
@@ -880,7 +904,7 @@ namespace ScottWisper
         private void ShowDetailedStatusWindow(IFeedbackService.DictationStatus status, string? message)
         {
             // This would show a detailed status window - for now, just use the existing status indicator
-            ShowStatusIndicatorAsync(status, 3000);
+            ShowStatusIndicatorAsync(status, 3000).ConfigureAwait(false);
         }
 
         private void TrackStatusChange(IFeedbackService.DictationStatus oldStatus, IFeedbackService.DictationStatus newStatus)

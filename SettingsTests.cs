@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using ScottWisper.Services;
 using ScottWisper.Configuration;
@@ -352,7 +353,10 @@ namespace ScottWisper.Tests
                             var ___ = settings.Hotkeys.ToggleRecording;
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                                                 && ex is not StackOverflowException
+                                                 && ex is not AccessViolationException
+                                                 && ex is not OperationCanceledException)
                     {
                         lock (exceptions)
                         {
@@ -375,7 +379,10 @@ namespace ScottWisper.Tests
                             await _settingsService.SaveAsync();
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                                                 && ex is not StackOverflowException
+                                                 && ex is not AccessViolationException
+                                                 && ex is not OperationCanceledException)
                     {
                         lock (exceptions)
                         {
@@ -408,7 +415,10 @@ namespace ScottWisper.Tests
                             Assert.AreEqual(deviceSettings.Name, retrieved.Name, $"Device {i}_{j} should have correct name");
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ex is not OutOfMemoryException
+                                                 && ex is not StackOverflowException
+                                                 && ex is not AccessViolationException
+                                                 && ex is not OperationCanceledException)
                     {
                         lock (exceptions)
                         {

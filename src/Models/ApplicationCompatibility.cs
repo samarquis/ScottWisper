@@ -21,6 +21,7 @@ namespace ScottWisper
         Unknown,
         Granted,
         Denied,
-        NotRequested
+        NotRequested,
+        SystemError
     }
 }

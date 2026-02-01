@@ -873,7 +873,7 @@ namespace ScottWisper
         private void ApiProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (IsLoading) return;
-            if (ApiProviderComboBox?.SelectedItem is ComboBoxItem item)
+            if (ProviderComboBox?.SelectedItem is ComboBoxItem item)
             {
                 _settingsService.Settings.Transcription.Provider = item.Tag?.ToString() ?? "OpenAI";
                 _ = _settingsService.SaveAsync();
@@ -883,7 +883,7 @@ namespace ScottWisper
         private void ApiPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (IsLoading) return;
-            if (ApiPasswordBox != null) _settingsService.Settings.Transcription.ApiKey = ApiPasswordBox.Password;
+            if (ApiKeyPasswordBox != null) _settingsService.Settings.Transcription.ApiKey = ApiKeyPasswordBox.Password;
             _ = _settingsService.SaveAsync();
         }
 

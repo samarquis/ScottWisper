@@ -4,6 +4,7 @@ using ScottWisper.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -506,13 +507,13 @@ namespace ScottWisper.ViewModels
 
         private void InitializeCommands()
         {
-            SaveCommand = new RelayCommand(async () => await SaveSettingsAsync());
-            ResetCommand = new RelayCommand(async () => await ResetSettingsAsync());
-            TestAudioCommand = new RelayCommand(async () => await TestAudioAsync());
+            SaveCommand = new RelayCommand(async () => await SaveSettingsAsync().ConfigureAwait(false));
+            ResetCommand = new RelayCommand(async () => await ResetSettingsAsync().ConfigureAwait(false));
+            TestAudioCommand = new RelayCommand(async () => await TestAudioAsync().ConfigureAwait(false));
             RecordHotkeyCommand = new RelayCommand(() => { StartHotkeyRecording(); return Task.CompletedTask; });
-            RefreshDevicesCommand = new RelayCommand(async () => await RefreshDevicesAsync());
-            TestApiCommand = new RelayCommand(async () => await TestApiAsync());
-            ValidateEndpointCommand = new RelayCommand(async () => await ValidateEndpointAsync());
+            RefreshDevicesCommand = new RelayCommand(async () => await RefreshDevicesAsync().ConfigureAwait(false));
+            TestApiCommand = new RelayCommand(async () => await TestApiAsync().ConfigureAwait(false));
+            ValidateEndpointCommand = new RelayCommand(async () => await ValidateEndpointAsync().ConfigureAwait(false));
         }
 
         public async Task LoadSettingsAsync()
@@ -569,12 +570,20 @@ namespace ScottWisper.ViewModels
                 EnablePerformanceMetrics = _settings.TextInjection.EnablePerformanceMonitoring;
 
                 // Load usage statistics
-                await LoadUsageStatisticsAsync();
+                await LoadUsageStatisticsAsync().ConfigureAwait(false);
 
                 IsLoading = false;
                 StatusMessage = "Settings loaded successfully";
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                StatusMessage = $"Error loading settings: {ex.Message}";
+            }
+            catch (IOException ex)
+            {
+                StatusMessage = $"Error loading settings: {ex.Message}";
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 StatusMessage = $"Error loading settings: {ex.Message}";
             }
@@ -586,8 +595,8 @@ namespace ScottWisper.ViewModels
             {
                 StatusMessage = "Loading devices...";
 
-                var inputDevices = await _audioDeviceService.GetInputDevicesAsync();
-                var outputDevices = await _audioDeviceService.GetOutputDevicesAsync();
+                var inputDevices = await _audioDeviceService.GetInputDevicesAsync().ConfigureAwait(false);
+                var outputDevices = await _audioDeviceService.GetOutputDevicesAsync().ConfigureAwait(false);
 
                 _inputDevices.Clear();
                 _inputDevices.AddRange(inputDevices);
@@ -599,7 +608,11 @@ namespace ScottWisper.ViewModels
 
                 StatusMessage = "Devices loaded successfully";
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                StatusMessage = $"Error loading devices: {ex.Message}";
+            }
+            catch (TaskCanceledException ex)
             {
                 StatusMessage = $"Error loading devices: {ex.Message}";
             }
@@ -615,7 +628,11 @@ namespace ScottWisper.ViewModels
                 CurrentMonthUsage = 0.0;
                 UsageLimit = 1000;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading usage statistics: {ex.Message}");
+            }
+            catch (IOException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading usage statistics: {ex.Message}");
             }
@@ -626,10 +643,18 @@ namespace ScottWisper.ViewModels
             try
             {
                 StatusMessage = "Saving settings...";
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveAsync().ConfigureAwait(false);
                 StatusMessage = "Settings saved successfully";
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                StatusMessage = $"Error saving settings: {ex.Message}";
+            }
+            catch (IOException ex)
+            {
+                StatusMessage = $"Error saving settings: {ex.Message}";
+            }
+            catch (UnauthorizedAccessException ex)
             {
                 StatusMessage = $"Error saving settings: {ex.Message}";
             }
@@ -644,7 +669,7 @@ namespace ScottWisper.ViewModels
                 await Task.CompletedTask;
                 StatusMessage = "Settings reset successfully";
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 StatusMessage = $"Error resetting settings: {ex.Message}";
             }
@@ -659,7 +684,7 @@ namespace ScottWisper.ViewModels
 
                 foreach (var device in _inputDevices)
                 {
-                    var testResult = await _audioDeviceService.TestDeviceAsync(device.Id);
+                    var testResult = await _audioDeviceService.TestDeviceAsync(device.Id).ConfigureAwait(false);
                     testResults.Add(new DeviceTestingResult
                     {
                         DeviceId = device.Id,
@@ -673,12 +698,16 @@ namespace ScottWisper.ViewModels
                 // Update device test results
                 foreach (var result in testResults)
                 {
-                    await _settingsService.AddDeviceTestResultAsync(result);
+                    await _settingsService.AddDeviceTestResultAsync(result).ConfigureAwait(false);
                 }
 
                 StatusMessage = $"Audio test completed for {_inputDevices.Count} devices";
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
+            {
+                StatusMessage = $"Error testing audio: {ex.Message}";
+            }
+            catch (TaskCanceledException ex)
             {
                 StatusMessage = $"Error testing audio: {ex.Message}";
             }

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -90,12 +91,36 @@ namespace ScottWisper
                     try
                     {
                         TranscriptionProgress?.Invoke(this, 10);
-                        var result = await _localInference.TranscribeAudioAsync(audioData, language);
+                        var result = await _localInference.TranscribeAudioAsync(audioData, language).ConfigureAwait(false);
                         TranscriptionProgress?.Invoke(this, 100);
                         TranscriptionCompleted?.Invoke(this, result.Text);
                         return result.Text;
                     }
-                    catch (Exception ex)
+                    catch (InvalidOperationException ex)
+                    {
+                        if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
+                        {
+                            // Log warning and fallback
+                            System.Diagnostics.Debug.WriteLine($"Local transcription failed, falling back to cloud: {ex.Message}");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
+                        {
+                            // Log warning and fallback
+                            System.Diagnostics.Debug.WriteLine($"Local transcription failed, falling back to cloud: {ex.Message}");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    catch (IOException ex)
                     {
                         if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
                         {
@@ -137,19 +162,19 @@ namespace ScottWisper
                 TranscriptionProgress?.Invoke(this, 25);
                 
                 // Make API request
-                var response = await _httpClient.PostAsync(_baseUrl, content);
+                var response = await _httpClient.PostAsync(_baseUrl, content).ConfigureAwait(false);
                 
                 // Report progress after getting response
                 TranscriptionProgress?.Invoke(this, 75);
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    var errorContent = await response.Content.ReadAsStringAsync();
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     throw new HttpRequestException($"Whisper API request failed: {response.StatusCode} - {errorContent}");
                 }
                 
                 // Parse response
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var transcriptionResponse = JsonConvert.DeserializeObject<WhisperResponse>(responseContent);
                 
                 if (transcriptionResponse?.Text == null)
@@ -165,7 +190,7 @@ namespace ScottWisper
                 
                 return transcriptionResponse.Text;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
                 TranscriptionError?.Invoke(this, ex);
                 throw;
@@ -181,10 +206,10 @@ namespace ScottWisper
                     throw new FileNotFoundException($"Audio file not found: {filePath}");
                 }
                 
-                var audioData = await File.ReadAllBytesAsync(filePath);
-                return await TranscribeAudioAsync(audioData, language);
+                var audioData = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
+                return await TranscribeAudioAsync(audioData, language).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
                 TranscriptionError?.Invoke(this, ex);
                 throw;
@@ -229,7 +254,19 @@ namespace ScottWisper
                     // For now, return empty to force user to set the key
                 }
             }
-            catch
+            catch (IOException)
+            {
+                // Fall through to return empty
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Fall through to return empty
+            }
+            catch (SecurityException)
+            {
+                // Fall through to return empty
+            }
+            catch (NotSupportedException)
             {
                 // Fall through to return empty
             }
@@ -245,7 +282,15 @@ namespace ScottWisper
                 {
                     return _settingsService.GetEncryptedValueAsync("OpenAI_ApiKey").Result;
                 }
-                catch
+                catch (AggregateException ex) when (ex.InnerException != null && !IsFatalException(ex.InnerException))
+                {
+                    // Fall back to default method
+                }
+                catch (InvalidOperationException)
+                {
+                    // Fall back to default method
+                }
+                catch (Exception ex) when (!IsFatalException(ex))
                 {
                     // Fall back to default method
                 }
@@ -294,6 +339,16 @@ namespace ScottWisper
                 _httpClient?.Dispose();
             }
             _localInference?.Dispose();
+        }
+        
+        /// <summary>
+        /// Determines if an exception is fatal and should not be caught.
+        /// </summary>
+        private static bool IsFatalException(Exception ex)
+        {
+            return ex is OutOfMemoryException ||
+                   ex is StackOverflowException ||
+                   ex is AccessViolationException;
         }
         
         // Response model for Whisper API

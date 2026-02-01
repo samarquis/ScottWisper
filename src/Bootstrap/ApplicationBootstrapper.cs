@@ -53,7 +53,7 @@ namespace ScottWisper.Bootstrap
                 
                 // Initialize enhanced feedback service first
                 var feedbackService = new FeedbackService();
-                await feedbackService.InitializeAsync();
+                await feedbackService.InitializeAsync().ConfigureAwait(false);
                 FeedbackService = feedbackService;
                 
                 // Store feedback service in application properties for global access
@@ -73,19 +73,25 @@ namespace ScottWisper.Bootstrap
                 TranscriptionWindow.InitializeServices(WhisperService, CostTrackingService);
                 
                 // Initialize text injection service
-                await InitializeTextInjectionServiceAsync();
+                await InitializeTextInjectionServiceAsync().ConfigureAwait(false);
                 
                 // Connect enhanced feedback to all services
-                await ConnectFeedbackToServicesAsync(feedbackService);
+                await ConnectFeedbackToServicesAsync(feedbackService).ConfigureAwait(false);
                 
                 // Initialize enhanced services for gap closure
-                await InitializeEnhancedServicesAsync();
+                await InitializeEnhancedServicesAsync().ConfigureAwait(false);
                 
                 return true;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
-                MessageBox.Show($"Failed to initialize services: {ex.Message}", "ScottWisper Error", 
+                MessageBox.Show($"Service initialization failed: {ex.Message}", "ScottWisper Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            catch (System.IO.IOException ex)
+            {
+                MessageBox.Show($"I/O error during initialization: {ex.Message}", "ScottWisper Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -109,10 +115,16 @@ namespace ScottWisper.Bootstrap
                     Application.Current.Properties["SystemTray"] = SystemTrayService;
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to initialize SystemTrayService: {ex.Message}");
                 MessageBox.Show($"Failed to initialize system tray: {ex.Message}", "ScottWisper Warning", 
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            catch (System.IO.IOException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"I/O error initializing SystemTrayService: {ex.Message}");
+                MessageBox.Show($"System tray I/O error: {ex.Message}", "ScottWisper Warning", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
@@ -139,7 +151,7 @@ namespace ScottWisper.Bootstrap
                     "Application Started", 
                     "ScottWisper is ready. Press Ctrl+Alt+V to start dictation.", 
                     IFeedbackService.NotificationType.Completion
-                );
+                ).ConfigureAwait(false);
             }
             else if (SystemTrayService != null)
             {
@@ -157,7 +169,7 @@ namespace ScottWisper.Bootstrap
             AudioCaptureService?.Dispose();
             WhisperService?.Dispose();
             TextInjectionService?.Dispose();
-            FeedbackService?.Dispose();
+            FeedbackService?.DisposeAsync().GetAwaiter().GetResult();
         }
         
         private async Task InitializeTextInjectionServiceAsync()

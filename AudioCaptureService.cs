@@ -121,11 +121,11 @@ namespace ScottWisper
                 // Check microphone permission first if AudioDeviceService is available
                 if (_audioDeviceService != null)
                 {
-                    var permissionStatus = await _audioDeviceService.CheckMicrophonePermissionAsync();
+                    var permissionStatus = await _audioDeviceService.CheckMicrophonePermissionAsync().ConfigureAwait(false);
                     if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
                     {
                         // Permission not granted, try to request it
-                        var permissionGranted = await _audioDeviceService.RequestMicrophonePermissionAsync();
+                        var permissionGranted = await _audioDeviceService.RequestMicrophonePermissionAsync().ConfigureAwait(false);
                         if (!permissionGranted)
                         {
                             ShowPermissionErrorMessage();
@@ -170,7 +170,7 @@ namespace ScottWisper
                 HandleSecurityException(ex);
                 return false;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 CaptureError?.Invoke(this, ex);
                 return false;
@@ -208,7 +208,7 @@ namespace ScottWisper
                 const string settingsPath = "ms-settings:privacy-microphone";
                 ShellExecute(IntPtr.Zero, "open", settingsPath, null, null, 1);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 System.Diagnostics.Debug.WriteLine($"Error opening Windows microphone settings: {ex.Message}");
             }
@@ -236,7 +236,7 @@ namespace ScottWisper
                     AudioDataCaptured?.Invoke(this, audioChunk);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 CaptureError?.Invoke(this, ex);
             }
@@ -351,7 +351,7 @@ namespace ScottWisper
                     _audioBuffer = null;
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
             {
                 CaptureError?.Invoke(this, ex);
             }
