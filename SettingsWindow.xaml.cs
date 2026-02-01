@@ -724,13 +724,18 @@ namespace ScottWisper
             System.Diagnostics.Debug.WriteLine($"Status: {message}");
         }
 
+        // Static HttpClient instance to prevent socket exhaustion
+        // This is shared across all SettingsWindow instances
+        private static readonly System.Net.Http.HttpClient _staticHttpClient = new System.Net.Http.HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(5)
+        };
+
         private async Task<bool> TestAPIEndpointAsync(string endpoint)
         {
             try
             {
-                using var client = new System.Net.Http.HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(5);
-                var response = await client.GetAsync(endpoint);
+                var response = await _staticHttpClient.GetAsync(endpoint);
                 return response.IsSuccessStatusCode;
             }
             catch { return false; }

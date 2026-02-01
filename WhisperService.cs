@@ -17,6 +17,7 @@ namespace ScottWisper
         private readonly string _baseUrl = "https://api.openai.com/v1/audio/transcriptions";
         private readonly ISettingsService? _settingsService;
         private readonly LocalInferenceService? _localInference;
+        private readonly bool _ownsHttpClient;
         
         // API usage tracking
         private int _requestCount = 0;
@@ -36,14 +37,32 @@ namespace ScottWisper
             _apiKey = GetApiKey();
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+            _ownsHttpClient = true;
         }
         
         public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
+            : this(settingsService, null, localInference)
+        {
+        }
+        
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, LocalInferenceService? localInference = null)
         {
             _settingsService = settingsService;
             _localInference = localInference;
             _apiKey = GetApiKeyFromSettings();
-            _httpClient = new HttpClient();
+            
+            // Use IHttpClientFactory if available to prevent socket exhaustion
+            if (httpClientFactory != null)
+            {
+                _httpClient = httpClientFactory.CreateClient("WhisperApi");
+                _ownsHttpClient = false;
+            }
+            else
+            {
+                _httpClient = new HttpClient();
+                _ownsHttpClient = true;
+            }
+            
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             
             // Subscribe to settings changes
@@ -269,7 +288,11 @@ namespace ScottWisper
         
         public void Dispose()
         {
-            _httpClient?.Dispose();
+            // Only dispose HttpClient if we created it (not from factory)
+            if (_ownsHttpClient)
+            {
+                _httpClient?.Dispose();
+            }
             _localInference?.Dispose();
         }
         

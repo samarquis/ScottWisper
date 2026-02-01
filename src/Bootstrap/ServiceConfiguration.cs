@@ -71,6 +71,13 @@ namespace ScottWisper.Bootstrap
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
             
+            // Configure HttpClient for Whisper API to prevent socket exhaustion
+            services.AddHttpClient("WhisperApi", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
+            
             // Concrete services - all dependencies injected via constructors
             services.AddSingleton<WhisperService>();
             services.AddSingleton<CostTrackingService>();
