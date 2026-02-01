@@ -1,0 +1,1616 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="ScottWisper">        <Component Id="File_Accessibility_dll" Guid="*">
+          <File Id="File_Accessibility_dll_file" Source="C:\Programming\ScottWisper\publish\Accessibility.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Castle_Core_dll" Guid="*">
+          <File Id="File_Castle_Core_dll_file" Source="C:\Programming\ScottWisper\publish\Castle.Core.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_clretwrc_dll" Guid="*">
+          <File Id="File_clretwrc_dll_file" Source="C:\Programming\ScottWisper\publish\clretwrc.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_clrgc_dll" Guid="*">
+          <File Id="File_clrgc_dll_file" Source="C:\Programming\ScottWisper\publish\clrgc.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_clrjit_dll" Guid="*">
+          <File Id="File_clrjit_dll_file" Source="C:\Programming\ScottWisper\publish\clrjit.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_coreclr_dll" Guid="*">
+          <File Id="File_coreclr_dll_file" Source="C:\Programming\ScottWisper\publish\coreclr.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_coverlet_collector_deps_json" Guid="*">
+          <File Id="File_coverlet_collector_deps_json_file" Source="C:\Programming\ScottWisper\publish\coverlet.collector.deps.json" KeyPath="yes" />
+        </Component>        <Component Id="File_coverlet_collector_dll" Guid="*">
+          <File Id="File_coverlet_collector_dll_file" Source="C:\Programming\ScottWisper\publish\coverlet.collector.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_coverlet_collector_pdb" Guid="*">
+          <File Id="File_coverlet_collector_pdb_file" Source="C:\Programming\ScottWisper\publish\coverlet.collector.pdb" KeyPath="yes" />
+        </Component>        <Component Id="File_coverlet_collector_targets" Guid="*">
+          <File Id="File_coverlet_collector_targets_file" Source="C:\Programming\ScottWisper\publish\coverlet.collector.targets" KeyPath="yes" />
+        </Component>        <Component Id="File_coverlet_core_dll" Guid="*">
+          <File Id="File_coverlet_core_dll_file" Source="C:\Programming\ScottWisper\publish\coverlet.core.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_coverlet_core_pdb" Guid="*">
+          <File Id="File_coverlet_core_pdb_file" Source="C:\Programming\ScottWisper\publish\coverlet.core.pdb" KeyPath="yes" />
+        </Component>        <Component Id="File_createdump_exe" Guid="*">
+          <File Id="File_createdump_exe_file" Source="C:\Programming\ScottWisper\publish\createdump.exe" KeyPath="yes" />
+        </Component>        <Component Id="File_D3DCompiler_47_cor3_dll" Guid="*">
+          <File Id="File_D3DCompiler_47_cor3_dll_file" Source="C:\Programming\ScottWisper\publish\D3DCompiler_47_cor3.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_DirectWriteForwarder_dll" Guid="*">
+          <File Id="File_DirectWriteForwarder_dll_file" Source="C:\Programming\ScottWisper\publish\DirectWriteForwarder.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_H_GeneratedIcons_System_Drawing_dll" Guid="*">
+          <File Id="File_H_GeneratedIcons_System_Drawing_dll_file" Source="C:\Programming\ScottWisper\publish\H.GeneratedIcons.System.Drawing.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_H_InputSimulator_dll" Guid="*">
+          <File Id="File_H_InputSimulator_dll_file" Source="C:\Programming\ScottWisper\publish\H.InputSimulator.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_H_NotifyIcon_dll" Guid="*">
+          <File Id="File_H_NotifyIcon_dll_file" Source="C:\Programming\ScottWisper\publish\H.NotifyIcon.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_H_NotifyIcon_Wpf_dll" Guid="*">
+          <File Id="File_H_NotifyIcon_Wpf_dll_file" Source="C:\Programming\ScottWisper\publish\H.NotifyIcon.Wpf.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_hostfxr_dll" Guid="*">
+          <File Id="File_hostfxr_dll_file" Source="C:\Programming\ScottWisper\publish\hostfxr.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_hostpolicy_dll" Guid="*">
+          <File Id="File_hostpolicy_dll_file" Source="C:\Programming\ScottWisper\publish\hostpolicy.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Bcl_AsyncInterfaces_dll" Guid="*">
+          <File Id="File_Microsoft_Bcl_AsyncInterfaces_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Bcl.AsyncInterfaces.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_CSharp_dll" Guid="*">
+          <File Id="File_Microsoft_CSharp_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.CSharp.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_DiaSymReader_Native_amd64_dll" Guid="*">
+          <File Id="File_Microsoft_DiaSymReader_Native_amd64_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.DiaSymReader.Native.amd64.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_DotNet_PlatformAbstractions_dll" Guid="*">
+          <File Id="File_Microsoft_DotNet_PlatformAbstractions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.DotNet.PlatformAbstractions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Configuration_Abstractions_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Configuration_Abstractions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Configuration.Abstractions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Configuration_Binder_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Configuration_Binder_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Configuration.Binder.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Configuration_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Configuration_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Configuration.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Configuration_FileExtensions_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Configuration_FileExtensions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Configuration.FileExtensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Configuration_Json_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Configuration_Json_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Configuration.Json.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_DependencyInjection_Abstractions_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_DependencyInjection_Abstractions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.DependencyInjection.Abstractions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_DependencyInjection_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_DependencyInjection_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.DependencyInjection.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_DependencyModel_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_DependencyModel_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.DependencyModel.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_FileProviders_Abstractions_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_FileProviders_Abstractions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.FileProviders.Abstractions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_FileProviders_Physical_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_FileProviders_Physical_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.FileProviders.Physical.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_FileSystemGlobbing_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_FileSystemGlobbing_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.FileSystemGlobbing.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Logging_Abstractions_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Logging_Abstractions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Logging.Abstractions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Logging_Configuration_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Logging_Configuration_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Logging.Configuration.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Logging_Console_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Logging_Console_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Logging.Console.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Logging_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Logging_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Logging.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Options_ConfigurationExtensions_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Options_ConfigurationExtensions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Options.ConfigurationExtensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Options_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Options_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Options.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Extensions_Primitives_dll" Guid="*">
+          <File Id="File_Microsoft_Extensions_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Extensions.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_TestPlatform_AdapterUtilities_dll" Guid="*">
+          <File Id="File_Microsoft_TestPlatform_AdapterUtilities_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.TestPlatform.AdapterUtilities.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_TestPlatform_CoreUtilities_dll" Guid="*">
+          <File Id="File_Microsoft_TestPlatform_CoreUtilities_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.TestPlatform.CoreUtilities.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_TestPlatform_PlatformAbstractions_dll" Guid="*">
+          <File Id="File_Microsoft_TestPlatform_PlatformAbstractions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.TestPlatform.PlatformAbstractions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualBasic_Core_dll" Guid="*">
+          <File Id="File_Microsoft_VisualBasic_Core_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualBasic.Core.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualBasic_dll" Guid="*">
+          <File Id="File_Microsoft_VisualBasic_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualBasic.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualBasic_Forms_dll" Guid="*">
+          <File Id="File_Microsoft_VisualBasic_Forms_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualBasic.Forms.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualStudio_TestPlatform_MSTest_TestAdapter_dll" Guid="*">
+          <File Id="File_Microsoft_VisualStudio_TestPlatform_MSTest_TestAdapter_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualStudio_TestPlatform_MSTestAdapter_PlatformServices_dll" Guid="*">
+          <File Id="File_Microsoft_VisualStudio_TestPlatform_MSTestAdapter_PlatformServices_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualStudio_TestPlatform_ObjectModel_dll" Guid="*">
+          <File Id="File_Microsoft_VisualStudio_TestPlatform_ObjectModel_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualStudio.TestPlatform.ObjectModel.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_dll" Guid="*">
+          <File Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualStudio.TestPlatform.TestFramework.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_Extensions_dll" Guid="*">
+          <File Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_Extensions_xml" Guid="*">
+          <File Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_Extensions_xml_file" Source="C:\Programming\ScottWisper\publish\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.xml" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Win32_Primitives_dll" Guid="*">
+          <File Id="File_Microsoft_Win32_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Win32.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Win32_Registry_AccessControl_dll" Guid="*">
+          <File Id="File_Microsoft_Win32_Registry_AccessControl_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Win32.Registry.AccessControl.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Win32_Registry_dll" Guid="*">
+          <File Id="File_Microsoft_Win32_Registry_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Win32.Registry.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Microsoft_Win32_SystemEvents_dll" Guid="*">
+          <File Id="File_Microsoft_Win32_SystemEvents_dll_file" Source="C:\Programming\ScottWisper\publish\Microsoft.Win32.SystemEvents.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Mono_Cecil_dll" Guid="*">
+          <File Id="File_Mono_Cecil_dll_file" Source="C:\Programming\ScottWisper\publish\Mono.Cecil.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Mono_Cecil_Mdb_dll" Guid="*">
+          <File Id="File_Mono_Cecil_Mdb_dll_file" Source="C:\Programming\ScottWisper\publish\Mono.Cecil.Mdb.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Mono_Cecil_Pdb_dll" Guid="*">
+          <File Id="File_Mono_Cecil_Pdb_dll_file" Source="C:\Programming\ScottWisper\publish\Mono.Cecil.Pdb.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Mono_Cecil_Rocks_dll" Guid="*">
+          <File Id="File_Mono_Cecil_Rocks_dll_file" Source="C:\Programming\ScottWisper\publish\Mono.Cecil.Rocks.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Moq_dll" Guid="*">
+          <File Id="File_Moq_dll_file" Source="C:\Programming\ScottWisper\publish\Moq.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_mscordaccore_dll" Guid="*">
+          <File Id="File_mscordaccore_dll_file" Source="C:\Programming\ScottWisper\publish\mscordaccore.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_mscordaccore_amd64_amd64_8_0_2225_52707_dll" Guid="*">
+          <File Id="File_mscordaccore_amd64_amd64_8_0_2225_52707_dll_file" Source="C:\Programming\ScottWisper\publish\mscordaccore_amd64_amd64_8.0.2225.52707.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_mscordbi_dll" Guid="*">
+          <File Id="File_mscordbi_dll_file" Source="C:\Programming\ScottWisper\publish\mscordbi.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_mscorlib_dll" Guid="*">
+          <File Id="File_mscorlib_dll_file" Source="C:\Programming\ScottWisper\publish\mscorlib.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_mscorrc_dll" Guid="*">
+          <File Id="File_mscorrc_dll_file" Source="C:\Programming\ScottWisper\publish\mscorrc.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_msquic_dll" Guid="*">
+          <File Id="File_msquic_dll_file" Source="C:\Programming\ScottWisper\publish\msquic.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_Asio_dll" Guid="*">
+          <File Id="File_NAudio_Asio_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.Asio.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_Core_dll" Guid="*">
+          <File Id="File_NAudio_Core_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.Core.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_dll" Guid="*">
+          <File Id="File_NAudio_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_Midi_dll" Guid="*">
+          <File Id="File_NAudio_Midi_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.Midi.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_Wasapi_dll" Guid="*">
+          <File Id="File_NAudio_Wasapi_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.Wasapi.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_WinForms_dll" Guid="*">
+          <File Id="File_NAudio_WinForms_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.WinForms.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NAudio_WinMM_dll" Guid="*">
+          <File Id="File_NAudio_WinMM_dll_file" Source="C:\Programming\ScottWisper\publish\NAudio.WinMM.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_netstandard_dll" Guid="*">
+          <File Id="File_netstandard_dll_file" Source="C:\Programming\ScottWisper\publish\netstandard.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Newtonsoft_Json_dll" Guid="*">
+          <File Id="File_Newtonsoft_Json_dll_file" Source="C:\Programming\ScottWisper\publish\Newtonsoft.Json.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_NuGet_Frameworks_dll" Guid="*">
+          <File Id="File_NuGet_Frameworks_dll_file" Source="C:\Programming\ScottWisper\publish\NuGet.Frameworks.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PenImc_cor3_dll" Guid="*">
+          <File Id="File_PenImc_cor3_dll_file" Source="C:\Programming\ScottWisper\publish\PenImc_cor3.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationCore_dll" Guid="*">
+          <File Id="File_PresentationCore_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationCore.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_SystemCore_dll" Guid="*">
+          <File Id="File_PresentationFramework_SystemCore_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework-SystemCore.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_SystemData_dll" Guid="*">
+          <File Id="File_PresentationFramework_SystemData_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework-SystemData.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_SystemDrawing_dll" Guid="*">
+          <File Id="File_PresentationFramework_SystemDrawing_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework-SystemDrawing.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_SystemXml_dll" Guid="*">
+          <File Id="File_PresentationFramework_SystemXml_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework-SystemXml.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_SystemXmlLinq_dll" Guid="*">
+          <File Id="File_PresentationFramework_SystemXmlLinq_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework-SystemXmlLinq.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_Aero_dll" Guid="*">
+          <File Id="File_PresentationFramework_Aero_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.Aero.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_Aero2_dll" Guid="*">
+          <File Id="File_PresentationFramework_Aero2_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.Aero2.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_AeroLite_dll" Guid="*">
+          <File Id="File_PresentationFramework_AeroLite_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.AeroLite.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_Classic_dll" Guid="*">
+          <File Id="File_PresentationFramework_Classic_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.Classic.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_dll" Guid="*">
+          <File Id="File_PresentationFramework_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_Luna_dll" Guid="*">
+          <File Id="File_PresentationFramework_Luna_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.Luna.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationFramework_Royale_dll" Guid="*">
+          <File Id="File_PresentationFramework_Royale_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationFramework.Royale.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationNative_cor3_dll" Guid="*">
+          <File Id="File_PresentationNative_cor3_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationNative_cor3.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_PresentationUI_dll" Guid="*">
+          <File Id="File_PresentationUI_dll_file" Source="C:\Programming\ScottWisper\publish\PresentationUI.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ReachFramework_dll" Guid="*">
+          <File Id="File_ReachFramework_dll_file" Source="C:\Programming\ScottWisper\publish\ReachFramework.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ScottWisper_deps_json" Guid="*">
+          <File Id="File_ScottWisper_deps_json_file" Source="C:\Programming\ScottWisper\publish\ScottWisper.deps.json" KeyPath="yes" />
+        </Component>        <Component Id="File_ScottWisper_dll" Guid="*">
+          <File Id="File_ScottWisper_dll_file" Source="C:\Programming\ScottWisper\publish\ScottWisper.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ScottWisper_exe" Guid="*">
+          <File Id="File_ScottWisper_exe_file" Source="C:\Programming\ScottWisper\publish\ScottWisper.exe" KeyPath="yes" />
+        </Component>        <Component Id="File_ScottWisper_pdb" Guid="*">
+          <File Id="File_ScottWisper_pdb_file" Source="C:\Programming\ScottWisper\publish\ScottWisper.pdb" KeyPath="yes" />
+        </Component>        <Component Id="File_ScottWisper_runtimeconfig_json" Guid="*">
+          <File Id="File_ScottWisper_runtimeconfig_json_file" Source="C:\Programming\ScottWisper\publish\ScottWisper.runtimeconfig.json" KeyPath="yes" />
+        </Component>        <Component Id="File_System_AppContext_dll" Guid="*">
+          <File Id="File_System_AppContext_dll_file" Source="C:\Programming\ScottWisper\publish\System.AppContext.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Buffers_dll" Guid="*">
+          <File Id="File_System_Buffers_dll_file" Source="C:\Programming\ScottWisper\publish\System.Buffers.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_CodeDom_dll" Guid="*">
+          <File Id="File_System_CodeDom_dll_file" Source="C:\Programming\ScottWisper\publish\System.CodeDom.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Collections_Concurrent_dll" Guid="*">
+          <File Id="File_System_Collections_Concurrent_dll_file" Source="C:\Programming\ScottWisper\publish\System.Collections.Concurrent.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Collections_dll" Guid="*">
+          <File Id="File_System_Collections_dll_file" Source="C:\Programming\ScottWisper\publish\System.Collections.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Collections_Immutable_dll" Guid="*">
+          <File Id="File_System_Collections_Immutable_dll_file" Source="C:\Programming\ScottWisper\publish\System.Collections.Immutable.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Collections_NonGeneric_dll" Guid="*">
+          <File Id="File_System_Collections_NonGeneric_dll_file" Source="C:\Programming\ScottWisper\publish\System.Collections.NonGeneric.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Collections_Specialized_dll" Guid="*">
+          <File Id="File_System_Collections_Specialized_dll_file" Source="C:\Programming\ScottWisper\publish\System.Collections.Specialized.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ComponentModel_Annotations_dll" Guid="*">
+          <File Id="File_System_ComponentModel_Annotations_dll_file" Source="C:\Programming\ScottWisper\publish\System.ComponentModel.Annotations.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ComponentModel_DataAnnotations_dll" Guid="*">
+          <File Id="File_System_ComponentModel_DataAnnotations_dll_file" Source="C:\Programming\ScottWisper\publish\System.ComponentModel.DataAnnotations.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ComponentModel_dll" Guid="*">
+          <File Id="File_System_ComponentModel_dll_file" Source="C:\Programming\ScottWisper\publish\System.ComponentModel.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ComponentModel_EventBasedAsync_dll" Guid="*">
+          <File Id="File_System_ComponentModel_EventBasedAsync_dll_file" Source="C:\Programming\ScottWisper\publish\System.ComponentModel.EventBasedAsync.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ComponentModel_Primitives_dll" Guid="*">
+          <File Id="File_System_ComponentModel_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.ComponentModel.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ComponentModel_TypeConverter_dll" Guid="*">
+          <File Id="File_System_ComponentModel_TypeConverter_dll_file" Source="C:\Programming\ScottWisper\publish\System.ComponentModel.TypeConverter.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Configuration_ConfigurationManager_dll" Guid="*">
+          <File Id="File_System_Configuration_ConfigurationManager_dll_file" Source="C:\Programming\ScottWisper\publish\System.Configuration.ConfigurationManager.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Configuration_dll" Guid="*">
+          <File Id="File_System_Configuration_dll_file" Source="C:\Programming\ScottWisper\publish\System.Configuration.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Console_dll" Guid="*">
+          <File Id="File_System_Console_dll_file" Source="C:\Programming\ScottWisper\publish\System.Console.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Core_dll" Guid="*">
+          <File Id="File_System_Core_dll_file" Source="C:\Programming\ScottWisper\publish\System.Core.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Data_Common_dll" Guid="*">
+          <File Id="File_System_Data_Common_dll_file" Source="C:\Programming\ScottWisper\publish\System.Data.Common.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Data_DataSetExtensions_dll" Guid="*">
+          <File Id="File_System_Data_DataSetExtensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Data.DataSetExtensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Data_dll" Guid="*">
+          <File Id="File_System_Data_dll_file" Source="C:\Programming\ScottWisper\publish\System.Data.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Design_dll" Guid="*">
+          <File Id="File_System_Design_dll_file" Source="C:\Programming\ScottWisper\publish\System.Design.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_Contracts_dll" Guid="*">
+          <File Id="File_System_Diagnostics_Contracts_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.Contracts.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_Debug_dll" Guid="*">
+          <File Id="File_System_Diagnostics_Debug_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.Debug.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_DiagnosticSource_dll" Guid="*">
+          <File Id="File_System_Diagnostics_DiagnosticSource_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.DiagnosticSource.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_EventLog_dll" Guid="*">
+          <File Id="File_System_Diagnostics_EventLog_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.EventLog.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_EventLog_Messages_dll" Guid="*">
+          <File Id="File_System_Diagnostics_EventLog_Messages_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.EventLog.Messages.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_FileVersionInfo_dll" Guid="*">
+          <File Id="File_System_Diagnostics_FileVersionInfo_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.FileVersionInfo.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_PerformanceCounter_dll" Guid="*">
+          <File Id="File_System_Diagnostics_PerformanceCounter_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.PerformanceCounter.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_Process_dll" Guid="*">
+          <File Id="File_System_Diagnostics_Process_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.Process.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_StackTrace_dll" Guid="*">
+          <File Id="File_System_Diagnostics_StackTrace_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.StackTrace.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_TextWriterTraceListener_dll" Guid="*">
+          <File Id="File_System_Diagnostics_TextWriterTraceListener_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.TextWriterTraceListener.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_Tools_dll" Guid="*">
+          <File Id="File_System_Diagnostics_Tools_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.Tools.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_TraceSource_dll" Guid="*">
+          <File Id="File_System_Diagnostics_TraceSource_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.TraceSource.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Diagnostics_Tracing_dll" Guid="*">
+          <File Id="File_System_Diagnostics_Tracing_dll_file" Source="C:\Programming\ScottWisper\publish\System.Diagnostics.Tracing.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_DirectoryServices_dll" Guid="*">
+          <File Id="File_System_DirectoryServices_dll_file" Source="C:\Programming\ScottWisper\publish\System.DirectoryServices.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_dll" Guid="*">
+          <File Id="File_System_dll_file" Source="C:\Programming\ScottWisper\publish\System.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Drawing_Common_dll" Guid="*">
+          <File Id="File_System_Drawing_Common_dll_file" Source="C:\Programming\ScottWisper\publish\System.Drawing.Common.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Drawing_Design_dll" Guid="*">
+          <File Id="File_System_Drawing_Design_dll_file" Source="C:\Programming\ScottWisper\publish\System.Drawing.Design.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Drawing_dll" Guid="*">
+          <File Id="File_System_Drawing_dll_file" Source="C:\Programming\ScottWisper\publish\System.Drawing.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Drawing_Primitives_dll" Guid="*">
+          <File Id="File_System_Drawing_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.Drawing.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Dynamic_Runtime_dll" Guid="*">
+          <File Id="File_System_Dynamic_Runtime_dll_file" Source="C:\Programming\ScottWisper\publish\System.Dynamic.Runtime.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Formats_Asn1_dll" Guid="*">
+          <File Id="File_System_Formats_Asn1_dll_file" Source="C:\Programming\ScottWisper\publish\System.Formats.Asn1.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Formats_Tar_dll" Guid="*">
+          <File Id="File_System_Formats_Tar_dll_file" Source="C:\Programming\ScottWisper\publish\System.Formats.Tar.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Globalization_Calendars_dll" Guid="*">
+          <File Id="File_System_Globalization_Calendars_dll_file" Source="C:\Programming\ScottWisper\publish\System.Globalization.Calendars.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Globalization_dll" Guid="*">
+          <File Id="File_System_Globalization_dll_file" Source="C:\Programming\ScottWisper\publish\System.Globalization.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Globalization_Extensions_dll" Guid="*">
+          <File Id="File_System_Globalization_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Globalization.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Compression_Brotli_dll" Guid="*">
+          <File Id="File_System_IO_Compression_Brotli_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Compression.Brotli.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Compression_dll" Guid="*">
+          <File Id="File_System_IO_Compression_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Compression.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Compression_FileSystem_dll" Guid="*">
+          <File Id="File_System_IO_Compression_FileSystem_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Compression.FileSystem.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Compression_Native_dll" Guid="*">
+          <File Id="File_System_IO_Compression_Native_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Compression.Native.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Compression_ZipFile_dll" Guid="*">
+          <File Id="File_System_IO_Compression_ZipFile_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Compression.ZipFile.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_dll" Guid="*">
+          <File Id="File_System_IO_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_FileSystem_AccessControl_dll" Guid="*">
+          <File Id="File_System_IO_FileSystem_AccessControl_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.FileSystem.AccessControl.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_FileSystem_dll" Guid="*">
+          <File Id="File_System_IO_FileSystem_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.FileSystem.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_FileSystem_DriveInfo_dll" Guid="*">
+          <File Id="File_System_IO_FileSystem_DriveInfo_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.FileSystem.DriveInfo.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_FileSystem_Primitives_dll" Guid="*">
+          <File Id="File_System_IO_FileSystem_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.FileSystem.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_FileSystem_Watcher_dll" Guid="*">
+          <File Id="File_System_IO_FileSystem_Watcher_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.FileSystem.Watcher.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_IsolatedStorage_dll" Guid="*">
+          <File Id="File_System_IO_IsolatedStorage_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.IsolatedStorage.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_MemoryMappedFiles_dll" Guid="*">
+          <File Id="File_System_IO_MemoryMappedFiles_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.MemoryMappedFiles.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Packaging_dll" Guid="*">
+          <File Id="File_System_IO_Packaging_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Packaging.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Pipes_AccessControl_dll" Guid="*">
+          <File Id="File_System_IO_Pipes_AccessControl_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Pipes.AccessControl.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_Pipes_dll" Guid="*">
+          <File Id="File_System_IO_Pipes_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.Pipes.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_IO_UnmanagedMemoryStream_dll" Guid="*">
+          <File Id="File_System_IO_UnmanagedMemoryStream_dll_file" Source="C:\Programming\ScottWisper\publish\System.IO.UnmanagedMemoryStream.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Linq_dll" Guid="*">
+          <File Id="File_System_Linq_dll_file" Source="C:\Programming\ScottWisper\publish\System.Linq.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Linq_Expressions_dll" Guid="*">
+          <File Id="File_System_Linq_Expressions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Linq.Expressions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Linq_Parallel_dll" Guid="*">
+          <File Id="File_System_Linq_Parallel_dll_file" Source="C:\Programming\ScottWisper\publish\System.Linq.Parallel.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Linq_Queryable_dll" Guid="*">
+          <File Id="File_System_Linq_Queryable_dll_file" Source="C:\Programming\ScottWisper\publish\System.Linq.Queryable.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Memory_dll" Guid="*">
+          <File Id="File_System_Memory_dll_file" Source="C:\Programming\ScottWisper\publish\System.Memory.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_dll" Guid="*">
+          <File Id="File_System_Net_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Http_dll" Guid="*">
+          <File Id="File_System_Net_Http_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Http.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Http_Json_dll" Guid="*">
+          <File Id="File_System_Net_Http_Json_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Http.Json.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_HttpListener_dll" Guid="*">
+          <File Id="File_System_Net_HttpListener_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.HttpListener.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Mail_dll" Guid="*">
+          <File Id="File_System_Net_Mail_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Mail.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_NameResolution_dll" Guid="*">
+          <File Id="File_System_Net_NameResolution_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.NameResolution.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_NetworkInformation_dll" Guid="*">
+          <File Id="File_System_Net_NetworkInformation_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.NetworkInformation.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Ping_dll" Guid="*">
+          <File Id="File_System_Net_Ping_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Ping.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Primitives_dll" Guid="*">
+          <File Id="File_System_Net_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Quic_dll" Guid="*">
+          <File Id="File_System_Net_Quic_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Quic.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Requests_dll" Guid="*">
+          <File Id="File_System_Net_Requests_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Requests.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Security_dll" Guid="*">
+          <File Id="File_System_Net_Security_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Security.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_ServicePoint_dll" Guid="*">
+          <File Id="File_System_Net_ServicePoint_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.ServicePoint.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_Sockets_dll" Guid="*">
+          <File Id="File_System_Net_Sockets_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.Sockets.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_WebClient_dll" Guid="*">
+          <File Id="File_System_Net_WebClient_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.WebClient.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_WebHeaderCollection_dll" Guid="*">
+          <File Id="File_System_Net_WebHeaderCollection_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.WebHeaderCollection.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_WebProxy_dll" Guid="*">
+          <File Id="File_System_Net_WebProxy_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.WebProxy.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_WebSockets_Client_dll" Guid="*">
+          <File Id="File_System_Net_WebSockets_Client_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.WebSockets.Client.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Net_WebSockets_dll" Guid="*">
+          <File Id="File_System_Net_WebSockets_dll_file" Source="C:\Programming\ScottWisper\publish\System.Net.WebSockets.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Numerics_dll" Guid="*">
+          <File Id="File_System_Numerics_dll_file" Source="C:\Programming\ScottWisper\publish\System.Numerics.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Numerics_Vectors_dll" Guid="*">
+          <File Id="File_System_Numerics_Vectors_dll_file" Source="C:\Programming\ScottWisper\publish\System.Numerics.Vectors.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ObjectModel_dll" Guid="*">
+          <File Id="File_System_ObjectModel_dll_file" Source="C:\Programming\ScottWisper\publish\System.ObjectModel.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Printing_dll" Guid="*">
+          <File Id="File_System_Printing_dll_file" Source="C:\Programming\ScottWisper\publish\System.Printing.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_CoreLib_dll" Guid="*">
+          <File Id="File_System_Private_CoreLib_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.CoreLib.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_DataContractSerialization_dll" Guid="*">
+          <File Id="File_System_Private_DataContractSerialization_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.DataContractSerialization.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_Uri_dll" Guid="*">
+          <File Id="File_System_Private_Uri_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.Uri.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_Windows_Core_dll" Guid="*">
+          <File Id="File_System_Private_Windows_Core_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.Windows.Core.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_Windows_GdiPlus_dll" Guid="*">
+          <File Id="File_System_Private_Windows_GdiPlus_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.Windows.GdiPlus.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_Xml_dll" Guid="*">
+          <File Id="File_System_Private_Xml_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.Xml.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Private_Xml_Linq_dll" Guid="*">
+          <File Id="File_System_Private_Xml_Linq_dll_file" Source="C:\Programming\ScottWisper\publish\System.Private.Xml.Linq.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_DispatchProxy_dll" Guid="*">
+          <File Id="File_System_Reflection_DispatchProxy_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.DispatchProxy.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_dll" Guid="*">
+          <File Id="File_System_Reflection_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_Emit_dll" Guid="*">
+          <File Id="File_System_Reflection_Emit_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.Emit.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_Emit_ILGeneration_dll" Guid="*">
+          <File Id="File_System_Reflection_Emit_ILGeneration_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.Emit.ILGeneration.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_Emit_Lightweight_dll" Guid="*">
+          <File Id="File_System_Reflection_Emit_Lightweight_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.Emit.Lightweight.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_Extensions_dll" Guid="*">
+          <File Id="File_System_Reflection_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_Metadata_dll" Guid="*">
+          <File Id="File_System_Reflection_Metadata_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.Metadata.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_Primitives_dll" Guid="*">
+          <File Id="File_System_Reflection_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Reflection_TypeExtensions_dll" Guid="*">
+          <File Id="File_System_Reflection_TypeExtensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Reflection.TypeExtensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Resources_Extensions_dll" Guid="*">
+          <File Id="File_System_Resources_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Resources.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Resources_Reader_dll" Guid="*">
+          <File Id="File_System_Resources_Reader_dll_file" Source="C:\Programming\ScottWisper\publish\System.Resources.Reader.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Resources_ResourceManager_dll" Guid="*">
+          <File Id="File_System_Resources_ResourceManager_dll_file" Source="C:\Programming\ScottWisper\publish\System.Resources.ResourceManager.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Resources_Writer_dll" Guid="*">
+          <File Id="File_System_Resources_Writer_dll_file" Source="C:\Programming\ScottWisper\publish\System.Resources.Writer.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_CompilerServices_Unsafe_dll" Guid="*">
+          <File Id="File_System_Runtime_CompilerServices_Unsafe_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.CompilerServices.Unsafe.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_CompilerServices_VisualC_dll" Guid="*">
+          <File Id="File_System_Runtime_CompilerServices_VisualC_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.CompilerServices.VisualC.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_dll" Guid="*">
+          <File Id="File_System_Runtime_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Extensions_dll" Guid="*">
+          <File Id="File_System_Runtime_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Handles_dll" Guid="*">
+          <File Id="File_System_Runtime_Handles_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Handles.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_InteropServices_dll" Guid="*">
+          <File Id="File_System_Runtime_InteropServices_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.InteropServices.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_InteropServices_JavaScript_dll" Guid="*">
+          <File Id="File_System_Runtime_InteropServices_JavaScript_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.InteropServices.JavaScript.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_InteropServices_RuntimeInformation_dll" Guid="*">
+          <File Id="File_System_Runtime_InteropServices_RuntimeInformation_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.InteropServices.RuntimeInformation.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Intrinsics_dll" Guid="*">
+          <File Id="File_System_Runtime_Intrinsics_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Intrinsics.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Loader_dll" Guid="*">
+          <File Id="File_System_Runtime_Loader_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Loader.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Numerics_dll" Guid="*">
+          <File Id="File_System_Runtime_Numerics_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Numerics.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Serialization_dll" Guid="*">
+          <File Id="File_System_Runtime_Serialization_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Serialization.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Serialization_Formatters_dll" Guid="*">
+          <File Id="File_System_Runtime_Serialization_Formatters_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Serialization.Formatters.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Serialization_Json_dll" Guid="*">
+          <File Id="File_System_Runtime_Serialization_Json_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Serialization.Json.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Serialization_Primitives_dll" Guid="*">
+          <File Id="File_System_Runtime_Serialization_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Serialization.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Runtime_Serialization_Xml_dll" Guid="*">
+          <File Id="File_System_Runtime_Serialization_Xml_dll_file" Source="C:\Programming\ScottWisper\publish\System.Runtime.Serialization.Xml.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_AccessControl_dll" Guid="*">
+          <File Id="File_System_Security_AccessControl_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.AccessControl.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Claims_dll" Guid="*">
+          <File Id="File_System_Security_Claims_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Claims.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Algorithms_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Algorithms_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Algorithms.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Cng_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Cng_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Cng.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Csp_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Csp_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Csp.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Encoding_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Encoding_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Encoding.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_OpenSsl_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_OpenSsl_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.OpenSsl.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Pkcs_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Pkcs_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Pkcs.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Primitives_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_ProtectedData_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_ProtectedData_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.ProtectedData.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_X509Certificates_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_X509Certificates_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.X509Certificates.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Cryptography_Xml_dll" Guid="*">
+          <File Id="File_System_Security_Cryptography_Xml_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Cryptography.Xml.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_dll" Guid="*">
+          <File Id="File_System_Security_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Permissions_dll" Guid="*">
+          <File Id="File_System_Security_Permissions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Permissions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Principal_dll" Guid="*">
+          <File Id="File_System_Security_Principal_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Principal.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_Principal_Windows_dll" Guid="*">
+          <File Id="File_System_Security_Principal_Windows_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.Principal.Windows.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Security_SecureString_dll" Guid="*">
+          <File Id="File_System_Security_SecureString_dll_file" Source="C:\Programming\ScottWisper\publish\System.Security.SecureString.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ServiceModel_Web_dll" Guid="*">
+          <File Id="File_System_ServiceModel_Web_dll_file" Source="C:\Programming\ScottWisper\publish\System.ServiceModel.Web.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ServiceProcess_dll" Guid="*">
+          <File Id="File_System_ServiceProcess_dll_file" Source="C:\Programming\ScottWisper\publish\System.ServiceProcess.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ServiceProcess_ServiceController_dll" Guid="*">
+          <File Id="File_System_ServiceProcess_ServiceController_dll_file" Source="C:\Programming\ScottWisper\publish\System.ServiceProcess.ServiceController.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Text_Encoding_CodePages_dll" Guid="*">
+          <File Id="File_System_Text_Encoding_CodePages_dll_file" Source="C:\Programming\ScottWisper\publish\System.Text.Encoding.CodePages.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Text_Encoding_dll" Guid="*">
+          <File Id="File_System_Text_Encoding_dll_file" Source="C:\Programming\ScottWisper\publish\System.Text.Encoding.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Text_Encoding_Extensions_dll" Guid="*">
+          <File Id="File_System_Text_Encoding_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Text.Encoding.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Text_Encodings_Web_dll" Guid="*">
+          <File Id="File_System_Text_Encodings_Web_dll_file" Source="C:\Programming\ScottWisper\publish\System.Text.Encodings.Web.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Text_Json_dll" Guid="*">
+          <File Id="File_System_Text_Json_dll_file" Source="C:\Programming\ScottWisper\publish\System.Text.Json.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Text_RegularExpressions_dll" Guid="*">
+          <File Id="File_System_Text_RegularExpressions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Text.RegularExpressions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_AccessControl_dll" Guid="*">
+          <File Id="File_System_Threading_AccessControl_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.AccessControl.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Channels_dll" Guid="*">
+          <File Id="File_System_Threading_Channels_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Channels.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_dll" Guid="*">
+          <File Id="File_System_Threading_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Overlapped_dll" Guid="*">
+          <File Id="File_System_Threading_Overlapped_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Overlapped.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Tasks_Dataflow_dll" Guid="*">
+          <File Id="File_System_Threading_Tasks_Dataflow_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Tasks.Dataflow.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Tasks_dll" Guid="*">
+          <File Id="File_System_Threading_Tasks_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Tasks.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Tasks_Extensions_dll" Guid="*">
+          <File Id="File_System_Threading_Tasks_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Tasks.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Tasks_Parallel_dll" Guid="*">
+          <File Id="File_System_Threading_Tasks_Parallel_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Tasks.Parallel.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Thread_dll" Guid="*">
+          <File Id="File_System_Threading_Thread_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Thread.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_ThreadPool_dll" Guid="*">
+          <File Id="File_System_Threading_ThreadPool_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.ThreadPool.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Threading_Timer_dll" Guid="*">
+          <File Id="File_System_Threading_Timer_dll_file" Source="C:\Programming\ScottWisper\publish\System.Threading.Timer.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Transactions_dll" Guid="*">
+          <File Id="File_System_Transactions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Transactions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Transactions_Local_dll" Guid="*">
+          <File Id="File_System_Transactions_Local_dll_file" Source="C:\Programming\ScottWisper\publish\System.Transactions.Local.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_ValueTuple_dll" Guid="*">
+          <File Id="File_System_ValueTuple_dll_file" Source="C:\Programming\ScottWisper\publish\System.ValueTuple.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Web_dll" Guid="*">
+          <File Id="File_System_Web_dll_file" Source="C:\Programming\ScottWisper\publish\System.Web.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Web_HttpUtility_dll" Guid="*">
+          <File Id="File_System_Web_HttpUtility_dll_file" Source="C:\Programming\ScottWisper\publish\System.Web.HttpUtility.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Controls_Ribbon_dll" Guid="*">
+          <File Id="File_System_Windows_Controls_Ribbon_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Controls.Ribbon.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_dll" Guid="*">
+          <File Id="File_System_Windows_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Extensions_dll" Guid="*">
+          <File Id="File_System_Windows_Extensions_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Extensions.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Forms_Design_dll" Guid="*">
+          <File Id="File_System_Windows_Forms_Design_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Forms.Design.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Forms_Design_Editors_dll" Guid="*">
+          <File Id="File_System_Windows_Forms_Design_Editors_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Forms.Design.Editors.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Forms_dll" Guid="*">
+          <File Id="File_System_Windows_Forms_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Forms.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Forms_Primitives_dll" Guid="*">
+          <File Id="File_System_Windows_Forms_Primitives_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Forms.Primitives.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Input_Manipulations_dll" Guid="*">
+          <File Id="File_System_Windows_Input_Manipulations_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Input.Manipulations.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Windows_Presentation_dll" Guid="*">
+          <File Id="File_System_Windows_Presentation_dll_file" Source="C:\Programming\ScottWisper\publish\System.Windows.Presentation.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xaml_dll" Guid="*">
+          <File Id="File_System_Xaml_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xaml.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_dll" Guid="*">
+          <File Id="File_System_Xml_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_Linq_dll" Guid="*">
+          <File Id="File_System_Xml_Linq_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.Linq.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_ReaderWriter_dll" Guid="*">
+          <File Id="File_System_Xml_ReaderWriter_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.ReaderWriter.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_Serialization_dll" Guid="*">
+          <File Id="File_System_Xml_Serialization_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.Serialization.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_XDocument_dll" Guid="*">
+          <File Id="File_System_Xml_XDocument_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.XDocument.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_XmlDocument_dll" Guid="*">
+          <File Id="File_System_Xml_XmlDocument_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.XmlDocument.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_XmlSerializer_dll" Guid="*">
+          <File Id="File_System_Xml_XmlSerializer_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.XmlSerializer.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_XPath_dll" Guid="*">
+          <File Id="File_System_Xml_XPath_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.XPath.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_System_Xml_XPath_XDocument_dll" Guid="*">
+          <File Id="File_System_Xml_XPath_XDocument_dll_file" Source="C:\Programming\ScottWisper\publish\System.Xml.XPath.XDocument.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_UIAutomationClient_dll" Guid="*">
+          <File Id="File_UIAutomationClient_dll_file" Source="C:\Programming\ScottWisper\publish\UIAutomationClient.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_UIAutomationClientSideProviders_dll" Guid="*">
+          <File Id="File_UIAutomationClientSideProviders_dll_file" Source="C:\Programming\ScottWisper\publish\UIAutomationClientSideProviders.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_UIAutomationProvider_dll" Guid="*">
+          <File Id="File_UIAutomationProvider_dll_file" Source="C:\Programming\ScottWisper\publish\UIAutomationProvider.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_UIAutomationTypes_dll" Guid="*">
+          <File Id="File_UIAutomationTypes_dll_file" Source="C:\Programming\ScottWisper\publish\UIAutomationTypes.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_vcruntime140_cor3_dll" Guid="*">
+          <File Id="File_vcruntime140_cor3_dll_file" Source="C:\Programming\ScottWisper\publish\vcruntime140_cor3.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_Whisper_net_dll" Guid="*">
+          <File Id="File_Whisper_net_dll_file" Source="C:\Programming\ScottWisper\publish\Whisper.net.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_WindowsBase_dll" Guid="*">
+          <File Id="File_WindowsBase_dll_file" Source="C:\Programming\ScottWisper\publish\WindowsBase.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_WindowsFormsIntegration_dll" Guid="*">
+          <File Id="File_WindowsFormsIntegration_dll_file" Source="C:\Programming\ScottWisper\publish\WindowsFormsIntegration.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_wpfgfx_cor3_dll" Guid="*">
+          <File Id="File_wpfgfx_cor3_dll_file" Source="C:\Programming\ScottWisper\publish\wpfgfx_cor3.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_cs\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_cs\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_cs\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_cs\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_cs\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_cs\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_cs\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_cs\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_cs\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_cs\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_cs\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_cs\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_cs\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_cs\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_cs\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_cs\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_cs\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_cs\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_cs\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\cs\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_de\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_de\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_de\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_de\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_de\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_de\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_de\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_de\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_de\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_de\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_de\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_de\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_de\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_de\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_de\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_de\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_de\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_de\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_de\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\de\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_es\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_es\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_es\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_es\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_es\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_es\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_es\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_es\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_es\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_es\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_es\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_es\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_es\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_es\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_es\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_es\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_es\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_es\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_es\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\es\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_fr\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_fr\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_fr\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_fr\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_fr\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_fr\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_fr\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_fr\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_fr\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_fr\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_fr\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_fr\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_fr\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_fr\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_fr\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_fr\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_fr\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_fr\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_fr\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\fr\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_it\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_it\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_it\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_it\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_it\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_it\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_it\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_it\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_it\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_it\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_it\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_it\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_it\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_it\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_it\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_it\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_it\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_it\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_it\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\it\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_ja\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_ja\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_ja\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_ja\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_ja\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_ja\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_ja\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_ja\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_ja\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_ja\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_ja\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_ja\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_ja\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_ja\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_ja\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_ja\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_ja\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ja\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_ja\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ja\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_ko\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_ko\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_ko\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_ko\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_ko\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_ko\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_ko\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_ko\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_ko\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_ko\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_ko\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_ko\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_ko\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_ko\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_ko\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_ko\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_ko\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ko\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_ko\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ko\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_pl\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_pl\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_pl\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_pl\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_pl\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_pl\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_pl\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_pl\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_pl\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_pl\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_pl\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_pl\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_pl\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_pl\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_pl\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_pl\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_pl\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pl\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_pl\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pl\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_pt_BR\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_pt_BR\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_pt_BR\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_pt_BR\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_pt_BR\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_pt_BR\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_pt_BR\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_pt_BR\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_pt_BR\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_pt_BR\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_pt_BR\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_pt_BR\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_pt_BR\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_pt_BR\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_pt_BR\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_pt_BR\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_pt_BR\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_pt_BR\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_pt_BR\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\pt-BR\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_ru\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_ru\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_ru\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_ru\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_ru\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_ru\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_ru\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_ru\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_ru\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_ru\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_ru\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_ru\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_ru\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_ru\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_ru\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_ru\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_ru\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_ru\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_ru\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\ru\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_tr\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_tr\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_tr\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_tr\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_tr\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_tr\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_tr\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_tr\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_tr\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_tr\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_tr\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_tr\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_tr\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_tr\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_tr\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_tr\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_tr\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_tr\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_tr\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\tr\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hans\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_zh_Hans\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hans\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\Microsoft_VisualBasic_Forms_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\Microsoft_VisualBasic_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\Microsoft.VisualBasic.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\Microsoft.VisualStudio.TestPlatform.TestFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\PresentationCore_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\PresentationCore_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\PresentationCore.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\PresentationFramework_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\PresentationFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\PresentationFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\PresentationUI_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\PresentationUI_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\PresentationUI.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\ReachFramework_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\ReachFramework_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\ReachFramework.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\System_Windows_Controls_Ribbon_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\System_Windows_Controls_Ribbon_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\System.Windows.Controls.Ribbon.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\System_Windows_Forms_Design_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\System_Windows_Forms_Design_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\System.Windows.Forms.Design.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\System_Windows_Forms_Primitives_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\System_Windows_Forms_Primitives_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\System.Windows.Forms.Primitives.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\System_Windows_Forms_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\System_Windows_Forms_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\System.Windows.Forms.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\System_Windows_Input_Manipulations_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\System_Windows_Input_Manipulations_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\System.Windows.Input.Manipulations.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\System_Xaml_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\System_Xaml_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\System.Xaml.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\UIAutomationClient_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\UIAutomationClient_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\UIAutomationClient.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\UIAutomationClientSideProviders_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\UIAutomationClientSideProviders_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\UIAutomationClientSideProviders.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\UIAutomationProvider_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\UIAutomationProvider_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\UIAutomationProvider.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\UIAutomationTypes_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\UIAutomationTypes_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\UIAutomationTypes.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\WindowsBase_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\WindowsBase_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\WindowsBase.resources.dll" KeyPath="yes" />
+        </Component>        <Component Id="File_zh_Hant\WindowsFormsIntegration_resources_dll" Guid="*">
+          <File Id="File_zh_Hant\WindowsFormsIntegration_resources_dll_file" Source="C:\Programming\ScottWisper\publish\zh-Hant\WindowsFormsIntegration.resources.dll" KeyPath="yes" />
+        </Component>      </Directory>
+    </StandardDirectory>
+    <ComponentGroup Id="ProductComponents">
+      <ComponentRef Id="File_Accessibility_dll" />
+       <ComponentRef Id="File_Castle_Core_dll" />
+       <ComponentRef Id="File_clretwrc_dll" />
+       <ComponentRef Id="File_clrgc_dll" />
+       <ComponentRef Id="File_clrjit_dll" />
+       <ComponentRef Id="File_coreclr_dll" />
+       <ComponentRef Id="File_coverlet_collector_deps_json" />
+       <ComponentRef Id="File_coverlet_collector_dll" />
+       <ComponentRef Id="File_coverlet_collector_pdb" />
+       <ComponentRef Id="File_coverlet_collector_targets" />
+       <ComponentRef Id="File_coverlet_core_dll" />
+       <ComponentRef Id="File_coverlet_core_pdb" />
+       <ComponentRef Id="File_createdump_exe" />
+       <ComponentRef Id="File_D3DCompiler_47_cor3_dll" />
+       <ComponentRef Id="File_DirectWriteForwarder_dll" />
+       <ComponentRef Id="File_H_GeneratedIcons_System_Drawing_dll" />
+       <ComponentRef Id="File_H_InputSimulator_dll" />
+       <ComponentRef Id="File_H_NotifyIcon_dll" />
+       <ComponentRef Id="File_H_NotifyIcon_Wpf_dll" />
+       <ComponentRef Id="File_hostfxr_dll" />
+       <ComponentRef Id="File_hostpolicy_dll" />
+       <ComponentRef Id="File_Microsoft_Bcl_AsyncInterfaces_dll" />
+       <ComponentRef Id="File_Microsoft_CSharp_dll" />
+       <ComponentRef Id="File_Microsoft_DiaSymReader_Native_amd64_dll" />
+       <ComponentRef Id="File_Microsoft_DotNet_PlatformAbstractions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Configuration_Abstractions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Configuration_Binder_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Configuration_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Configuration_FileExtensions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Configuration_Json_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_DependencyInjection_Abstractions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_DependencyInjection_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_DependencyModel_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_FileProviders_Abstractions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_FileProviders_Physical_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_FileSystemGlobbing_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Logging_Abstractions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Logging_Configuration_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Logging_Console_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Logging_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Options_ConfigurationExtensions_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Options_dll" />
+       <ComponentRef Id="File_Microsoft_Extensions_Primitives_dll" />
+       <ComponentRef Id="File_Microsoft_TestPlatform_AdapterUtilities_dll" />
+       <ComponentRef Id="File_Microsoft_TestPlatform_CoreUtilities_dll" />
+       <ComponentRef Id="File_Microsoft_TestPlatform_PlatformAbstractions_dll" />
+       <ComponentRef Id="File_Microsoft_VisualBasic_Core_dll" />
+       <ComponentRef Id="File_Microsoft_VisualBasic_dll" />
+       <ComponentRef Id="File_Microsoft_VisualBasic_Forms_dll" />
+       <ComponentRef Id="File_Microsoft_VisualStudio_TestPlatform_MSTest_TestAdapter_dll" />
+       <ComponentRef Id="File_Microsoft_VisualStudio_TestPlatform_MSTestAdapter_PlatformServices_dll" />
+       <ComponentRef Id="File_Microsoft_VisualStudio_TestPlatform_ObjectModel_dll" />
+       <ComponentRef Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_dll" />
+       <ComponentRef Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_Extensions_dll" />
+       <ComponentRef Id="File_Microsoft_VisualStudio_TestPlatform_TestFramework_Extensions_xml" />
+       <ComponentRef Id="File_Microsoft_Win32_Primitives_dll" />
+       <ComponentRef Id="File_Microsoft_Win32_Registry_AccessControl_dll" />
+       <ComponentRef Id="File_Microsoft_Win32_Registry_dll" />
+       <ComponentRef Id="File_Microsoft_Win32_SystemEvents_dll" />
+       <ComponentRef Id="File_Mono_Cecil_dll" />
+       <ComponentRef Id="File_Mono_Cecil_Mdb_dll" />
+       <ComponentRef Id="File_Mono_Cecil_Pdb_dll" />
+       <ComponentRef Id="File_Mono_Cecil_Rocks_dll" />
+       <ComponentRef Id="File_Moq_dll" />
+       <ComponentRef Id="File_mscordaccore_dll" />
+       <ComponentRef Id="File_mscordaccore_amd64_amd64_8_0_2225_52707_dll" />
+       <ComponentRef Id="File_mscordbi_dll" />
+       <ComponentRef Id="File_mscorlib_dll" />
+       <ComponentRef Id="File_mscorrc_dll" />
+       <ComponentRef Id="File_msquic_dll" />
+       <ComponentRef Id="File_NAudio_Asio_dll" />
+       <ComponentRef Id="File_NAudio_Core_dll" />
+       <ComponentRef Id="File_NAudio_dll" />
+       <ComponentRef Id="File_NAudio_Midi_dll" />
+       <ComponentRef Id="File_NAudio_Wasapi_dll" />
+       <ComponentRef Id="File_NAudio_WinForms_dll" />
+       <ComponentRef Id="File_NAudio_WinMM_dll" />
+       <ComponentRef Id="File_netstandard_dll" />
+       <ComponentRef Id="File_Newtonsoft_Json_dll" />
+       <ComponentRef Id="File_NuGet_Frameworks_dll" />
+       <ComponentRef Id="File_PenImc_cor3_dll" />
+       <ComponentRef Id="File_PresentationCore_dll" />
+       <ComponentRef Id="File_PresentationFramework_SystemCore_dll" />
+       <ComponentRef Id="File_PresentationFramework_SystemData_dll" />
+       <ComponentRef Id="File_PresentationFramework_SystemDrawing_dll" />
+       <ComponentRef Id="File_PresentationFramework_SystemXml_dll" />
+       <ComponentRef Id="File_PresentationFramework_SystemXmlLinq_dll" />
+       <ComponentRef Id="File_PresentationFramework_Aero_dll" />
+       <ComponentRef Id="File_PresentationFramework_Aero2_dll" />
+       <ComponentRef Id="File_PresentationFramework_AeroLite_dll" />
+       <ComponentRef Id="File_PresentationFramework_Classic_dll" />
+       <ComponentRef Id="File_PresentationFramework_dll" />
+       <ComponentRef Id="File_PresentationFramework_Luna_dll" />
+       <ComponentRef Id="File_PresentationFramework_Royale_dll" />
+       <ComponentRef Id="File_PresentationNative_cor3_dll" />
+       <ComponentRef Id="File_PresentationUI_dll" />
+       <ComponentRef Id="File_ReachFramework_dll" />
+       <ComponentRef Id="File_ScottWisper_deps_json" />
+       <ComponentRef Id="File_ScottWisper_dll" />
+       <ComponentRef Id="File_ScottWisper_exe" />
+       <ComponentRef Id="File_ScottWisper_pdb" />
+       <ComponentRef Id="File_ScottWisper_runtimeconfig_json" />
+       <ComponentRef Id="File_System_AppContext_dll" />
+       <ComponentRef Id="File_System_Buffers_dll" />
+       <ComponentRef Id="File_System_CodeDom_dll" />
+       <ComponentRef Id="File_System_Collections_Concurrent_dll" />
+       <ComponentRef Id="File_System_Collections_dll" />
+       <ComponentRef Id="File_System_Collections_Immutable_dll" />
+       <ComponentRef Id="File_System_Collections_NonGeneric_dll" />
+       <ComponentRef Id="File_System_Collections_Specialized_dll" />
+       <ComponentRef Id="File_System_ComponentModel_Annotations_dll" />
+       <ComponentRef Id="File_System_ComponentModel_DataAnnotations_dll" />
+       <ComponentRef Id="File_System_ComponentModel_dll" />
+       <ComponentRef Id="File_System_ComponentModel_EventBasedAsync_dll" />
+       <ComponentRef Id="File_System_ComponentModel_Primitives_dll" />
+       <ComponentRef Id="File_System_ComponentModel_TypeConverter_dll" />
+       <ComponentRef Id="File_System_Configuration_ConfigurationManager_dll" />
+       <ComponentRef Id="File_System_Configuration_dll" />
+       <ComponentRef Id="File_System_Console_dll" />
+       <ComponentRef Id="File_System_Core_dll" />
+       <ComponentRef Id="File_System_Data_Common_dll" />
+       <ComponentRef Id="File_System_Data_DataSetExtensions_dll" />
+       <ComponentRef Id="File_System_Data_dll" />
+       <ComponentRef Id="File_System_Design_dll" />
+       <ComponentRef Id="File_System_Diagnostics_Contracts_dll" />
+       <ComponentRef Id="File_System_Diagnostics_Debug_dll" />
+       <ComponentRef Id="File_System_Diagnostics_DiagnosticSource_dll" />
+       <ComponentRef Id="File_System_Diagnostics_EventLog_dll" />
+       <ComponentRef Id="File_System_Diagnostics_EventLog_Messages_dll" />
+       <ComponentRef Id="File_System_Diagnostics_FileVersionInfo_dll" />
+       <ComponentRef Id="File_System_Diagnostics_PerformanceCounter_dll" />
+       <ComponentRef Id="File_System_Diagnostics_Process_dll" />
+       <ComponentRef Id="File_System_Diagnostics_StackTrace_dll" />
+       <ComponentRef Id="File_System_Diagnostics_TextWriterTraceListener_dll" />
+       <ComponentRef Id="File_System_Diagnostics_Tools_dll" />
+       <ComponentRef Id="File_System_Diagnostics_TraceSource_dll" />
+       <ComponentRef Id="File_System_Diagnostics_Tracing_dll" />
+       <ComponentRef Id="File_System_DirectoryServices_dll" />
+       <ComponentRef Id="File_System_dll" />
+       <ComponentRef Id="File_System_Drawing_Common_dll" />
+       <ComponentRef Id="File_System_Drawing_Design_dll" />
+       <ComponentRef Id="File_System_Drawing_dll" />
+       <ComponentRef Id="File_System_Drawing_Primitives_dll" />
+       <ComponentRef Id="File_System_Dynamic_Runtime_dll" />
+       <ComponentRef Id="File_System_Formats_Asn1_dll" />
+       <ComponentRef Id="File_System_Formats_Tar_dll" />
+       <ComponentRef Id="File_System_Globalization_Calendars_dll" />
+       <ComponentRef Id="File_System_Globalization_dll" />
+       <ComponentRef Id="File_System_Globalization_Extensions_dll" />
+       <ComponentRef Id="File_System_IO_Compression_Brotli_dll" />
+       <ComponentRef Id="File_System_IO_Compression_dll" />
+       <ComponentRef Id="File_System_IO_Compression_FileSystem_dll" />
+       <ComponentRef Id="File_System_IO_Compression_Native_dll" />
+       <ComponentRef Id="File_System_IO_Compression_ZipFile_dll" />
+       <ComponentRef Id="File_System_IO_dll" />
+       <ComponentRef Id="File_System_IO_FileSystem_AccessControl_dll" />
+       <ComponentRef Id="File_System_IO_FileSystem_dll" />
+       <ComponentRef Id="File_System_IO_FileSystem_DriveInfo_dll" />
+       <ComponentRef Id="File_System_IO_FileSystem_Primitives_dll" />
+       <ComponentRef Id="File_System_IO_FileSystem_Watcher_dll" />
+       <ComponentRef Id="File_System_IO_IsolatedStorage_dll" />
+       <ComponentRef Id="File_System_IO_MemoryMappedFiles_dll" />
+       <ComponentRef Id="File_System_IO_Packaging_dll" />
+       <ComponentRef Id="File_System_IO_Pipes_AccessControl_dll" />
+       <ComponentRef Id="File_System_IO_Pipes_dll" />
+       <ComponentRef Id="File_System_IO_UnmanagedMemoryStream_dll" />
+       <ComponentRef Id="File_System_Linq_dll" />
+       <ComponentRef Id="File_System_Linq_Expressions_dll" />
+       <ComponentRef Id="File_System_Linq_Parallel_dll" />
+       <ComponentRef Id="File_System_Linq_Queryable_dll" />
+       <ComponentRef Id="File_System_Memory_dll" />
+       <ComponentRef Id="File_System_Net_dll" />
+       <ComponentRef Id="File_System_Net_Http_dll" />
+       <ComponentRef Id="File_System_Net_Http_Json_dll" />
+       <ComponentRef Id="File_System_Net_HttpListener_dll" />
+       <ComponentRef Id="File_System_Net_Mail_dll" />
+       <ComponentRef Id="File_System_Net_NameResolution_dll" />
+       <ComponentRef Id="File_System_Net_NetworkInformation_dll" />
+       <ComponentRef Id="File_System_Net_Ping_dll" />
+       <ComponentRef Id="File_System_Net_Primitives_dll" />
+       <ComponentRef Id="File_System_Net_Quic_dll" />
+       <ComponentRef Id="File_System_Net_Requests_dll" />
+       <ComponentRef Id="File_System_Net_Security_dll" />
+       <ComponentRef Id="File_System_Net_ServicePoint_dll" />
+       <ComponentRef Id="File_System_Net_Sockets_dll" />
+       <ComponentRef Id="File_System_Net_WebClient_dll" />
+       <ComponentRef Id="File_System_Net_WebHeaderCollection_dll" />
+       <ComponentRef Id="File_System_Net_WebProxy_dll" />
+       <ComponentRef Id="File_System_Net_WebSockets_Client_dll" />
+       <ComponentRef Id="File_System_Net_WebSockets_dll" />
+       <ComponentRef Id="File_System_Numerics_dll" />
+       <ComponentRef Id="File_System_Numerics_Vectors_dll" />
+       <ComponentRef Id="File_System_ObjectModel_dll" />
+       <ComponentRef Id="File_System_Printing_dll" />
+       <ComponentRef Id="File_System_Private_CoreLib_dll" />
+       <ComponentRef Id="File_System_Private_DataContractSerialization_dll" />
+       <ComponentRef Id="File_System_Private_Uri_dll" />
+       <ComponentRef Id="File_System_Private_Windows_Core_dll" />
+       <ComponentRef Id="File_System_Private_Windows_GdiPlus_dll" />
+       <ComponentRef Id="File_System_Private_Xml_dll" />
+       <ComponentRef Id="File_System_Private_Xml_Linq_dll" />
+       <ComponentRef Id="File_System_Reflection_DispatchProxy_dll" />
+       <ComponentRef Id="File_System_Reflection_dll" />
+       <ComponentRef Id="File_System_Reflection_Emit_dll" />
+       <ComponentRef Id="File_System_Reflection_Emit_ILGeneration_dll" />
+       <ComponentRef Id="File_System_Reflection_Emit_Lightweight_dll" />
+       <ComponentRef Id="File_System_Reflection_Extensions_dll" />
+       <ComponentRef Id="File_System_Reflection_Metadata_dll" />
+       <ComponentRef Id="File_System_Reflection_Primitives_dll" />
+       <ComponentRef Id="File_System_Reflection_TypeExtensions_dll" />
+       <ComponentRef Id="File_System_Resources_Extensions_dll" />
+       <ComponentRef Id="File_System_Resources_Reader_dll" />
+       <ComponentRef Id="File_System_Resources_ResourceManager_dll" />
+       <ComponentRef Id="File_System_Resources_Writer_dll" />
+       <ComponentRef Id="File_System_Runtime_CompilerServices_Unsafe_dll" />
+       <ComponentRef Id="File_System_Runtime_CompilerServices_VisualC_dll" />
+       <ComponentRef Id="File_System_Runtime_dll" />
+       <ComponentRef Id="File_System_Runtime_Extensions_dll" />
+       <ComponentRef Id="File_System_Runtime_Handles_dll" />
+       <ComponentRef Id="File_System_Runtime_InteropServices_dll" />
+       <ComponentRef Id="File_System_Runtime_InteropServices_JavaScript_dll" />
+       <ComponentRef Id="File_System_Runtime_InteropServices_RuntimeInformation_dll" />
+       <ComponentRef Id="File_System_Runtime_Intrinsics_dll" />
+       <ComponentRef Id="File_System_Runtime_Loader_dll" />
+       <ComponentRef Id="File_System_Runtime_Numerics_dll" />
+       <ComponentRef Id="File_System_Runtime_Serialization_dll" />
+       <ComponentRef Id="File_System_Runtime_Serialization_Formatters_dll" />
+       <ComponentRef Id="File_System_Runtime_Serialization_Json_dll" />
+       <ComponentRef Id="File_System_Runtime_Serialization_Primitives_dll" />
+       <ComponentRef Id="File_System_Runtime_Serialization_Xml_dll" />
+       <ComponentRef Id="File_System_Security_AccessControl_dll" />
+       <ComponentRef Id="File_System_Security_Claims_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Algorithms_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Cng_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Csp_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Encoding_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_OpenSsl_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Pkcs_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Primitives_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_ProtectedData_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_X509Certificates_dll" />
+       <ComponentRef Id="File_System_Security_Cryptography_Xml_dll" />
+       <ComponentRef Id="File_System_Security_dll" />
+       <ComponentRef Id="File_System_Security_Permissions_dll" />
+       <ComponentRef Id="File_System_Security_Principal_dll" />
+       <ComponentRef Id="File_System_Security_Principal_Windows_dll" />
+       <ComponentRef Id="File_System_Security_SecureString_dll" />
+       <ComponentRef Id="File_System_ServiceModel_Web_dll" />
+       <ComponentRef Id="File_System_ServiceProcess_dll" />
+       <ComponentRef Id="File_System_ServiceProcess_ServiceController_dll" />
+       <ComponentRef Id="File_System_Text_Encoding_CodePages_dll" />
+       <ComponentRef Id="File_System_Text_Encoding_dll" />
+       <ComponentRef Id="File_System_Text_Encoding_Extensions_dll" />
+       <ComponentRef Id="File_System_Text_Encodings_Web_dll" />
+       <ComponentRef Id="File_System_Text_Json_dll" />
+       <ComponentRef Id="File_System_Text_RegularExpressions_dll" />
+       <ComponentRef Id="File_System_Threading_AccessControl_dll" />
+       <ComponentRef Id="File_System_Threading_Channels_dll" />
+       <ComponentRef Id="File_System_Threading_dll" />
+       <ComponentRef Id="File_System_Threading_Overlapped_dll" />
+       <ComponentRef Id="File_System_Threading_Tasks_Dataflow_dll" />
+       <ComponentRef Id="File_System_Threading_Tasks_dll" />
+       <ComponentRef Id="File_System_Threading_Tasks_Extensions_dll" />
+       <ComponentRef Id="File_System_Threading_Tasks_Parallel_dll" />
+       <ComponentRef Id="File_System_Threading_Thread_dll" />
+       <ComponentRef Id="File_System_Threading_ThreadPool_dll" />
+       <ComponentRef Id="File_System_Threading_Timer_dll" />
+       <ComponentRef Id="File_System_Transactions_dll" />
+       <ComponentRef Id="File_System_Transactions_Local_dll" />
+       <ComponentRef Id="File_System_ValueTuple_dll" />
+       <ComponentRef Id="File_System_Web_dll" />
+       <ComponentRef Id="File_System_Web_HttpUtility_dll" />
+       <ComponentRef Id="File_System_Windows_Controls_Ribbon_dll" />
+       <ComponentRef Id="File_System_Windows_dll" />
+       <ComponentRef Id="File_System_Windows_Extensions_dll" />
+       <ComponentRef Id="File_System_Windows_Forms_Design_dll" />
+       <ComponentRef Id="File_System_Windows_Forms_Design_Editors_dll" />
+       <ComponentRef Id="File_System_Windows_Forms_dll" />
+       <ComponentRef Id="File_System_Windows_Forms_Primitives_dll" />
+       <ComponentRef Id="File_System_Windows_Input_Manipulations_dll" />
+       <ComponentRef Id="File_System_Windows_Presentation_dll" />
+       <ComponentRef Id="File_System_Xaml_dll" />
+       <ComponentRef Id="File_System_Xml_dll" />
+       <ComponentRef Id="File_System_Xml_Linq_dll" />
+       <ComponentRef Id="File_System_Xml_ReaderWriter_dll" />
+       <ComponentRef Id="File_System_Xml_Serialization_dll" />
+       <ComponentRef Id="File_System_Xml_XDocument_dll" />
+       <ComponentRef Id="File_System_Xml_XmlDocument_dll" />
+       <ComponentRef Id="File_System_Xml_XmlSerializer_dll" />
+       <ComponentRef Id="File_System_Xml_XPath_dll" />
+       <ComponentRef Id="File_System_Xml_XPath_XDocument_dll" />
+       <ComponentRef Id="File_UIAutomationClient_dll" />
+       <ComponentRef Id="File_UIAutomationClientSideProviders_dll" />
+       <ComponentRef Id="File_UIAutomationProvider_dll" />
+       <ComponentRef Id="File_UIAutomationTypes_dll" />
+       <ComponentRef Id="File_vcruntime140_cor3_dll" />
+       <ComponentRef Id="File_Whisper_net_dll" />
+       <ComponentRef Id="File_WindowsBase_dll" />
+       <ComponentRef Id="File_WindowsFormsIntegration_dll" />
+       <ComponentRef Id="File_wpfgfx_cor3_dll" />
+       <ComponentRef Id="File_cs\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_cs\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_cs\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_cs\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_cs\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_cs\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_cs\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_cs\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_cs\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_cs\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_cs\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_cs\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_cs\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_cs\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_cs\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_cs\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_cs\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_cs\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_de\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_de\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_de\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_de\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_de\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_de\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_de\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_de\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_de\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_de\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_de\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_de\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_de\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_de\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_de\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_de\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_de\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_de\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_es\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_es\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_es\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_es\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_es\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_es\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_es\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_es\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_es\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_es\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_es\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_es\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_es\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_es\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_es\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_es\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_es\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_es\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_fr\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_fr\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_fr\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_fr\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_fr\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_fr\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_fr\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_fr\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_fr\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_fr\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_fr\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_fr\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_fr\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_fr\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_fr\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_fr\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_fr\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_fr\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_it\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_it\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_it\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_it\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_it\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_it\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_it\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_it\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_it\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_it\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_it\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_it\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_it\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_it\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_it\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_it\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_it\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_it\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_ja\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_ja\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_ja\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_ja\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_ja\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_ja\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_ja\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_ja\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_ja\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_ja\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_ja\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_ja\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_ja\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_ja\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_ja\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_ja\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_ja\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_ja\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_ko\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_ko\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_ko\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_ko\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_ko\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_ko\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_ko\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_ko\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_ko\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_ko\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_ko\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_ko\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_ko\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_ko\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_ko\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_ko\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_ko\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_ko\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_pl\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_pl\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_pl\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_pl\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_pl\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_pl\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_pl\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_pl\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_pl\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_pl\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_pl\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_pl\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_pl\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_pl\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_pl\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_pl\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_pl\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_pl\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_pt_BR\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_pt_BR\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_pt_BR\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_pt_BR\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_pt_BR\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_pt_BR\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_pt_BR\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_pt_BR\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_pt_BR\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_pt_BR\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_pt_BR\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_pt_BR\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_pt_BR\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_pt_BR\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_pt_BR\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_pt_BR\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_pt_BR\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_pt_BR\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_ru\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_ru\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_ru\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_ru\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_ru\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_ru\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_ru\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_ru\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_ru\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_ru\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_ru\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_ru\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_ru\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_ru\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_ru\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_ru\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_ru\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_ru\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_tr\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_tr\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_tr\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_tr\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_tr\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_tr\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_tr\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_tr\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_tr\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_tr\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_tr\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_tr\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_tr\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_tr\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_tr\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_tr\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_tr\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_tr\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_zh_Hans\WindowsFormsIntegration_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\Microsoft_VisualBasic_Forms_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\Microsoft_VisualStudio_TestPlatform_TestFramework_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\PresentationCore_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\PresentationFramework_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\PresentationUI_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\ReachFramework_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\System_Windows_Controls_Ribbon_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\System_Windows_Forms_Design_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\System_Windows_Forms_Primitives_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\System_Windows_Forms_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\System_Windows_Input_Manipulations_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\System_Xaml_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\UIAutomationClient_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\UIAutomationClientSideProviders_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\UIAutomationProvider_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\UIAutomationTypes_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\WindowsBase_resources_dll" />
+       <ComponentRef Id="File_zh_Hant\WindowsFormsIntegration_resources_dll" />
+
+    </ComponentGroup>
+  </Fragment>
+</Wix>
