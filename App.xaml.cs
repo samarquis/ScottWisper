@@ -22,8 +22,89 @@ namespace ScottWisper
         {
             base.OnStartup(e);
             
+            // Register global exception handlers
+            RegisterGlobalExceptionHandlers();
+            
             // Initialize application asynchronously
             Task.Run(async () => await InitializeAsync()).ConfigureAwait(false);
+        }
+        
+        private void RegisterGlobalExceptionHandlers()
+        {
+            // Handle unhandled exceptions in the current AppDomain
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                var exception = args.ExceptionObject as Exception;
+                if (exception != null && !IsFatalException(exception))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Unhandled AppDomain exception: {exception}");
+                    LogException(exception, "AppDomain.UnhandledException");
+                    
+                    // Show error message on UI thread
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        MessageBox.Show(
+                            $"An unexpected error occurred:\n\n{exception.Message}\n\nThe application will continue running, but may be in an unstable state.",
+                            "ScottWisper Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Warning);
+                    });
+                }
+            };
+            
+            // Handle unobserved task exceptions
+            TaskScheduler.UnobservedTaskException += (sender, args) =>
+            {
+                var exception = args.Exception;
+                System.Diagnostics.Debug.WriteLine($"Unobserved task exception: {exception}");
+                LogException(exception, "TaskScheduler.UnobservedTaskException");
+                
+                // Mark as observed to prevent process termination
+                args.SetObserved();
+            };
+            
+            // Handle dispatcher unhandled exceptions (UI thread)
+            DispatcherUnhandledException += (sender, args) =>
+            {
+                var exception = args.Exception;
+                if (!IsFatalException(exception))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Dispatcher unhandled exception: {exception}");
+                    LogException(exception, "DispatcherUnhandledException");
+                    
+                    // Show error and mark as handled to prevent application crash
+                    MessageBox.Show(
+                        $"An unexpected UI error occurred:\n\n{exception.Message}\n\nThe application will continue running.",
+                        "ScottWisper Error",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    
+                    args.Handled = true;
+                }
+            };
+        }
+        
+        private void LogException(Exception exception, string source)
+        {
+            try
+            {
+                var logPath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "ScottWisper",
+                    "logs");
+                
+                System.IO.Directory.CreateDirectory(logPath);
+                
+                var logFile = System.IO.Path.Combine(logPath, $"error_{DateTime.Now:yyyyMMdd}.log");
+                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{source}] {exception.GetType().Name}: {exception.Message}\n{exception.StackTrace}\n\n";
+                
+                System.IO.File.AppendAllText(logFile, logEntry);
+            }
+            catch
+            {
+                // If logging fails, we can't do much about it
+                System.Diagnostics.Debug.WriteLine("Failed to log exception");
+            }
         }
         
         private async Task InitializeAsync()
