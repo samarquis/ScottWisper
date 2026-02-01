@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Threading;
@@ -13,9 +15,8 @@ namespace ScottWisper
     public class AudioCaptureService : IAudioCaptureService
     {
         private WaveInEvent? _waveIn;
-        private MemoryStream? _audioStream;
+        private ConcurrentQueue<byte[]>? _audioBuffer;
         private bool _isCapturing;
-        private readonly object _lockObject = new object();
         private readonly ISettingsService? _settingsService;
         private readonly IAudioDeviceService? _audioDeviceService;
         
@@ -150,8 +151,8 @@ namespace ScottWisper
                 _waveIn.DataAvailable += OnDataAvailable;
                 _waveIn.RecordingStopped += OnRecordingStopped;
                 
-                // Initialize audio stream
-                _audioStream = new MemoryStream();
+                // Initialize lock-free audio buffer
+                _audioBuffer = new ConcurrentQueue<byte[]>();
                 
                 // Start recording
                 _waveIn.StartRecording();
@@ -224,15 +225,15 @@ namespace ScottWisper
         {
             try
             {
-                if (_audioStream != null)
+                if (_audioBuffer != null)
                 {
-                    lock (_lockObject)
-                    {
-                        _audioStream.Write(e.Buffer, 0, e.BytesRecorded);
-                    }
+                    // Copy buffer to avoid NAudio reusing the buffer
+                    var audioChunk = new byte[e.BytesRecorded];
+                    Buffer.BlockCopy(e.Buffer, 0, audioChunk, 0, e.BytesRecorded);
+                    _audioBuffer.Enqueue(audioChunk);
                     
                     // Notify subscribers of new audio data
-                    AudioDataCaptured?.Invoke(this, e.Buffer);
+                    AudioDataCaptured?.Invoke(this, audioChunk);
                 }
             }
             catch (Exception ex)
@@ -264,30 +265,49 @@ namespace ScottWisper
         
         public byte[]? GetCapturedAudio()
         {
-            lock (_lockObject)
+            if (_audioBuffer == null || _audioBuffer.IsEmpty)
             {
-                if (_audioStream == null || _audioStream.Length == 0)
-                {
-                    return null;
-                }
-                
-                // Convert to WAV format
-                _audioStream.Position = 0;
-                using var waveStream = new RawSourceWaveStream(_audioStream, _waveIn?.WaveFormat ?? new WaveFormat(_sampleRate, _bitDepth, _channels));
-                using var wavStream = new MemoryStream();
-                WaveFileWriter.WriteWavFileToStream(wavStream, waveStream);
-                return wavStream.ToArray();
+                return null;
             }
+            
+            // Drain queue into a list and concatenate
+            var chunks = new System.Collections.Generic.List<byte[]>();
+            while (_audioBuffer.TryDequeue(out var chunk))
+            {
+                chunks.Add(chunk);
+            }
+            
+            if (chunks.Count == 0)
+            {
+                return null;
+            }
+            
+            // Calculate total size and concatenate
+            var totalSize = chunks.Sum(c => c.Length);
+            var audioData = new byte[totalSize];
+            var position = 0;
+            foreach (var chunk in chunks)
+            {
+                Buffer.BlockCopy(chunk, 0, audioData, position, chunk.Length);
+                position += chunk.Length;
+            }
+            
+            // Convert to WAV format
+            using var rawStream = new MemoryStream(audioData);
+            using var waveStream = new RawSourceWaveStream(rawStream, _waveIn?.WaveFormat ?? new WaveFormat(_sampleRate, _bitDepth, _channels));
+            using var wavStream = new MemoryStream();
+            WaveFileWriter.WriteWavFileToStream(wavStream, waveStream);
+            return wavStream.ToArray();
         }
         
         public void ClearCapturedAudio()
         {
-            lock (_lockObject)
+            // Drain the queue to clear it (lock-free)
+            if (_audioBuffer != null)
             {
-                if (_audioStream != null)
+                while (_audioBuffer.TryDequeue(out _))
                 {
-                    _audioStream.SetLength(0);
-                    _audioStream.Position = 0;
+                    // Just drain the queue
                 }
             }
         }
@@ -320,7 +340,16 @@ namespace ScottWisper
                 }
                 
                 _waveIn?.Dispose();
-                _audioStream?.Dispose();
+                
+                // Clear the queue on dispose
+                if (_audioBuffer != null)
+                {
+                    while (_audioBuffer.TryDequeue(out _))
+                    {
+                        // Drain any remaining items
+                    }
+                    _audioBuffer = null;
+                }
             }
             catch (Exception ex)
             {
@@ -329,7 +358,7 @@ namespace ScottWisper
             finally
             {
                 _waveIn = null;
-                _audioStream = null;
+                _audioBuffer = null;
                 _isCapturing = false;
             }
         }
