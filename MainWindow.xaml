@@ -90,11 +90,12 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            
+
             <!-- Application Title and Status -->
-            <Border Grid.Row="0" Background="White" Padding="20,15" Margin="10,10,10,5" 
+            <Border Grid.Row="0" Background="White" Padding="20,15" Margin="10,10,10,5"
                        CornerRadius="5" BorderBrush="#FFE1E4E8" BorderThickness="1">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -122,12 +123,57 @@
                                            Text="No tests run yet"/>
                             </Border>
                         </StackPanel>
-                    </Border>
+                     </Border>
                 </Grid>
             </Border>
-            
+
+            <!-- Primary Action: Start Dictation Button -->
+            <Border Grid.Row="1" Background="#FFF8F9FA" Padding="20,15" Margin="10,5"
+                   CornerRadius="8" BorderBrush="#FF28A745" BorderThickness="2">
+                <Button x:Name="StartDictationButton" Click="StartDictationButton_Click"
+                        Height="60" FontSize="18" FontWeight="Bold"
+                        Background="#FF28A745" Foreground="White"
+                        BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🎤" FontSize="24" Margin="0,0,10,0"/>
+                        <TextBlock Text="Start Dictation" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="6">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"
+                                                              Margin="{TemplateBinding Padding}"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#FF218838"/>
+                                                <Setter Property="Effect">
+                                                    <Setter.Value>
+                                                        <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.3"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Background" Value="#FF1E7E34"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Border>
+
             <!-- Status History Panel -->
-            <Border Grid.Row="1" Background="White" Padding="15" Margin="10,5" 
+            <Border Grid.Row="2" Background="White" Padding="15" Margin="10,5"
                    CornerRadius="5" BorderBrush="#FFE1E4E8" BorderThickness="1">
                 <Grid>
                     <Grid.RowDefinitions>

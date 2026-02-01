@@ -68,6 +68,7 @@ namespace ScottWisper
                 await Dispatcher.InvokeAsync(() =>
                 {
                     _mainWindow = new MainWindow();
+                    _mainWindow.StartDictationRequested += OnMainWindowStartDictationRequested;
                     _mainWindow.Show();
                 });
                 
@@ -89,10 +90,16 @@ namespace ScottWisper
         {
             // Unregister event handlers
             _eventCoordinator?.UnregisterEventHandlers();
-            
+
+            // Unsubscribe from main window events
+            if (_mainWindow != null)
+            {
+                _mainWindow.StartDictationRequested -= OnMainWindowStartDictationRequested;
+            }
+
             // Shutdown bootstrapper
             _bootstrapper?.Shutdown();
-            
+
             base.OnExit(e);
         }
         
@@ -117,7 +124,7 @@ namespace ScottWisper
             Dispatcher.Invoke(() =>
             {
                 if (_mainWindow == null) return;
-                
+
                 if (_mainWindow.IsVisible)
                 {
                     _mainWindow.Hide();
@@ -128,6 +135,24 @@ namespace ScottWisper
                     _mainWindow.Activate();
                 }
             });
+        }
+
+        private void OnMainWindowStartDictationRequested(object? sender, EventArgs e)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    if (_dictationManager != null)
+                    {
+                        await _dictationManager.ToggleAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Start dictation error: {ex.Message}");
+                }
+            }).ConfigureAwait(false);
         }
     }
 }

@@ -87,6 +87,9 @@ namespace ScottWisper
         private DateTime _sessionStartTime = DateTime.Now;
         private int _todayRecordings = 0;
 
+        // Events for dictation control
+        public event EventHandler? StartDictationRequested;
+
         // Windows API imports for hiding from Alt+Tab
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
@@ -464,6 +467,15 @@ namespace ScottWisper
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
             ShowNotification("Help", "Help documentation coming soon!");
+        }
+
+        private void StartDictationButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Raise the event to request dictation start
+            StartDictationRequested?.Invoke(this, EventArgs.Empty);
+
+            // Provide visual feedback
+            ShowNotification("Dictation", "Starting dictation...");
         }
 
         private void ClearHistoryButton_Click(object sender, RoutedEventArgs e)
