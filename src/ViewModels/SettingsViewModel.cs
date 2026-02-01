@@ -78,7 +78,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _selectedInputDevice, value))
                 {
-                    _ = Task.Run(() => _settingsService.SetSelectedInputDeviceAsync(value));
+                    _ = _settingsService.SetSelectedInputDeviceAsync(value);
                 }
             }
         }
@@ -91,7 +91,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _fallbackInputDevice, value))
                 {
-                    _ = Task.Run(() => _settingsService.SetFallbackInputDeviceAsync(value));
+                    _ = _settingsService.SetFallbackInputDeviceAsync(value);
                 }
             }
         }
@@ -104,7 +104,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _selectedOutputDevice, value))
                 {
-                    _ = Task.Run(() => _settingsService.SetSelectedOutputDeviceAsync(value));
+                    _ = _settingsService.SetSelectedOutputDeviceAsync(value);
                 }
             }
         }
@@ -117,7 +117,7 @@ namespace ScottWisper.ViewModels
             {
                 if (SetProperty(ref _fallbackOutputDevice, value))
                 {
-                    _ = Task.Run(() => _settingsService.SetFallbackOutputDeviceAsync(value));
+                    _ = _settingsService.SetFallbackOutputDeviceAsync(value);
                 }
             }
         }
@@ -131,7 +131,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _autoSwitchDevices, value))
                 {
                     _settings.Audio.AutoSwitchDevices = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -145,7 +145,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _preferHighQualityDevices, value))
                 {
                     _settings.Audio.PreferHighQualityDevices = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -160,7 +160,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _transcriptionProvider, value))
                 {
                     _settings.Transcription.Provider = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                     OnPropertyChanged(nameof(AvailableModels));
                 }
             }
@@ -175,7 +175,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _transcriptionModel, value))
                 {
                     _settings.Transcription.Model = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -189,7 +189,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _transcriptionLanguage, value))
                 {
                     _settings.Transcription.Language = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -203,7 +203,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _apiKey, value))
                 {
                     _settings.Transcription.ApiKey = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -217,7 +217,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _enableAutoPunctuation, value))
                 {
                     _settings.Transcription.EnableAutoPunctuation = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -231,7 +231,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _enableRealTimeTranscription, value))
                 {
                     _settings.Transcription.EnableRealTimeTranscription = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -245,7 +245,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _confidenceThreshold, value))
                 {
                     _settings.Transcription.ConfidenceThreshold = value / 100f;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -259,7 +259,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _maxRecordingDuration, value))
                 {
                     _settings.Transcription.MaxRecordingDuration = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -274,7 +274,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _apiEndpoint, value))
                 {
                     _settings.Transcription.ApiEndpoint = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -288,7 +288,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _apiTimeout, value))
                 {
                     _settings.Transcription.RequestTimeout = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -302,7 +302,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _useProxy, value))
                 {
                     _settings.Transcription.UseProxy = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -317,7 +317,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _showVisualFeedback, value))
                 {
                     _settings.UI.ShowVisualFeedback = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -331,7 +331,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _showTranscriptionWindow, value))
                 {
                     _settings.UI.ShowTranscriptionWindow = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -345,7 +345,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _minimizeToTray, value))
                 {
                     _settings.UI.MinimizeToTray = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -359,7 +359,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _windowOpacity, value))
                 {
                     _settings.UI.WindowOpacity = value / 100.0;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -373,7 +373,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _feedbackVolume, value))
                 {
                     _settings.UI.FeedbackVolume = value / 100f;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -388,7 +388,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _toggleRecordingHotkey, value))
                 {
                     _settings.Hotkeys.ToggleRecording = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -402,7 +402,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _showSettingsHotkey, value))
                 {
                     _settings.Hotkeys.ShowSettings = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -417,7 +417,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _enableDebugLogging, value))
                 {
                     _settings.TextInjection.EnableDebugMode = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -431,7 +431,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _logLevel, value))
                 {
                     // _settings.TextInjection.LogLevel = value; // LogLevel not in TextInjection, using a placeholder or skipping
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }
@@ -445,7 +445,7 @@ namespace ScottWisper.ViewModels
                 if (SetProperty(ref _enablePerformanceMetrics, value))
                 {
                     _settings.TextInjection.EnablePerformanceMonitoring = value;
-                    _ = Task.Run(() => _settingsService.SaveAsync());
+                    _ = _settingsService.SaveAsync();
                 }
             }
         }

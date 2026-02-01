@@ -1323,7 +1323,7 @@ namespace ScottWisper.Services
                         System.Diagnostics.Debug.WriteLine("Device change monitoring started successfully");
                         
                         // Start monitoring thread to process messages
-                        _ = Task.Run(() => MonitorDeviceMessages());
+                        _ = MonitorDeviceMessages();
                         return Task.FromResult(true);
                     }
                     else
@@ -1429,8 +1429,8 @@ namespace ScottWisper.Services
                     DeviceConnected?.Invoke(this, eventArgs);
                     System.Diagnostics.Debug.WriteLine($"Device reconnected: {deviceId}");
 
-                    // Test the reconnected device
-                    _ = Task.Run(async () => await TestDeviceAsync(deviceId));
+                    // Test the reconnected device (fire-and-forget)
+                    _ = TestDeviceAsync(deviceId);
                 }
             }
             catch (Exception ex)
