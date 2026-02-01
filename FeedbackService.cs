@@ -107,6 +107,7 @@ namespace ScottWisper
     /// </summary>
     public class FeedbackService : IFeedbackService, IDisposable
     {
+        private readonly SystemTrayService? _systemTrayService;
         private IFeedbackService.DictationStatus _currentStatus = IFeedbackService.DictationStatus.Idle;
         private StatusIndicatorWindow? _statusIndicatorWindow;
         private AudioVisualizer? _audioVisualizer;
@@ -186,8 +187,10 @@ namespace ScottWisper
 
         public ProgressState CurrentProgress => _currentProgress;
 
-        public FeedbackService()
+        public FeedbackService(SystemTrayService? systemTrayService = null)
         {
+            _systemTrayService = systemTrayService;
+            
             try
             {
                 _waveOut = new WaveOut();
@@ -264,9 +267,9 @@ namespace ScottWisper
             await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 // Try to show system tray notification first
-                if (Application.Current.Properties["SystemTray"] is SystemTrayService systemTray)
+                if (_systemTrayService != null)
                 {
-                    systemTray.ShowNotification(message, title, duration);
+                    _systemTrayService.ShowNotification(message, title, duration);
                 }
                 else
                 {
@@ -561,10 +564,10 @@ namespace ScottWisper
         private void UpdateSystemTrayStatus(IFeedbackService.DictationStatus status)
         {
             // Update system tray status if available
-            if (Application.Current.Properties["SystemTray"] is SystemTrayService systemTray)
+            if (_systemTrayService != null)
             {
                 var isDictating = status == IFeedbackService.DictationStatus.Recording;
-                systemTray.UpdateDictationStatus(isDictating);
+                _systemTrayService.UpdateDictationStatus(isDictating);
 
                 // Show balloon tip for status changes
                 var message = status switch
@@ -579,7 +582,7 @@ namespace ScottWisper
 
                 if (!string.IsNullOrEmpty(message))
                 {
-                    systemTray.ShowBalloonTip("Status Update", message);
+                    _systemTrayService.ShowBalloonTip("Status Update", message);
                 }
             }
         }

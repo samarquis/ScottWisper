@@ -67,15 +67,25 @@ namespace ScottWisper.Bootstrap
         /// </summary>
         private static void RegisterApplicationServices(IServiceCollection services)
         {
+            // Core services - register interfaces with implementations
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
-            services.AddSingleton<IFeedbackService, FeedbackService>();
-            services.AddSingleton<HotkeyService>();
-            services.AddSingleton<SystemTrayService>();
+            
+            // Concrete services - all dependencies injected via constructors
             services.AddSingleton<WhisperService>();
             services.AddSingleton<CostTrackingService>();
             services.AddSingleton<AudioCaptureService>();
+            services.AddSingleton<HotkeyService>();
+            services.AddSingleton<SystemTrayService>();
             services.AddSingleton<TranscriptionWindow>();
+            
+            // Register FeedbackService with its interface and concrete type
+            // SystemTrayService dependency is injected via constructor
+            services.AddSingleton<FeedbackService>();
+            services.AddSingleton<IFeedbackService>(sp => sp.GetRequiredService<FeedbackService>());
+            
+            // Bootstrapper - all dependencies injected via constructor
+            services.AddSingleton<ApplicationBootstrapper>();
         }
     }
 }
