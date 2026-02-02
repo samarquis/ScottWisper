@@ -119,14 +119,12 @@ namespace WhisperKey
                 
                 if (!await _bootstrapper.InitializeAsync())
                 {
-                    Shutdown();
+                    await Dispatcher.InvokeAsync(() => Shutdown());
                     return;
                 }
                 
-                // Initialize system tray
+                // Initialize system tray and hotkey service (non-UI operations)
                 _bootstrapper.InitializeSystemTray();
-                
-                // Initialize hotkey service
                 _bootstrapper.InitializeHotkeyService();
                 
                 // Create dictation manager
@@ -145,44 +143,40 @@ namespace WhisperKey
                 
                 _eventCoordinator.RegisterEventHandlers();
                 
-                // Show main window
+                // Batch all UI initialization into a single dispatcher call with Background priority
                 await Dispatcher.InvokeAsync(() =>
                 {
+                    // Create and show main window
                     _mainWindow = new MainWindow();
                     _mainWindow.StartDictationRequested += OnMainWindowStartDictationRequested;
                     _mainWindow.Show();
-                });
-                
-                // Show startup notification
-                await _bootstrapper.ShowStartupNotificationAsync();
+                    
+                    // Show startup notification on the bootstrapper
+                    _ = _bootstrapper.ShowStartupNotificationAsync();
+                }, System.Windows.Threading.DispatcherPriority.Background);
             }
             catch (InvalidOperationException ex)
             {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    MessageBox.Show($"Failed to start application: {ex.Message}", "WhisperKey Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    Shutdown();
-                });
+                await ShowErrorAndShutdownAsync($"Failed to start application: {ex.Message}");
             }
             catch (System.IO.FileNotFoundException ex)
             {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    MessageBox.Show($"Required file not found: {ex.Message}", "WhisperKey Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    Shutdown();
-                });
+                await ShowErrorAndShutdownAsync($"Required file not found: {ex.Message}");
             }
             catch (System.Configuration.ConfigurationErrorsException ex)
             {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    MessageBox.Show($"Configuration error: {ex.Message}", "WhisperKey Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                    Shutdown();
-                });
+                await ShowErrorAndShutdownAsync($"Configuration error: {ex.Message}");
             }
+        }
+        
+        private async Task ShowErrorAndShutdownAsync(string message)
+        {
+            await Dispatcher.InvokeAsync(() =>
+            {
+                MessageBox.Show(message, "WhisperKey Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Shutdown();
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
         
         protected override void OnExit(ExitEventArgs e)
@@ -214,10 +208,11 @@ namespace WhisperKey
         
         private void ShowSettings()
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.InvokeAsync(() =>
             {
                 if (_mainWindow != null && _serviceProvider != null)
                 {
+                    // Batch UI operations: show main window and open settings
                     _mainWindow.Show();
                     _mainWindow.Activate();
                     
@@ -227,15 +222,16 @@ namespace WhisperKey
                     var settingsWindow = new SettingsWindow(settingsService, audioDeviceService);
                     settingsWindow.Show();
                 }
-            });
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
         
         private void ToggleMainWindow()
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.InvokeAsync(() =>
             {
                 if (_mainWindow == null) return;
 
+                // Single UI operation - toggle visibility
                 if (_mainWindow.IsVisible)
                 {
                     _mainWindow.Hide();
@@ -245,7 +241,7 @@ namespace WhisperKey
                     _mainWindow.Show();
                     _mainWindow.Activate();
                 }
-            });
+            }, System.Windows.Threading.DispatcherPriority.Background);
         }
 
         private void OnMainWindowStartDictationRequested(object? sender, EventArgs e)
