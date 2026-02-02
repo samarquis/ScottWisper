@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Polly;
+using Polly.CircuitBreaker;
 using Polly.Retry;
 using WhisperKey.Services;
 using WhisperKey.Configuration;
@@ -23,6 +24,7 @@ namespace WhisperKey
         private readonly LocalInferenceService? _localInference;
         private readonly bool _ownsHttpClient;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+        private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
         
         private const string DefaultApiEndpoint = "https://api.openai.com/v1/audio/transcriptions";
         
@@ -32,6 +34,10 @@ namespace WhisperKey
         
         // Whisper API pricing (as of 2024)
         private const decimal CostPerMinute = 0.006m; // $0.006 per minute
+        
+        // Circuit breaker configuration
+        private const int CircuitBreakerThreshold = 5; // Open after 5 failures
+        private const int CircuitBreakerDurationSeconds = 30; // Stay open for 30 seconds
         
         public event EventHandler? TranscriptionStarted;
         public event EventHandler<int>? TranscriptionProgress;
@@ -46,7 +52,10 @@ namespace WhisperKey
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             _ownsHttpClient = true;
+            
+            // Initialize policies
             _retryPolicy = CreateRetryPolicy();
+            _circuitBreakerPolicy = CreateCircuitBreakerPolicy();
         }
         
         public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
@@ -84,8 +93,9 @@ namespace WhisperKey
             // Async initialization - fire and forget is acceptable for constructor
             _ = InitializeAsync();
             
-            // Initialize retry policy for API calls
+            // Initialize policies for API calls
             _retryPolicy = CreateRetryPolicy();
+            _circuitBreakerPolicy = CreateCircuitBreakerPolicy();
         }
         
         private async Task InitializeAsync()
@@ -178,9 +188,11 @@ namespace WhisperKey
                 // Report some progress before making the request
                 TranscriptionProgress?.Invoke(this, 25);
                 
-                // Execute API request with retry policy
-                var response = await _retryPolicy.ExecuteAsync(async () =>
+                // Execute API request with retry policy, wrapped in circuit breaker
+                HttpResponseMessage response = await _circuitBreakerPolicy.ExecuteAsync(async () =>
                 {
+                    return await _retryPolicy.ExecuteAsync(async () =>
+                    {
                     // Create multipart form content (must be recreated for each retry)
                     var content = new MultipartFormDataContent();
                     
@@ -222,6 +234,7 @@ namespace WhisperKey
                     
                     return result;
                 }).ConfigureAwait(false);
+                }).ConfigureAwait(false);
                 
                 // Report progress after getting response
                 TranscriptionProgress?.Invoke(this, 75);
@@ -242,6 +255,18 @@ namespace WhisperKey
                 TranscriptionCompleted?.Invoke(this, transcriptionResponse.Text);
                 
                 return transcriptionResponse.Text;
+            }
+            catch (BrokenCircuitException ex)
+            {
+                // Circuit breaker is open - API is unavailable
+                var circuitBreakerMessage = "Whisper API is temporarily unavailable due to repeated failures. " +
+                    $"Circuit breaker will reset in {CircuitBreakerDurationSeconds} seconds. " +
+                    "Consider using local transcription mode.";
+                System.Diagnostics.Debug.WriteLine(circuitBreakerMessage);
+                
+                var wrappedException = new HttpRequestException(circuitBreakerMessage, ex);
+                TranscriptionError?.Invoke(this, wrappedException);
+                throw wrappedException;
             }
             catch (Exception ex) when (!IsFatalException(ex))
             {
@@ -487,6 +512,35 @@ namespace WhisperKey
                         System.Diagnostics.Debug.WriteLine(
                             $"Retry {retryCount} after {timespan.TotalSeconds}s due to: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
                         return Task.CompletedTask;
+                    });
+        }
+        
+        /// <summary>
+        /// Creates a circuit breaker policy for OpenAI API calls.
+        /// Prevents cascading failures by stopping requests after consecutive failures.
+        /// Provides graceful degradation when the API is unavailable.
+        /// </summary>
+        private static AsyncCircuitBreakerPolicy CreateCircuitBreakerPolicy()
+        {
+            return Policy
+                .Handle<HttpRequestException>()
+                .Or<TimeoutException>()
+                .Or<InvalidOperationException>()
+                .CircuitBreakerAsync(
+                    exceptionsAllowedBeforeBreaking: CircuitBreakerThreshold,
+                    durationOfBreak: TimeSpan.FromSeconds(CircuitBreakerDurationSeconds),
+                    onBreak: (exception, duration) =>
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Circuit breaker OPEN for {duration.TotalSeconds}s due to: {exception.Message}");
+                    },
+                    onReset: () =>
+                    {
+                        System.Diagnostics.Debug.WriteLine("Circuit breaker CLOSED - requests allowed");
+                    },
+                    onHalfOpen: () =>
+                    {
+                        System.Diagnostics.Debug.WriteLine("Circuit breaker HALF-OPEN - testing request");
                     });
         }
         
