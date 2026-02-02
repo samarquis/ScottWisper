@@ -334,35 +334,8 @@ namespace WhisperKey
                 return envKey;
             }
 
-            // Try to read from encrypted settings file asynchronously
-            try
-            {
-                var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                var keyPath = Path.Combine(appDataPath, "WhisperKey", "api_key.encrypted");
-                if (File.Exists(keyPath))
-                {
-                    var encryptedKey = await File.ReadAllTextAsync(keyPath).ConfigureAwait(false);
-                    // This would use the same encryption/decryption as SettingsService
-                    // For now, return empty to force user to set the key
-                }
-            }
-            catch (IOException)
-            {
-                // Fall through to return empty
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // Fall through to return empty
-            }
-            catch (SecurityException)
-            {
-                // Fall through to return empty
-            }
-            catch (NotSupportedException)
-            {
-                // Fall through to return empty
-            }
-
+            // Note: File-based encrypted API key storage is handled by SettingsService
+            // via GetApiKeyFromSettingsAsync() method which uses GetEncryptedValueAsync
             return string.Empty;
         }
 
