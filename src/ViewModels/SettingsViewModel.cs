@@ -164,6 +164,28 @@ namespace WhisperKey.ViewModels
             }
         }
 
+        private LocalProviderType _localProvider = LocalProviderType.Whisper;
+        public LocalProviderType LocalProvider
+        {
+            get => _localProvider;
+            set
+            {
+                if (SetProperty(ref _localProvider, value))
+                {
+                    _settings.Transcription.LocalProvider = value;
+                    _ = _settingsService.SaveAsync();
+                    OnPropertyChanged(nameof(AvailableLocalProviders));
+                }
+            }
+        }
+        
+        public List<(LocalProviderType Type, string DisplayName, string Description)> AvailableLocalProviders => 
+            new List<(LocalProviderType, string, string)>
+            {
+                (LocalProviderType.Whisper, "Whisper", "High accuracy, supports 99 languages, GPU acceleration available"),
+                (LocalProviderType.Vosk, "Vosk", "Lightweight, fast, supports 20+ languages, lower resource usage")
+            };
+
         private string _transcriptionModel = "whisper-1";
         public string TranscriptionModel
         {
@@ -539,6 +561,7 @@ namespace WhisperKey.ViewModels
                 TranscriptionProvider = _settings.Transcription.Provider;
                 TranscriptionModel = _settings.Transcription.Model;
                 TranscriptionLanguage = _settings.Transcription.Language;
+                LocalProvider = _settings.Transcription.LocalProvider;
                 ApiKey = _settings.Transcription.ApiKey ?? string.Empty;
                 EnableAutoPunctuation = _settings.Transcription.EnableAutoPunctuation;
                 EnableRealTimeTranscription = _settings.Transcription.EnableRealTimeTranscription;

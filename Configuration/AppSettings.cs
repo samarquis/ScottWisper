@@ -60,12 +60,21 @@ namespace WhisperKey.Configuration
         public TranscriptionMode Mode { get; set; } = TranscriptionMode.Cloud;
         public string LocalModelPath { get; set; } = string.Empty;
         public bool AutoFallbackToCloud { get; set; } = true;
+        
+        // Local provider selection (Whisper, Vosk, etc.)
+        public LocalProviderType LocalProvider { get; set; } = LocalProviderType.Whisper;
     }
 
     public enum TranscriptionMode
     {
         Cloud,
         Local
+    }
+    
+    public enum LocalProviderType
+    {
+        Whisper,
+        Vosk
     }
 
     public class HotkeySettings

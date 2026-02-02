@@ -76,7 +76,7 @@ namespace WhisperKey.Services
     /// Enhanced service for local offline transcription using Whisper models.
     /// Implements PRIV-01 for privacy-focused processing using Whisper.net.
     /// </summary>
-    public class LocalInferenceService : ILocalInferenceService, IDisposable
+    public class LocalInferenceService : ILocalInferenceService, ILocalTranscriptionProvider, IDisposable
     {
         private readonly ILogger<LocalInferenceService>? _logger;
         private readonly ISettingsService _settingsService;
@@ -95,6 +95,10 @@ namespace WhisperKey.Services
         
         public bool IsModelLoaded => _isModelLoaded;
         public LocalInferenceStatus Status => _status;
+        
+        // ILocalTranscriptionProvider implementation
+        public string ProviderName => "Whisper";
+        public bool IsInitialized => _isModelLoaded;
         
         public event EventHandler? TranscriptionStarted;
         public event EventHandler<int>? TranscriptionProgress;
@@ -609,6 +613,14 @@ namespace WhisperKey.Services
             {
                 return 4096; // Default to 4GB
             }
+        }
+
+        /// <summary>
+        /// Check if a specific model is available (downloaded)
+        /// </summary>
+        public async Task<bool> IsModelAvailableAsync(string modelId)
+        {
+            return await _modelManager.IsModelDownloadedAsync(modelId).ConfigureAwait(false);
         }
 
         public void Dispose()
