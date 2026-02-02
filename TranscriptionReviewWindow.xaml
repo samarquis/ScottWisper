@@ -46,7 +46,10 @@
                      FontSize="14"
                      FontFamily="Consolas, Courier New, monospace"
                      SpellCheck.IsEnabled="True"
-                     Language="en-US"/>
+                     Language="en-US"
+                     AutomationProperties.Name="Transcription Review Text Editor"
+                     AutomationProperties.HelpText="Edit your transcribed text before inserting it into the target application"
+                     AutomationProperties.IsRequiredForForm="True"/>
         </Border>
         
         <!-- Character Count and Timer -->
@@ -81,8 +84,11 @@
                         BorderThickness="0"
                         FontSize="13"
                         Click="CancelButton_Click"
-                        ToolTip="Cancel - text will be discarded"/>
-                
+                        ToolTip="Cancel - text will be discarded"
+                        AutomationProperties.Name="Cancel"
+                        AutomationProperties.HelpText="Cancel the review and discard the transcribed text. You can also press Escape key."
+                        IsCancel="True"/>
+
                 <Button x:Name="EditButton"
                         Content="Edit"
                         Width="90"
@@ -94,8 +100,10 @@
                         FontSize="13"
                         Click="EditButton_Click"
                         ToolTip="Continue editing - don't insert yet"
+                        AutomationProperties.Name="Continue Editing"
+                        AutomationProperties.HelpText="Continue editing the transcription without inserting"
                         Visibility="Collapsed"/>
-                
+
                 <Button x:Name="InsertButton"
                         Content="Insert Text"
                         Width="120"
@@ -106,7 +114,10 @@
                         FontSize="13"
                         FontWeight="SemiBold"
                         Click="InsertButton_Click"
-                        ToolTip="Insert the reviewed text into the target application"/>
+                        ToolTip="Insert the reviewed text into the target application"
+                        AutomationProperties.Name="Insert Text"
+                        AutomationProperties.HelpText="Insert the reviewed text into the active application"
+                        IsDefault="True"/>
             </StackPanel>
         </Border>
     </Grid>

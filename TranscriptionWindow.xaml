@@ -30,30 +30,38 @@
                 
                 <!-- Status indicator -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse Name="StatusIndicator" Width="12" Height="12" Fill="#90EE90" Margin="0,0,8,0"/>
-                    <TextBlock Name="StatusText" Text="Ready" VerticalAlignment="Center" FontSize="12"/>
+                    <Ellipse Name="StatusIndicator" Width="12" Height="12" Fill="#90EE90" Margin="0,0,8,0"
+                             AutomationProperties.Name="Recording Status Indicator"
+                             AutomationProperties.HelpText="Visual indicator showing recording status. Green indicates ready/listening state."/>
+                    <TextBlock Name="StatusText" Text="Ready" VerticalAlignment="Center" FontSize="12"
+                               AutomationProperties.Name="Recording Status Text"/>
                 </StackPanel>
                 
                 <!-- Title -->
                 <TextBlock Grid.Column="1" Text="Voice Dictation" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
                 
                 <!-- Close button -->
-                <Button Grid.Column="2" Name="CloseButton" Content="✕" Width="24" Height="24" 
-                        Background="Transparent" BorderThickness="0" 
-                        Click="CloseButton_Click" FontSize="14" Cursor="Hand"/>
+                <Button Grid.Column="2" Name="CloseButton" Content="✕" Width="24" Height="24"
+                        Background="Transparent" BorderThickness="0"
+                        Click="CloseButton_Click" FontSize="14" Cursor="Hand"
+                        AutomationProperties.Name="Close Window"
+                        AutomationProperties.HelpText="Close the transcription window. You can also press Escape key."/>
             </Grid>
         </Border>
         
         <!-- Main transcription text area -->
-        <ScrollViewer Grid.Row="1" Name="TextScrollViewer" VerticalScrollBarVisibility="Auto" 
-                      HorizontalScrollBarVisibility="Disabled" Padding="15,10">
-            <TextBlock Name="TranscriptionText" 
-                       TextWrapping="Wrap" 
-                       FontFamily="Segoe UI" 
-                       FontSize="14" 
+        <ScrollViewer Grid.Row="1" Name="TextScrollViewer" VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled" Padding="15,10"
+                      AutomationProperties.Name="Transcription Text Area">
+            <TextBlock Name="TranscriptionText"
+                       TextWrapping="Wrap"
+                       FontFamily="Segoe UI"
+                       FontSize="14"
                        LineHeight="20"
                        Text="Listening for your voice..."
-                       Foreground="#333333"/>
+                       Foreground="#333333"
+                       AutomationProperties.Name="Transcribed Text"
+                       AutomationProperties.LiveSetting="Assertive"/>
         </ScrollViewer>
         
         <!-- Footer with usage info -->

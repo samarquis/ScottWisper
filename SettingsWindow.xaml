@@ -830,6 +830,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
@@ -970,6 +971,44 @@
                             <TextBlock x:Name="ResetWarningText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
                                        Text="⚠️ Warning: Resetting all settings cannot be undone!" 
                                        VerticalAlignment="Center" Margin="220,12,0,0" Foreground="Red" FontWeight="Bold"/>
+                        </Grid>
+                    </GroupBox>
+                    
+                    <!-- Developer Tools -->
+                    <GroupBox Grid.Row="3" Header="Developer Tools" Margin="0,0,0,12" Padding="12">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" 
+                                       Text="Technical tools for troubleshooting and testing. These are advanced features not needed for normal use." 
+                                       TextWrapping="Wrap" Foreground="Gray" Margin="0,0,0,12"/>
+                            
+                            <Button x:Name="TestInjectionButton" Grid.Row="1" Grid.Column="0" 
+                                    Content="Test Text Injection" Width="140" HorizontalAlignment="Left" 
+                                    Margin="0,0,8,8" Click="TestInjection_Click"
+                                    ToolTip="Test text injection functionality in the active application"/>
+                            
+                            <Button x:Name="CompatibilityCheckButton" Grid.Row="1" Grid.Column="1" 
+                                    Content="Check Compatibility" Width="140" HorizontalAlignment="Left" 
+                                    Margin="20,0,0,8" Click="CompatibilityCheck_Click"
+                                    ToolTip="Check compatibility with other running applications"/>
+                            
+                            <Button x:Name="DebugModeToggle" Grid.Row="2" Grid.Column="0" 
+                                    Content="Toggle Debug Mode" Width="140" HorizontalAlignment="Left" 
+                                    Margin="0,8,0,0" Click="DebugModeToggle_Click"
+                                    ToolTip="Enable or disable debug logging mode"/>
+                            
+                            <TextBlock x:Name="DebugModeStatusText" Grid.Row="2" Grid.Column="1" 
+                                       Text="Debug mode: Off" VerticalAlignment="Center" 
+                                       Margin="20,8,0,0" Foreground="Gray"/>
                         </Grid>
                     </GroupBox>
                 </Grid>

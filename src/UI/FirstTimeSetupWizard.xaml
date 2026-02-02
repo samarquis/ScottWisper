@@ -13,13 +13,15 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- Header -->
+         <!-- Header -->
         <Border Grid.Row="0" Background="#2196F3" Padding="20">
             <StackPanel>
-                <TextBlock Text="Welcome to WhisperKey" 
-                          FontSize="24" FontWeight="Bold" Foreground="White"/>
-                <TextBlock Text="Let's get you set up in just a few steps" 
-                          FontSize="14" Foreground="White" Opacity="0.9" Margin="0,4,0,0"/>
+                <TextBlock Text="Welcome to WhisperKey"
+                          FontSize="24" FontWeight="Bold" Foreground="White"
+                          AutomationProperties.Name="Welcome to WhisperKey Setup Wizard"/>
+                <TextBlock Text="Let's get you set up in just a few steps"
+                          FontSize="14" Foreground="White" Opacity="0.9" Margin="0,4,0,0"
+                          AutomationProperties.Name="Setup Wizard Description"/>
             </StackPanel>
         </Border>
         
@@ -30,13 +32,21 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <!-- Step indicator -->
+             <!-- Step indicator -->
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                <Ellipse Width="12" Height="12" Fill="#2196F3" x:Name="Step1Indicator"/>
-                <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"/>
-                <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step2Indicator"/>
-                <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"/>
-                <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step3Indicator"/>
+                <Ellipse Width="12" Height="12" Fill="#2196F3" x:Name="Step1Indicator"
+                         AutomationProperties.Name="Step 1"
+                         AutomationProperties.HelpText="API Key Configuration step"/>
+                <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"
+                           AutomationProperties.Name="Step Progress Line"/>
+                <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step2Indicator"
+                         AutomationProperties.Name="Step 2"
+                         AutomationProperties.HelpText="Microphone Test step"/>
+                <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"
+                           AutomationProperties.Name="Step Progress Line"/>
+                <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step3Indicator"
+                         AutomationProperties.Name="Step 3"
+                         AutomationProperties.HelpText="Setup Complete step"/>
             </StackPanel>
             
             <!-- Step 1: API Key (Optional for Cloud, Skip for Local) -->

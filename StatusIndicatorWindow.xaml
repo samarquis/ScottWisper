@@ -25,34 +25,41 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             
-            <!-- Visual Listening Indicator (Google Assistant Style) -->
-            <local:ListeningIndicator x:Name="ListeningIndicator" 
-                                     Grid.Column="0" 
-                                     Width="60" 
+             <!-- Visual Listening Indicator (Google Assistant Style) -->
+            <local:ListeningIndicator x:Name="ListeningIndicator"
+                                     Grid.Column="0"
+                                     Width="60"
                                      Height="60"
-                                     VerticalAlignment="Center" 
-                                     HorizontalAlignment="Left"/>
-            
+                                     VerticalAlignment="Center"
+                                     HorizontalAlignment="Left"
+                                     AutomationProperties.Name="Listening Visual Indicator"
+                                     AutomationProperties.HelpText="Animated visual indicator showing listening state"/>
+
             <!-- Legacy Status Indicator Circle (hidden, kept for compatibility) -->
-            <Ellipse Name="StatusCircle" Grid.Column="0" Width="40" Height="40" 
+            <Ellipse Name="StatusCircle" Grid.Column="0" Width="40" Height="40"
                      Fill="#808080" VerticalAlignment="Center" HorizontalAlignment="Left"
-                     Visibility="Collapsed"/>
+                     Visibility="Collapsed"
+                     AutomationProperties.Name="Status Circle"
+                     AutomationProperties.HelpText="Status indicator using color: Gray for idle, Green for listening, Red for error"/>
             
-            <!-- Status Text and Details -->
+             <!-- Status Text and Details -->
             <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                <TextBlock Name="StatusText" 
-                           Foreground="White" 
+                <TextBlock Name="StatusText"
+                           Foreground="White"
                            FontWeight="SemiBold"
                            FontSize="14"
                            FontFamily="Segoe UI"
-                           Text="Ready"/>
-                
-                <TextBlock Name="StatusDescription" 
-                           Foreground="#CCCCCC" 
+                           Text="Ready"
+                           AutomationProperties.Name="Status"
+                           AutomationProperties.LiveSetting="Polite"/>
+
+                <TextBlock Name="StatusDescription"
+                           Foreground="#CCCCCC"
                            FontSize="10"
                            FontFamily="Segoe UI"
                            Text="Ready for dictation"
-                           Margin="0,2,0,0"/>
+                           Margin="0,2,0,0"
+                           AutomationProperties.Name="Status Description"/>
             </StackPanel>
         </Grid>
         
