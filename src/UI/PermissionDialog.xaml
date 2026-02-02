@@ -50,12 +50,15 @@
         
         <!-- Header Section -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,0,10">
-            <!-- Status Indicator -->
-            <Ellipse Width="12" Height="12" Margin="5,0,10,0" Fill="{StaticResource StatusRed}"/>
-            <TextBlock Text="Microphone Access Required" 
-                       FontSize="18" 
-                       FontWeight="SemiBold" 
-                       VerticalAlignment="Center"/>
+             <!-- Status Indicator -->
+            <Ellipse Width="12" Height="12" Margin="5,0,10,0" Fill="{StaticResource StatusRed}"
+                     AutomationProperties.Name="Permission Status Indicator"
+                     AutomationProperties.HelpText="Red indicates permission is not granted, Green indicates permission granted"/>
+            <TextBlock Text="Microphone Access Required"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"
+                       AutomationProperties.Name="Dialog Title"/>
         </StackPanel>
         
         <!-- Main Content -->
@@ -65,21 +68,25 @@
                 BorderBrush="#E0E0E0" 
                 BorderThickness="1">
             <StackPanel Margin="30">
-                <!-- Permission Status -->
+                 <!-- Permission Status -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,0,20">
-                    <TextBlock Text="Current Status:" 
-                               FontSize="14" 
-                               FontWeight="SemiBold" 
+                    <TextBlock Text="Current Status:"
+                               FontSize="14"
+                               FontWeight="SemiBold"
                                VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="16" Height="16" Margin="5,0,10,0" 
-                                 x:Name="StatusIndicator" 
-                                 Fill="{StaticResource StatusRed}"/>
-                        <TextBlock x:Name="StatusText" 
-                                   Text="Checking..." 
-                                   FontSize="14" 
+                        <Ellipse Width="16" Height="16" Margin="5,0,10,0"
+                                 x:Name="StatusIndicator"
+                                 Fill="{StaticResource StatusRed}"
+                                 AutomationProperties.Name="Permission State Indicator"
+                                 AutomationProperties.HelpText="{Binding ElementName=StatusText, Path=Text, StringFormat='Current status: {0}'}"/>
+                        <TextBlock x:Name="StatusText"
+                                   Text="Checking..."
+                                   FontSize="14"
                                    VerticalAlignment="Center"
-                                   Margin="5,0,0,0"/>
+                                   Margin="5,0,0,0"
+                                   AutomationProperties.Name="Permission Status Text"
+                                   AutomationProperties.LiveSetting="Assertive"/>
                     </StackPanel>
                 </StackPanel>
                 
@@ -144,19 +151,26 @@
                     Orientation="Horizontal" 
                     HorizontalAlignment="Right" 
                     Margin="0,20,0,0,10">
-            <Button x:Name="RequestPermissionButton" 
-                    Content="Request Permission" 
+            <Button x:Name="RequestPermissionButton"
+                    Content="Request Permission"
                     Style="{StaticResource PrimaryButton}"
-                    Click="RequestPermissionButtonClick"/>
-            <Button x:Name="OpenSettingsButton" 
-                    Content="Open Settings" 
+                    Click="RequestPermissionButtonClick"
+                    AutomationProperties.Name="Request Microphone Permission"
+                    AutomationProperties.HelpText="Click to request microphone permission from Windows"
+                    IsDefault="True"/>
+            <Button x:Name="OpenSettingsButton"
+                    Content="Open Settings"
                     Style="{StaticResource SecondaryButton}"
-                    Click="OpenSettingsButtonClick"/>
-            <Button x:Name="RetryButton" 
-                    Content="Retry" 
+                    Click="OpenSettingsButtonClick"
+                    AutomationProperties.Name="Open Windows Settings"
+                    AutomationProperties.HelpText="Open Windows Privacy Settings for microphone"/>
+            <Button x:Name="RetryButton"
+                    Content="Retry"
                     Style="{StaticResource SecondaryButton}"
                     Click="RetryButtonClick"
-                    Visibility="Collapsed"/>
+                    Visibility="Collapsed"
+                    AutomationProperties.Name="Retry Permission Check"
+                    AutomationProperties.HelpText="Retry checking microphone permission status"/>
         </StackPanel>
     </Grid>
 </Window>

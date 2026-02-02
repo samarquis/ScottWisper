@@ -157,6 +157,12 @@ namespace WhisperKey
                 // Batch all UI initialization into a single dispatcher call with Background priority
                 await Dispatcher.InvokeAsync(() =>
                 {
+                    // Register text injection service in Application properties for access from SettingsWindow
+                    if (_bootstrapper?.TextInjectionService != null)
+                    {
+                        Application.Current.Properties["TextInjectionService"] = _bootstrapper.TextInjectionService;
+                    }
+                    
                     // Create and show main window
                     _mainWindow = new MainWindow();
                     _mainWindow.StartDictationRequested += OnMainWindowStartDictationRequested;
