@@ -39,24 +39,33 @@
                 <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step3Indicator"/>
             </StackPanel>
             
-            <!-- Step 1: API Key -->
+            <!-- Step 1: API Key (Optional for Cloud, Skip for Local) -->
             <StackPanel Grid.Row="1" x:Name="Step1Panel" Visibility="Visible">
-                <TextBlock Text="Step 1: Configure Your API Key" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16"/>
+                <TextBlock Text="Step 1: Configure Transcription (Optional)" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16"/>
                 
-                <TextBlock Text="WhisperKey needs an API key to transcribe your speech. Choose your provider:" 
+                <Border Background="#E8F5E9" BorderBrush="#4CAF50" BorderThickness="1" CornerRadius="4" Padding="12" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="✓ Works Offline!" FontWeight="Bold" Foreground="#2E7D32"/>
+                        <TextBlock Text="WhisperKey now uses local transcription by default. No internet connection or API key required." 
+                                  TextWrapping="Wrap" Foreground="#1B5E20" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+                
+                <TextBlock Text="You can optionally add a cloud API key for potentially higher accuracy. Choose your provider:" 
                           TextWrapping="Wrap" Margin="0,0,0,16"/>
                 
-                <Label Content="Transcription Provider:" FontWeight="SemiBold"/>
+                <Label Content="Transcription Provider (Optional):" FontWeight="SemiBold"/>
                 <ComboBox x:Name="ProviderComboBox" SelectedIndex="0" Margin="0,4,0,16">
-                    <ComboBoxItem Content="OpenAI (Recommended)" Tag="openai"/>
-                    <ComboBoxItem Content="Azure Speech Services" Tag="azure"/>
-                    <ComboBoxItem Content="Google Cloud Speech" Tag="google"/>
+                    <ComboBoxItem Content="Local Mode (Offline, No API Key)" Tag="local"/>
+                    <ComboBoxItem Content="OpenAI (Cloud)" Tag="openai"/>
+                    <ComboBoxItem Content="Azure Speech Services (Cloud)" Tag="azure"/>
+                    <ComboBoxItem Content="Google Cloud Speech (Cloud)" Tag="google"/>
                 </ComboBox>
                 
-                <Label Content="API Key:" FontWeight="SemiBold"/>
+                <Label Content="API Key (Optional - for cloud mode only):" FontWeight="SemiBold"/>
                 <PasswordBox x:Name="ApiKeyPasswordBox" Margin="0,4,0,8"/>
-                <TextBlock Text="Your API key is stored securely on your computer and never shared." 
-                          FontSize="11" Foreground="Gray" FontStyle="Italic"/>
+                <TextBlock Text="Leave blank to use offline local transcription. API key is stored securely on your computer and never shared." 
+                          FontSize="11" Foreground="Gray" FontStyle="Italic" TextWrapping="Wrap"/>
                 
                 <TextBlock x:Name="ApiKeyValidationText" Text="" Foreground="Red" Margin="0,8,0,0" TextWrapping="Wrap"/>
             </StackPanel>
@@ -90,7 +99,7 @@
             <StackPanel Grid.Row="1" x:Name="Step3Panel" Visibility="Collapsed" HorizontalAlignment="Center">
                 <TextBlock Text="You're All Set!" FontSize="24" FontWeight="Bold" Margin="0,0,0,16" HorizontalAlignment="Center"/>
                 
-                <TextBlock Text="✓ API key configured" FontSize="14" Margin="0,4,0,0" Foreground="Green"/>
+                <TextBlock Text="✓ Local transcription enabled (offline mode)" FontSize="14" Margin="0,4,0,0" Foreground="Green"/>
                 <TextBlock Text="✓ Microphone tested" FontSize="14" Margin="0,4,0,0" Foreground="Green"/>
                 <TextBlock Text="✓ Ready to dictate" FontSize="14" Margin="0,4,0,24" Foreground="Green"/>
                 

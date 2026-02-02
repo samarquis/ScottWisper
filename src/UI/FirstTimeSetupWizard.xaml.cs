@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WhisperKey.Configuration;
 using WhisperKey.Services;
 using WhisperKey.Services.Validation;
 
@@ -110,28 +111,32 @@ namespace WhisperKey.UI
         
         private async Task<bool> ValidateStep1()
         {
-            var provider = (ProviderComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "openai";
+            var provider = (ProviderComboBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "local";
             var apiKey = ApiKeyPasswordBox.Password;
             
-            if (string.IsNullOrWhiteSpace(apiKey))
+            // API key is now optional - local mode works offline
+            if (!string.IsNullOrWhiteSpace(apiKey))
             {
-                ApiKeyValidationText.Text = "Please enter an API key.";
-                return false;
+                // If user provided API key, validate it
+                var strategy = ApiKeyValidationFactory.GetStrategy(provider);
+                if (!strategy.IsValid(apiKey))
+                {
+                    ApiKeyValidationText.Text = strategy.GetValidationErrorMessage();
+                    return false;
+                }
             }
             
-            var strategy = ApiKeyValidationFactory.GetStrategy(provider);
-            if (!strategy.IsValid(apiKey))
-            {
-                ApiKeyValidationText.Text = strategy.GetValidationErrorMessage();
-                return false;
-            }
-            
-            // Save the API key
+            // Save the settings
             try
             {
                 var settings = _settingsService.Settings;
+                settings.Transcription.Mode = TranscriptionMode.Local; // Default to local (offline) mode
                 settings.Transcription.Provider = provider;
-                settings.Transcription.ApiKey = apiKey;
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    settings.Transcription.ApiKey = apiKey;
+                    settings.Transcription.Mode = TranscriptionMode.Cloud; // Only use cloud if API key provided
+                }
                 await _settingsService.SaveAsync();
                 
                 ApiKeyValidationText.Text = "";

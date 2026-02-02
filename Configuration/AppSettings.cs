@@ -41,6 +41,7 @@ namespace WhisperKey.Configuration
 
     public class TranscriptionSettings
     {
+        // Cloud provider settings (deprecated - kept for backwards compatibility)
         public string Provider { get; set; } = "OpenAI";
         public string Model { get; set; } = "whisper-1";
         public string Language { get; set; } = "auto";
@@ -56,10 +57,10 @@ namespace WhisperKey.Configuration
         public int MonthlyLimit { get; set; } = 1000;
         public int FreeTierLimit { get; set; } = 100;
 
-        // Local transcription settings
-        public TranscriptionMode Mode { get; set; } = TranscriptionMode.Cloud;
+        // Local transcription settings (now default - works offline)
+        public TranscriptionMode Mode { get; set; } = TranscriptionMode.Local;
         public string LocalModelPath { get; set; } = string.Empty;
-        public bool AutoFallbackToCloud { get; set; } = true;
+        public bool AutoFallbackToCloud { get; set; } = false; // Disabled by default for offline-only operation
         
         // Local provider selection (Whisper, Vosk, etc.)
         public LocalProviderType LocalProvider { get; set; } = LocalProviderType.Whisper;
