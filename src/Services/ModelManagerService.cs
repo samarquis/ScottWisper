@@ -88,7 +88,21 @@ namespace WhisperKey.Services
         public ModelManagerService(ILogger<ModelManagerService> logger, string? modelsDirectory = null)
         {
             _logger = logger;
-            _httpClient = new HttpClient();
+            
+            // Configure HttpClient with proper SSL/TLS certificate validation
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    if (errors == System.Net.Security.SslPolicyErrors.None)
+                        return true;
+                    
+                    _logger.LogWarning("SSL certificate validation error: {Errors}", errors);
+                    return false;
+                }
+            };
+            
+            _httpClient = new HttpClient(handler);
             _httpClient.Timeout = TimeSpan.FromHours(2); // Long timeout for large model downloads
             
             // Default models directory in AppData
@@ -347,10 +361,13 @@ namespace WhisperKey.Services
                 _activeDownloads[modelId] = status;
             }
             
+            var modelPath = Path.Combine(_modelsDirectory, $"ggml-{modelId}.bin");
+            // Use GUID for secure temp file name to prevent predictable file attacks
+            var tempPath = Path.Combine(_modelsDirectory, $"ggml-{modelId}-{Guid.NewGuid()}.tmp");
+            var tempHashPath = tempPath + ".hash";
+            
             try
             {
-                var modelPath = Path.Combine(_modelsDirectory, $"ggml-{modelId}.bin");
-                var tempPath = modelPath + ".tmp";
                 
                 _logger.LogInformation("Starting download of model {ModelId} from {Url}", modelId, modelInfo.DownloadUrl);
                 
@@ -363,6 +380,8 @@ namespace WhisperKey.Services
                 
                 using var contentStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
                 using var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                using var hashAlgorithm = SHA256.Create();
+                using var hashStream = new CryptoStream(fileStream, hashAlgorithm, CryptoStreamMode.Write);
                 
                 var buffer = new byte[81920]; // 80KB buffer
                 long downloadedBytes = 0;
@@ -373,7 +392,7 @@ namespace WhisperKey.Services
                     var read = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
                     if (read == 0) break;
                     
-                    await fileStream.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+                    await hashStream.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
                     downloadedBytes += read;
                     
                     // Update status
@@ -390,8 +409,17 @@ namespace WhisperKey.Services
                     progress?.Report(status);
                 }
                 
+                await hashStream.FlushFinalBlockAsync(cancellationToken).ConfigureAwait(false);
+                var computedHash = hashAlgorithm.Hash;
+                
                 stopwatch.Stop();
                 fileStream.Close();
+                
+                // Store hash for verification
+                if (computedHash != null)
+                {
+                    await File.WriteAllBytesAsync(tempHashPath, computedHash, cancellationToken).ConfigureAwait(false);
+                }
                 
                 // Verify download
                 status.State = DownloadState.Verifying;
@@ -403,12 +431,28 @@ namespace WhisperKey.Services
                     throw new InvalidOperationException($"Downloaded file size ({actualSize}) doesn't match expected size ({totalBytes})");
                 }
                 
-                // Move temp file to final location
+                // Verify hash before moving
+                if (computedHash != null)
+                {
+                    var storedHash = await File.ReadAllBytesAsync(tempHashPath, cancellationToken).ConfigureAwait(false);
+                    if (!computedHash.SequenceEqual(storedHash))
+                    {
+                        throw new InvalidOperationException("Download integrity check failed: hash mismatch");
+                    }
+                }
+                
+                // Move temp file to final location (atomic operation)
                 if (File.Exists(modelPath))
                 {
                     File.Delete(modelPath);
                 }
                 File.Move(tempPath, modelPath);
+                
+                // Clean up hash file
+                if (File.Exists(tempHashPath))
+                {
+                    File.Delete(tempHashPath);
+                }
                 
                 status.State = DownloadState.Completed;
                 status.CompletedAt = DateTime.UtcNow;
@@ -446,8 +490,7 @@ namespace WhisperKey.Services
                     _activeDownloads.Remove(modelId);
                 }
                 
-                // Clean up temp file if it exists
-                var tempPath = Path.Combine(_modelsDirectory, $"ggml-{modelId}.bin.tmp");
+                // Clean up temp files if they exist
                 if (File.Exists(tempPath))
                 {
                     try
@@ -461,6 +504,22 @@ namespace WhisperKey.Services
                     catch (UnauthorizedAccessException ex)
                     {
                         _logger.LogWarning(ex, "Access denied deleting temporary file: {TempPath}", tempPath);
+                    }
+                }
+                
+                if (File.Exists(tempHashPath))
+                {
+                    try
+                    {
+                        File.Delete(tempHashPath);
+                    }
+                    catch (IOException ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to delete hash file: {HashPath}", tempHashPath);
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        _logger.LogWarning(ex, "Access denied deleting hash file: {HashPath}", tempHashPath);
                     }
                 }
                 

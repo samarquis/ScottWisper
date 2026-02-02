@@ -90,7 +90,7 @@
     <Component Id="RegistryEntries" Guid="*" Directory="INSTALLFOLDER">
       <RegistryKey Root="HKLM" Key="Software\WhisperKey">
         <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" />
-        <RegistryValue Type="string" Name="Version" Value="1.0.0" />
+        <RegistryValue Type="string" Name="Version" Value="$(var.Version)" />
       </RegistryKey>
     </Component>
     

@@ -20,8 +20,9 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
      xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
      
-  <?define ProductName = "WhisperKey" ?>
-  <?define ProductVersion = "1.0.0" ?>
+   <?define ProductName = "WhisperKey" ?>
+   <!-- Version is passed as preprocessor variable from build script - defaults to 1.0.0 if not provided -->
+   <?define ProductVersion = "1.0.0" ?>
   <?define ProductManufacturer = "WhisperKey" ?>
   <?define ProductCode = "*" ?>
   <?define UpgradeCode = "12345678-1234-1234-1234-123456789012" ?>
