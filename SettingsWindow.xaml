@@ -139,19 +139,53 @@
                                       Content="Remember window position" VerticalAlignment="Center" 
                                       Margin="20,8,0,0" Checked="RememberWindowPosition_Checked"/>
                             
-                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
-                                <Label Content="Theme:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <ComboBox x:Name="ThemeComboBox" Width="150" SelectionChanged="Theme_SelectionChanged">
-                                    <ComboBoxItem Content="System Default" Tag="system"/>
-                                    <ComboBoxItem Content="Light" Tag="light"/>
-                                    <ComboBoxItem Content="Dark" Tag="dark"/>
-                                    <ComboBoxItem Content="High Contrast" Tag="contrast"/>
-                                </ComboBox>
-                            </StackPanel>
-                        </Grid>
-                    </GroupBox>
-                </Grid>
-            </TabItem>
+                             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
+                                 <Label Content="Theme:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                 <ComboBox x:Name="ThemeComboBox" Width="150" SelectionChanged="Theme_SelectionChanged">
+                                     <ComboBoxItem Content="System Default" Tag="system"/>
+                                     <ComboBoxItem Content="Light" Tag="light"/>
+                                     <ComboBoxItem Content="Dark" Tag="dark"/>
+                                     <ComboBoxItem Content="High Contrast" Tag="contrast"/>
+                                 </ComboBox>
+                             </StackPanel>
+                         </Grid>
+                     </GroupBox>
+                     
+                     <!-- Text Review Settings -->
+                     <GroupBox Grid.Row="2" Header="Text Review" Margin="0,0,0,12" Padding="12">
+                         <Grid>
+                             <Grid.ColumnDefinitions>
+                                 <ColumnDefinition Width="*"/>
+                                 <ColumnDefinition Width="*"/>
+                             </Grid.ColumnDefinitions>
+                             <Grid.RowDefinitions>
+                                 <RowDefinition Height="Auto"/>
+                                 <RowDefinition Height="Auto"/>
+                                 <RowDefinition Height="Auto"/>
+                             </Grid.RowDefinitions>
+                             
+                             <CheckBox x:Name="EnableTextReviewCheckBox" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Content="Enable text review before injection (allows editing transcription)" 
+                                       VerticalAlignment="Center" 
+                                       Margin="0,0,0,8" Checked="EnableTextReview_Checked" Unchecked="EnableTextReview_Unchecked"/>
+                             
+                             <CheckBox x:Name="AutoInsertCheckBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                       Content="Auto-insert after timeout (if no user action)" 
+                                       VerticalAlignment="Center" 
+                                       Margin="20,8,0,8" IsEnabled="False"
+                                       Checked="AutoInsert_Checked" Unchecked="AutoInsert_Unchecked"/>
+                             
+                             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="20,8,0,0">
+                                 <Label Content="Review timeout:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                 <Slider x:Name="ReviewTimeoutSlider" Minimum="5" Maximum="120" Value="30" 
+                                          Width="150" IsEnabled="False" ValueChanged="ReviewTimeout_ValueChanged"/>
+                                 <TextBlock x:Name="ReviewTimeoutText" Text="30 seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                 <TextBlock Text="(0 to disable auto-insert)" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray" FontSize="12"/>
+                             </StackPanel>
+                         </Grid>
+                     </GroupBox>
+                 </Grid>
+             </TabItem>
             
             <!-- Audio Device Settings Tab -->
             <TabItem Header="Audio Devices">

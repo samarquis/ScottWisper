@@ -1214,6 +1214,58 @@ namespace WhisperKey
 
         #endregion
 
+        #region Text Review Settings
+
+        private void EnableTextReview_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_settingsService != null)
+            {
+                _settingsService.Settings.UI.EnableTextReview = true;
+                AutoInsertCheckBox.IsEnabled = true;
+                ReviewTimeoutSlider.IsEnabled = AutoInsertCheckBox.IsChecked == true;
+            }
+        }
+
+        private void EnableTextReview_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_settingsService != null)
+            {
+                _settingsService.Settings.UI.EnableTextReview = false;
+                AutoInsertCheckBox.IsEnabled = false;
+                ReviewTimeoutSlider.IsEnabled = false;
+            }
+        }
+
+        private void AutoInsert_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_settingsService != null)
+            {
+                _settingsService.Settings.UI.AutoInsertAfterReview = true;
+                ReviewTimeoutSlider.IsEnabled = true;
+            }
+        }
+
+        private void AutoInsert_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_settingsService != null)
+            {
+                _settingsService.Settings.UI.AutoInsertAfterReview = false;
+                ReviewTimeoutSlider.IsEnabled = false;
+            }
+        }
+
+        private void ReviewTimeout_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_settingsService != null && ReviewTimeoutText != null)
+            {
+                var seconds = (int)e.NewValue;
+                _settingsService.Settings.UI.ReviewWindowTimeoutSeconds = seconds;
+                ReviewTimeoutText.Text = $"{seconds} second{(seconds == 1 ? "" : "s")}";
+            }
+        }
+
+        #endregion
+
         protected override void OnClosed(EventArgs e)
         {
             _audioDeviceService.DeviceConnected -= OnDeviceConnected;

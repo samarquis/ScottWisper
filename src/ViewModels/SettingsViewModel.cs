@@ -399,6 +399,54 @@ namespace WhisperKey.ViewModels
             }
         }
 
+        // Text Review Settings
+        private bool _enableTextReview = true;
+        public bool EnableTextReview
+        {
+            get => _enableTextReview;
+            set
+            {
+                if (SetProperty(ref _enableTextReview, value))
+                {
+                    _settings.UI.EnableTextReview = value;
+                    _ = _settingsService.SaveAsync();
+                    OnPropertyChanged(nameof(AutoInsertEnabled));
+                }
+            }
+        }
+
+        private bool _autoInsertAfterReview = false;
+        public bool AutoInsertAfterReview
+        {
+            get => _autoInsertAfterReview;
+            set
+            {
+                if (SetProperty(ref _autoInsertAfterReview, value))
+                {
+                    _settings.UI.AutoInsertAfterReview = value;
+                    _ = _settingsService.SaveAsync();
+                    OnPropertyChanged(nameof(ReviewTimeoutEnabled));
+                }
+            }
+        }
+
+        public bool AutoInsertEnabled => _enableTextReview;
+        public bool ReviewTimeoutEnabled => _enableTextReview && _autoInsertAfterReview;
+
+        private int _reviewTimeoutSeconds = 30;
+        public int ReviewTimeoutSeconds
+        {
+            get => _reviewTimeoutSeconds;
+            set
+            {
+                if (SetProperty(ref _reviewTimeoutSeconds, value))
+                {
+                    _settings.UI.ReviewWindowTimeoutSeconds = value;
+                    _ = _settingsService.SaveAsync();
+                }
+            }
+        }
+
         // Properties for Hotkey Settings
         private string _toggleRecordingHotkey = "Ctrl+Alt+V";
         public string ToggleRecordingHotkey
@@ -580,6 +628,11 @@ namespace WhisperKey.ViewModels
                 MinimizeToTray = _settings.UI.MinimizeToTray;
                 WindowOpacity = (int)(_settings.UI.WindowOpacity * 100);
                 FeedbackVolume = (int)(_settings.UI.FeedbackVolume * 100);
+
+                // Load text review settings
+                EnableTextReview = _settings.UI.EnableTextReview;
+                AutoInsertAfterReview = _settings.UI.AutoInsertAfterReview;
+                ReviewTimeoutSeconds = _settings.UI.ReviewWindowTimeoutSeconds;
 
                 // Load hotkey settings
                 ToggleRecordingHotkey = _settings.Hotkeys.ToggleRecording;

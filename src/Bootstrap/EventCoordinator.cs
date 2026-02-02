@@ -271,9 +271,38 @@ namespace WhisperKey.Bootstrap
             {
                 try
                 {
-                    if (_bootstrapper.TextInjectionService != null)
+                    string? textToInject = transcription;
+                    
+                    // Check if text review is enabled
+                    if (_bootstrapper.SettingsService?.Settings.UI.EnableTextReview == true)
                     {
-                        await _bootstrapper.TextInjectionService.InjectTextAsync(transcription).ConfigureAwait(false);
+                        // Show review window on UI thread and wait for result
+                        var reviewTask = await Application.Current.Dispatcher.InvokeAsync<(ReviewResult result, string? reviewedText)>(() =>
+                        {
+                            var timeout = _bootstrapper.SettingsService.Settings.UI.AutoInsertAfterReview 
+                                ? _bootstrapper.SettingsService.Settings.UI.ReviewWindowTimeoutSeconds 
+                                : 0;
+                            
+                            var result = TranscriptionReviewWindow.ShowReview(transcription, out string? reviewedText, timeout);
+                            return (result, reviewedText);
+                        });
+                        
+                        if (reviewTask.result == ReviewResult.Inserted)
+                        {
+                            textToInject = reviewTask.reviewedText;
+                        }
+                        else
+                        {
+                            // User cancelled - don't inject
+                            System.Diagnostics.Debug.WriteLine("Transcription review cancelled by user");
+                            return;
+                        }
+                    }
+                    
+                    // Inject the text (original or reviewed)
+                    if (_bootstrapper.TextInjectionService != null && !string.IsNullOrEmpty(textToInject))
+                    {
+                        await _bootstrapper.TextInjectionService.InjectTextAsync(textToInject).ConfigureAwait(false);
                     }
                 }
                 catch (InvalidOperationException ex)

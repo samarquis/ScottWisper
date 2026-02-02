@@ -181,6 +181,11 @@ namespace WhisperKey.Configuration
         public int StartupDelay { get; set; } = 0;
         public string Theme { get; set; } = "Dark";
         public bool ShowChangeNotifications { get; set; } = true;
+        
+        // Text review settings
+        public bool EnableTextReview { get; set; } = true;
+        public bool AutoInsertAfterReview { get; set; } = false;
+        public int ReviewWindowTimeoutSeconds { get; set; } = 30;
     }
 
     public class TextInjectionSettings

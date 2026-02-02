@@ -1,0 +1,113 @@
+<Window x:Class="WhisperKey.TranscriptionReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Review Transcription - WhisperKey"
+        Height="280"
+        Width="500"
+        MinHeight="220"
+        MinWidth="400"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True"
+        ResizeMode="CanResize"
+        Background="#F0F0F0"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        ShowInTaskbar="False">
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2C3E50" Padding="15,10">
+            <TextBlock Text="Review Your Transcription" 
+                       Foreground="White" 
+                       FontSize="16" 
+                       FontWeight="SemiBold"/>
+        </Border>
+        
+        <!-- Text Editor -->
+        <Border Grid.Row="1" Margin="15,15,15,0" BorderBrush="#CCCCCC" BorderThickness="1" Background="White">
+            <TextBox x:Name="ReviewTextBox"
+                     Margin="0"
+                     Padding="10"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     VerticalScrollBarVisibility="Auto"
+                     FontSize="14"
+                     FontFamily="Consolas, Courier New, monospace"
+                     SpellCheck.IsEnabled="True"
+                     Language="en-US"/>
+        </Border>
+        
+        <!-- Character Count and Timer -->
+        <Grid Grid.Row="2" Margin="15,5,15,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="CharacterCountText" 
+                       Grid.Column="0"
+                       Text="0 characters" 
+                       Foreground="#666666" 
+                       FontSize="12"/>
+            <TextBlock x:Name="TimerText" 
+                       Grid.Column="1"
+                       Text="Auto-insert in 30s" 
+                       Foreground="#666666" 
+                       FontSize="12"
+                       Visibility="Collapsed"/>
+        </Grid>
+        
+        <!-- Buttons -->
+        <Border Grid.Row="3" Background="#E8E8E8" Padding="15,12" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton"
+                        Content="Cancel (Esc)"
+                        Width="110"
+                        Height="36"
+                        Margin="0,0,10,0"
+                        Background="#95A5A6"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontSize="13"
+                        Click="CancelButton_Click"
+                        ToolTip="Cancel - text will be discarded"/>
+                
+                <Button x:Name="EditButton"
+                        Content="Edit"
+                        Width="90"
+                        Height="36"
+                        Margin="0,0,10,0"
+                        Background="#3498DB"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontSize="13"
+                        Click="EditButton_Click"
+                        ToolTip="Continue editing - don't insert yet"
+                        Visibility="Collapsed"/>
+                
+                <Button x:Name="InsertButton"
+                        Content="Insert Text"
+                        Width="120"
+                        Height="36"
+                        Background="#27AE60"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Click="InsertButton_Click"
+                        ToolTip="Insert the reviewed text into the target application"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
