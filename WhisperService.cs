@@ -1,11 +1,14 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Polly;
+using Polly.Retry;
 using WhisperKey.Services;
 using WhisperKey.Configuration;
 
@@ -19,6 +22,7 @@ namespace WhisperKey
         private readonly ISettingsService? _settingsService;
         private readonly LocalInferenceService? _localInference;
         private readonly bool _ownsHttpClient;
+        private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         
         private const string DefaultApiEndpoint = "https://api.openai.com/v1/audio/transcriptions";
         
@@ -42,6 +46,7 @@ namespace WhisperKey
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             _ownsHttpClient = true;
+            _retryPolicy = CreateRetryPolicy();
         }
         
         public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
@@ -78,6 +83,9 @@ namespace WhisperKey
             
             // Async initialization - fire and forget is acceptable for constructor
             _ = InitializeAsync();
+            
+            // Initialize retry policy for API calls
+            _retryPolicy = CreateRetryPolicy();
         }
         
         private async Task InitializeAsync()
@@ -166,44 +174,57 @@ namespace WhisperKey
                     }
                 }
                 
-                // Cloud transcription (OpenAI)
-                // Create multipart form content
-                using var content = new MultipartFormDataContent();
-                
-                // Add audio file
-                var audioContent = new ByteArrayContent(audioData);
-                audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/wav");
-                content.Add(audioContent, "file", "audio.wav");
-                
-                // Add model parameter
-                content.Add(new StringContent("whisper-1"), "model");
-                
-                // Add language parameter if specified
-                if (!string.IsNullOrEmpty(language))
-                {
-                    content.Add(new StringContent(language), "language");
-                }
-                
-                // Add response format
-                content.Add(new StringContent("json"), "response_format");
-                
-                // Add temperature for consistent results
-                content.Add(new StringContent("0.0"), "temperature");
-                
+                // Cloud transcription (OpenAI) with retry logic
                 // Report some progress before making the request
                 TranscriptionProgress?.Invoke(this, 25);
                 
-                // Make API request
-                var response = await _httpClient.PostAsync(_baseUrl, content).ConfigureAwait(false);
+                // Execute API request with retry policy
+                var response = await _retryPolicy.ExecuteAsync(async () =>
+                {
+                    // Create multipart form content (must be recreated for each retry)
+                    var content = new MultipartFormDataContent();
+                    
+                    // Add audio file
+                    var audioContent = new ByteArrayContent(audioData);
+                    audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/wav");
+                    content.Add(audioContent, "file", "audio.wav");
+                    
+                    // Add model parameter
+                    content.Add(new StringContent("whisper-1"), "model");
+                    
+                    // Add language parameter if specified
+                    if (!string.IsNullOrEmpty(language))
+                    {
+                        content.Add(new StringContent(language), "language");
+                    }
+                    
+                    // Add response format
+                    content.Add(new StringContent("json"), "response_format");
+                    
+                    // Add temperature for consistent results
+                    content.Add(new StringContent("0.0"), "temperature");
+                    
+                    var result = await _httpClient.PostAsync(_baseUrl, content).ConfigureAwait(false);
+                    
+                    // Dispose content after request
+                    content.Dispose();
+                    
+                    // Check for success - retry policy will handle transient failures
+                    if (!result.IsSuccessStatusCode && 
+                        result.StatusCode != HttpStatusCode.TooManyRequests &&
+                        result.StatusCode != HttpStatusCode.ServiceUnavailable &&
+                        result.StatusCode != HttpStatusCode.BadGateway &&
+                        result.StatusCode != HttpStatusCode.GatewayTimeout)
+                    {
+                        var errorContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        throw new HttpRequestException($"Whisper API request failed: {result.StatusCode} - {errorContent}");
+                    }
+                    
+                    return result;
+                }).ConfigureAwait(false);
                 
                 // Report progress after getting response
                 TranscriptionProgress?.Invoke(this, 75);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    throw new HttpRequestException($"Whisper API request failed: {response.StatusCode} - {errorContent}");
-                }
                 
                 // Parse response
                 var responseContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -443,6 +464,32 @@ namespace WhisperKey
                    ex is AccessViolationException;
         }
         
+        /// <summary>
+        /// Creates a retry policy for OpenAI API calls with exponential backoff.
+        /// Handles transient failures like network blips, rate limits, and temporary service unavailability.
+        /// </summary>
+        private static AsyncRetryPolicy<HttpResponseMessage> CreateRetryPolicy()
+        {
+            return Policy
+                .Handle<HttpRequestException>()
+                .Or<TimeoutException>()
+                .OrResult<HttpResponseMessage>(response => 
+                    response.StatusCode == HttpStatusCode.TooManyRequests ||
+                    response.StatusCode == HttpStatusCode.ServiceUnavailable ||
+                    response.StatusCode == HttpStatusCode.BadGateway ||
+                    response.StatusCode == HttpStatusCode.GatewayTimeout)
+                .WaitAndRetryAsync(
+                    retryCount: 3,
+                    sleepDurationProvider: retryAttempt => 
+                        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential: 2, 4, 8 seconds
+                    onRetryAsync: (outcome, timespan, retryCount, context) =>
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Retry {retryCount} after {timespan.TotalSeconds}s due to: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
+                        return Task.CompletedTask;
+                    });
+        }
+        
         // Response model for Whisper API
         private class WhisperResponse
         {
@@ -450,6 +497,4 @@ namespace WhisperKey
             public string Text { get; set; } = string.Empty;
         }
     }
-    
-
 }
