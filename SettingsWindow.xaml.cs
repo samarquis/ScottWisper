@@ -264,7 +264,56 @@ namespace WhisperKey
 
         private void PopulateTranscriptionControls()
         {
-            // Populate provider combo box
+            // Populate transcription mode combo box
+            TranscriptionModeComboBox.Items.Clear();
+            var modes = new List<(TranscriptionMode Mode, string Name, string Description)>
+            {
+                (TranscriptionMode.Cloud, "Cloud (Online)", "Use cloud API for transcription (requires internet)"),
+                (TranscriptionMode.Local, "Local (Offline)", "Use local model for transcription (privacy-focused, no internet needed)")
+            };
+            
+            foreach (var mode in modes)
+            {
+                var item = new ComboBoxItem { Content = mode.Name, Tag = mode.Mode, ToolTip = mode.Description };
+                TranscriptionModeComboBox.Items.Add(item);
+            }
+            
+            // Select current mode
+            var currentMode = _settingsService.Settings.Transcription.Mode;
+            var selectedMode = TranscriptionModeComboBox.Items.Cast<ComboBoxItem>()
+                .FirstOrDefault(item => (TranscriptionMode?)item.Tag == currentMode);
+            if (selectedMode != null)
+            {
+                TranscriptionModeComboBox.SelectedItem = selectedMode;
+            }
+            
+            // Populate local provider combo box
+            LocalProviderComboBox.Items.Clear();
+            var localProviders = new List<(LocalProviderType Type, string Name, string Description)>
+            {
+                (LocalProviderType.Whisper, "Whisper", "High accuracy, 99 languages, GPU support"),
+                (LocalProviderType.Vosk, "Vosk", "Lightweight, fast, 20+ languages")
+            };
+            
+            foreach (var provider in localProviders)
+            {
+                var item = new ComboBoxItem { Content = provider.Name, Tag = provider.Type, ToolTip = provider.Description };
+                LocalProviderComboBox.Items.Add(item);
+            }
+            
+            // Select current local provider
+            var currentLocalProvider = _settingsService.Settings.Transcription.LocalProvider;
+            var selectedLocalProvider = LocalProviderComboBox.Items.Cast<ComboBoxItem>()
+                .FirstOrDefault(item => (LocalProviderType?)item.Tag == currentLocalProvider);
+            if (selectedLocalProvider != null)
+            {
+                LocalProviderComboBox.SelectedItem = selectedLocalProvider;
+            }
+            
+            // Update UI visibility based on mode
+            UpdateTranscriptionModeUI();
+            
+            // Populate cloud provider combo box
             ProviderComboBox.Items.Clear();
             var providers = new List<(string Id, string Name)>
             {
@@ -569,6 +618,60 @@ namespace WhisperKey
 
         #region Transcription Settings Event Handlers
 
+        private async void TranscriptionMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (IsLoading) return;
+            if (TranscriptionModeComboBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                var mode = (TranscriptionMode)(selectedItem.Tag ?? TranscriptionMode.Cloud);
+                _settingsService.Settings.Transcription.Mode = mode;
+                await _settingsService.SaveAsync();
+                UpdateTranscriptionModeUI();
+            }
+        }
+
+        private void UpdateTranscriptionModeUI()
+        {
+            var isLocalMode = _settingsService.Settings.Transcription.Mode == TranscriptionMode.Local;
+            
+            // Show/hide local provider panel
+            LocalProviderPanel.Visibility = isLocalMode ? Visibility.Visible : Visibility.Collapsed;
+            
+            // Show/hide cloud-specific controls
+            CloudProviderPanel.Visibility = isLocalMode ? Visibility.Collapsed : Visibility.Visible;
+            CloudSettingsPanel.Visibility = isLocalMode ? Visibility.Collapsed : Visibility.Visible;
+            ApiKeyPasswordBox.IsEnabled = !isLocalMode;
+            TestApiKeyButton.IsEnabled = !isLocalMode;
+            ValidateEndpointButton.Visibility = isLocalMode ? Visibility.Collapsed : Visibility.Visible;
+            ProxyPanel.Visibility = isLocalMode ? Visibility.Collapsed : Visibility.Visible;
+            ApiStatusText.Visibility = isLocalMode ? Visibility.Collapsed : Visibility.Visible;
+            
+            // Update local provider description
+            if (isLocalMode && LocalProviderComboBox.SelectedItem is ComboBoxItem localItem)
+            {
+                var description = localItem.ToolTip?.ToString() ?? "";
+                LocalProviderDescription.Text = description;
+            }
+        }
+
+        private async void LocalProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (IsLoading) return;
+            if (LocalProviderComboBox.SelectedItem is ComboBoxItem selectedItem)
+            {
+                var provider = (LocalProviderType)(selectedItem.Tag ?? LocalProviderType.Whisper);
+                _settingsService.Settings.Transcription.LocalProvider = provider;
+                await _settingsService.SaveAsync();
+                
+                // Update description
+                var description = selectedItem.ToolTip?.ToString() ?? "";
+                LocalProviderDescription.Text = description;
+                
+                // Update available models based on provider
+                UpdateAvailableModels();
+            }
+        }
+
         private async void Provider_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (IsLoading) return;
@@ -641,22 +744,69 @@ namespace WhisperKey
         private void UpdateAvailableModels()
         {
             ModelComboBox.Items.Clear();
-            var provider = _settingsService.Settings.Transcription.Provider;
-            var models = GetAvailableModels(provider);
+            
+            var isLocalMode = _settingsService.Settings.Transcription.Mode == TranscriptionMode.Local;
+            List<(string Id, string DisplayName)> models;
+            
+            if (isLocalMode)
+            {
+                // Show local provider models
+                var localProvider = _settingsService.Settings.Transcription.LocalProvider;
+                models = GetLocalModels(localProvider);
+            }
+            else
+            {
+                // Show cloud provider models
+                var provider = _settingsService.Settings.Transcription.Provider;
+                models = GetCloudModels(provider);
+            }
+            
             foreach (var model in models)
             {
                 ModelComboBox.Items.Add(new ComboBoxItem { Content = model.DisplayName, Tag = model.Id });
             }
+            
             var currentModel = _settingsService.Settings.Transcription.Model;
             var selectedItem = ModelComboBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => item.Tag?.ToString() == currentModel);
             if (selectedItem != null) ModelComboBox.SelectedItem = selectedItem;
         }
 
-        private List<(string Id, string DisplayName)> GetAvailableModels(string provider)
+        private List<(string Id, string DisplayName)> GetCloudModels(string provider)
         {
-            if (provider.ToLower() == "openai")
-                return new List<(string, string)> { ("whisper-1", "Whisper v1"), ("whisper-tiny", "Whisper Tiny") };
-            return new List<(string, string)> { ("whisper-1", "Default") };
+            return provider.ToLower() switch
+            {
+                "openai" => new List<(string, string)> { ("whisper-1", "Whisper v1"), ("whisper-tiny", "Whisper Tiny"), ("whisper-base", "Whisper Base"), ("whisper-small", "Whisper Small") },
+                "azure" => new List<(string, string)> { ("latest", "Latest"), ("whisper", "Whisper") },
+                "google" => new List<(string, string)> { ("latest", "Latest"), ("chirp", "Chirp"), ("generic", "Generic") },
+                _ => new List<(string, string)> { ("whisper-1", "Default") }
+            };
+        }
+
+        private List<(string Id, string DisplayName)> GetLocalModels(LocalProviderType provider)
+        {
+            return provider switch
+            {
+                LocalProviderType.Whisper => new List<(string, string)>
+                {
+                    ("tiny", "Tiny (39 MB) - Fastest"),
+                    ("tiny.en", "Tiny English-only (39 MB) - Fastest"),
+                    ("base", "Base (74 MB) - Balanced"),
+                    ("base.en", "Base English-only (74 MB) - Balanced"),
+                    ("small", "Small (244 MB) - Better accuracy"),
+                    ("medium", "Medium (769 MB) - High accuracy"),
+                    ("large-v3", "Large v3 (1.55 GB) - Best accuracy")
+                },
+                LocalProviderType.Vosk => new List<(string, string)>
+                {
+                    ("vosk-model-small-en-us-0.15", "English Small US (40 MB) - Lightweight"),
+                    ("vosk-model-small-en-gb-0.15", "English Small UK (42 MB) - Lightweight"),
+                    ("vosk-model-en-us-0.22", "English Full US (1.8 GB) - High accuracy"),
+                    ("vosk-model-small-de-0.15", "German Small (45 MB) - Lightweight"),
+                    ("vosk-model-small-fr-0.15", "French Small (45 MB) - Lightweight"),
+                    ("vosk-model-small-es-0.15", "Spanish Small (45 MB) - Lightweight")
+                },
+                _ => new List<(string, string)> { ("base", "Default") }
+            };
         }
 
         #endregion
