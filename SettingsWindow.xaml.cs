@@ -1130,8 +1130,8 @@ namespace WhisperKey
                         var result = await textInjection.TestInjectionAsync();
                         Dispatcher.Invoke(() =>
                         {
-                            MessageBox.Show($"Test injection result: {result}", "Text Injection Test", 
-                                MessageBoxButton.OK, result ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                            MessageBox.Show($"Test injection result: {result.Success}", "Text Injection Test", 
+                                MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
                         });
                     }
                     else
