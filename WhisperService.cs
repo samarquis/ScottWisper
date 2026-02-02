@@ -53,8 +53,8 @@ namespace WhisperKey
         {
             _settingsService = settingsService;
             _localInference = localInference;
-            _apiKey = GetApiKeyFromSettings();
-            _baseUrl = GetApiEndpointFromSettings();
+            _apiKey = GetApiKey(); // Sync version for constructor (env var only)
+            _baseUrl = DefaultApiEndpoint; // Will be updated async
             
             // Use IHttpClientFactory if available to prevent socket exhaustion
             if (httpClientFactory != null)
@@ -74,6 +74,34 @@ namespace WhisperKey
             if (_settingsService != null)
             {
                 _settingsService.SettingsChanged += OnSettingsChanged;
+            }
+            
+            // Async initialization - fire and forget is acceptable for constructor
+            _ = InitializeAsync();
+        }
+        
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                // Load API key asynchronously (may read from file)
+                var apiKey = await GetApiKeyFromSettingsAsync().ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(apiKey) && apiKey != _apiKey)
+                {
+                    _apiKey = apiKey;
+                    _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                }
+                
+                // Load endpoint asynchronously
+                var endpoint = await GetApiEndpointFromSettingsAsync().ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(endpoint))
+                {
+                    _baseUrl = endpoint;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error during async initialization: {ex.Message}");
             }
         }
         
@@ -246,14 +274,28 @@ namespace WhisperKey
                 return envKey;
             }
 
-            // Try to read from encrypted settings file
+            // Note: File I/O for encrypted key is now handled asynchronously via GetApiKeyFromSettingsAsync
+            // This sync method only checks environment variables for constructor initialization
+            return string.Empty;
+        }
+
+        private async Task<string> GetApiKeyAsync()
+        {
+            // Try environment variable first
+            var envKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            if (!string.IsNullOrEmpty(envKey))
+            {
+                return envKey;
+            }
+
+            // Try to read from encrypted settings file asynchronously
             try
             {
                 var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 var keyPath = Path.Combine(appDataPath, "WhisperKey", "api_key.encrypted");
                 if (File.Exists(keyPath))
                 {
-                    var encryptedKey = File.ReadAllText(keyPath);
+                    var encryptedKey = await File.ReadAllTextAsync(keyPath).ConfigureAwait(false);
                     // This would use the same encryption/decryption as SettingsService
                     // For now, return empty to force user to set the key
                 }
@@ -278,17 +320,13 @@ namespace WhisperKey
             return string.Empty;
         }
 
-        private string GetApiKeyFromSettings()
+        private async Task<string> GetApiKeyFromSettingsAsync()
         {
             if (_settingsService != null)
             {
                 try
                 {
-                    return _settingsService.GetEncryptedValueAsync("OpenAI_ApiKey").Result;
-                }
-                catch (AggregateException ex) when (ex.InnerException != null && !IsFatalException(ex.InnerException))
-                {
-                    // Fall back to default method
+                    return await _settingsService.GetEncryptedValueAsync("OpenAI_ApiKey").ConfigureAwait(false);
                 }
                 catch (InvalidOperationException)
                 {
@@ -300,15 +338,17 @@ namespace WhisperKey
                 }
             }
             
-            return GetApiKey();
+            return await GetApiKeyAsync().ConfigureAwait(false);
         }
 
-        private string GetApiEndpointFromSettings()
+        private async Task<string> GetApiEndpointFromSettingsAsync()
         {
             if (_settingsService != null)
             {
                 try
                 {
+                    // Settings access is synchronous (in-memory), but we make this async for consistency
+                    await Task.Yield();
                     var endpoint = _settingsService.Settings.Transcription.ApiEndpoint;
                     if (!string.IsNullOrEmpty(endpoint))
                     {
@@ -339,32 +379,30 @@ namespace WhisperKey
         
         private async Task HandleSettingsChangedAsync(SettingsChangedEventArgs e)
         {
-            await Task.Run(() => {
-                // Handle transcription settings changes
-                if (e.Category == "Transcription")
+            // Handle transcription settings changes
+            if (e.Category == "Transcription")
+            {
+                // Update API key if it changed
+                if (e.Key.Contains("ApiKey") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
                 {
-                    // Update API key if it changed
-                    if (e.Key.Contains("ApiKey") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+                    var newApiKey = await GetApiKeyFromSettingsAsync().ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(newApiKey) && newApiKey != _apiKey)
                     {
-                        var newApiKey = GetApiKeyFromSettings();
-                        if (!string.IsNullOrEmpty(newApiKey) && newApiKey != _apiKey)
-                        {
-                            _apiKey = newApiKey;
-                            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
-                        }
-                    }
-                    
-                    // Update API endpoint if it changed
-                    if (e.Key.Contains("ApiEndpoint") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
-                    {
-                        var newEndpoint = GetApiEndpointFromSettings();
-                        if (!string.IsNullOrEmpty(newEndpoint) && newEndpoint != _baseUrl)
-                        {
-                            _baseUrl = newEndpoint;
-                        }
+                        _apiKey = newApiKey;
+                        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
                     }
                 }
-            }).ConfigureAwait(false);
+                
+                // Update API endpoint if it changed
+                if (e.Key.Contains("ApiEndpoint") || e.Key == "ApplyAll" || e.Key == "ReloadSettings")
+                {
+                    var newEndpoint = await GetApiEndpointFromSettingsAsync().ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(newEndpoint) && newEndpoint != _baseUrl)
+                    {
+                        _baseUrl = newEndpoint;
+                    }
+                }
+            }
         }
         
         private void UpdateUsageStats(int audioDataLength)
@@ -381,6 +419,12 @@ namespace WhisperKey
         
         public void Dispose()
         {
+            // Unsubscribe from settings changes to prevent memory leak
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged -= OnSettingsChanged;
+            }
+            
             // Only dispose HttpClient if we created it (not from factory)
             if (_ownsHttpClient)
             {
