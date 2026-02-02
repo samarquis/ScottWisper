@@ -25,7 +25,9 @@
         </Border>
 
         <!-- Main Content -->
-        <TabControl Grid.Row="1" Margin="16,16,16,8" Background="Transparent">
+        <TabControl Grid.Row="1" Margin="16,16,16,8" Background="Transparent"
+                    AutomationProperties.Name="Settings Categories"
+                    AutomationProperties.HelpText="Tab control for navigating different settings categories">
             
             <!-- General Settings Tab -->
             <TabItem Header="General">
@@ -207,10 +209,14 @@
                             
                             <Label Grid.Column="0" Content="Primary Input Device:" 
                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox x:Name="InputDeviceComboBox" Grid.Column="1" 
-                                      Width="250" Margin="0,0,8,0" SelectionChanged="InputDevice_SelectionChanged"/>
-                            <Button x:Name="TestInputDeviceButton" Grid.Column="2" 
-                                    Content="Test" Width="60" Click="TestInputDevice_Click"/>
+                             <ComboBox x:Name="InputDeviceComboBox" Grid.Column="1"
+                                       Width="250" Margin="0,0,8,0" SelectionChanged="InputDevice_SelectionChanged"
+                                       AutomationProperties.Name="Primary Input Device"
+                                       AutomationProperties.HelpText="Select your primary audio input device for recording"/>
+                             <Button x:Name="TestInputDeviceButton" Grid.Column="2"
+                                     Content="Test" Width="60" Click="TestInputDevice_Click"
+                                     AutomationProperties.Name="Test Input Device"
+                                     AutomationProperties.HelpText="Test the selected input device"/>
                         </Grid>
                     </GroupBox>
 
@@ -332,10 +338,15 @@
 
                             <!-- Device List -->
                             <GroupBox Grid.Row="2" Header="All Audio Devices" Padding="12">
-                                <DataGrid x:Name="DevicesDataGrid" AutoGenerateColumns="False" 
+                                <DataGrid x:Name="DevicesDataGrid" AutoGenerateColumns="False"
                                           CanUserAddRows="False" CanUserDeleteRows="False"
                                           SelectionMode="Single" SelectionChanged="DevicesDataGrid_SelectionChanged"
-                                          Height="150">
+                                          Height="150"
+                                          AutomationProperties.Name="Audio Devices List"
+                                          AutomationProperties.HelpText="List of all available audio devices. Use arrow keys to navigate, Enter to select."
+                                          IsTabStop="True"
+                                          KeyboardNavigation.TabNavigation="Once"
+                                          KeyboardNavigation.DirectionalNavigation="Contained">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Device Name" Binding="{Binding Name}" Width="200"/>
                                         <DataGridTextColumn Header="Type" Binding="{Binding DataFlow}" Width="80"/>
@@ -701,10 +712,15 @@
                             </Grid>
                             
                             <!-- Hotkey List -->
-                            <DataGrid x:Name="HotkeysDataGrid" Grid.Row="1" AutoGenerateColumns="False" 
+                            <DataGrid x:Name="HotkeysDataGrid" Grid.Row="1" AutoGenerateColumns="False"
                                       CanUserAddRows="False" CanUserDeleteRows="False"
-                                      SelectionMode="Single" Height="200" 
-                                      SelectionChanged="HotkeysDataGrid_SelectionChanged">
+                                      SelectionMode="Single" Height="200"
+                                      SelectionChanged="HotkeysDataGrid_SelectionChanged"
+                                      AutomationProperties.Name="Hotkey Configuration List"
+                                      AutomationProperties.HelpText="List of configurable hotkey actions. Use arrow keys to navigate."
+                                      IsTabStop="True"
+                                      KeyboardNavigation.TabNavigation="Once"
+                                      KeyboardNavigation.DirectionalNavigation="Contained">
                                 <DataGrid.Columns>
                                     <DataGridCheckBoxColumn Header="☑" Binding="{Binding IsEnabled}" Width="30"/>
                                     <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180"/>
@@ -777,9 +793,14 @@
                                 <TextBlock x:Name="ConflictStatusText" VerticalAlignment="Center" Margin="16,0,0,0" Foreground="Gray"/>
                             </StackPanel>
                             
-                            <DataGrid x:Name="ConflictsDataGrid" Grid.Row="1" AutoGenerateColumns="False" 
+                            <DataGrid x:Name="ConflictsDataGrid" Grid.Row="1" AutoGenerateColumns="False"
                                       CanUserAddRows="False" CanUserDeleteRows="False"
-                                      SelectionMode="Single" Height="120">
+                                      SelectionMode="Single" Height="120"
+                                      AutomationProperties.Name="Hotkey Conflicts List"
+                                      AutomationProperties.HelpText="List of detected hotkey conflicts with other applications."
+                                      IsTabStop="True"
+                                      KeyboardNavigation.TabNavigation="Once"
+                                      KeyboardNavigation.DirectionalNavigation="Contained">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Conflicting Hotkey" Binding="{Binding ConflictingHotkey}" Width="150"/>
                                     <DataGridTextColumn Header="Application" Binding="{Binding ConflictingApplication}" Width="150"/>

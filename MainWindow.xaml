@@ -21,7 +21,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- Enhanced Status Bar -->
+         <!-- Enhanced Status Bar -->
         <Border Grid.Row="0" Background="#FF2D2D30" Padding="10,5">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -29,13 +29,17 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <!-- Status Text and Indicator -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse x:Name="StatusIndicator" Width="14" Height="14" 
-                             Fill="Gray" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <Ellipse x:Name="StatusIndicator" Width="14" Height="14"
+                             Fill="Gray" Margin="0,0,8,0" VerticalAlignment="Center"
+                             AutomationProperties.Name="Status Indicator"
+                             AutomationProperties.HelpText="Current application status shown by color: Gray for idle, Green for active, Red for error"/>
                     <TextBlock Text="Status: " FontWeight="Bold" Foreground="White"/>
-                    <TextBlock x:Name="StatusText" Text="Idle" Foreground="White"/>
+                    <TextBlock x:Name="StatusText" Text="Idle" Foreground="White"
+                               AutomationProperties.Name="Status Text"
+                               AutomationProperties.HelpText="Current application status description"/>
                 </StackPanel>
                 
                 <!-- Current Time -->
@@ -46,19 +50,14 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="SettingsButton" Content="⚙️" Background="Transparent" Foreground="White"
                            BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
-                           ToolTip="Settings" Click="SettingsButton_Click"/>
+                           ToolTip="Settings" Click="SettingsButton_Click"
+                           AutomationProperties.Name="Settings"
+                           AutomationProperties.HelpText="Open application settings window"/>
                     <Button x:Name="HelpButton" Content="❓" Background="Transparent" Foreground="White"
                            BorderThickness="0" FontSize="14" Width="25" Height="25"
-                           ToolTip="Help" Click="HelpButton_Click"/>
-                    <Button x:Name="TestInjectionButton" Content="🧪" Background="Transparent" Foreground="White"
-                           BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
-                           ToolTip="Test Injection" Click="TestInjectionButton_Click"/>
-                    <Button x:Name="CompatibilityCheckButton" Content="🔍" Background="Transparent" Foreground="White"
-                           BorderThickness="0" FontSize="14" Width="25" Height="25"
-                           ToolTip="Check Compatibility" Click="CompatibilityCheckButton_Click"/>
-                    <Button x:Name="DebugModeToggle" Content="🐞" Background="Transparent" Foreground="White"
-                           BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
-                           ToolTip="Toggle Debug Mode" Click="DebugModeToggle_Click"/>
+                           ToolTip="Help" Click="HelpButton_Click"
+                           AutomationProperties.Name="Help"
+                           AutomationProperties.HelpText="Open help documentation"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -141,7 +140,9 @@
                 <Button x:Name="StartDictationButton" Click="StartDictationButton_Click"
                         Height="60" FontSize="18" FontWeight="Bold"
                         Background="#FF28A745" Foreground="White"
-                        BorderThickness="0" Cursor="Hand">
+                        BorderThickness="0" Cursor="Hand"
+                        AutomationProperties.Name="Start Dictation"
+                        AutomationProperties.HelpText="Click to begin voice dictation. Use Ctrl Alt V shortcut to toggle.">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🎤" FontSize="24" Margin="0,0,10,0"/>
                         <TextBlock Text="Start Dictation" VerticalAlignment="Center"/>
@@ -199,11 +200,14 @@
                             </Grid.ColumnDefinitions>
                             
                             <TextBlock Grid.Column="0" Text="Recent Status Changes" FontWeight="SemiBold" FontSize="11"/>
-                            <Button Grid.Column="1" x:Name="ClearHistoryButton" Content="Clear" Background="Transparent" 
-                                   BorderThickness="0" FontSize="10" Foreground="#FF6C757D" Padding="5,0"
-                                   Click="ClearHistoryButton_Click"/>
-                            <TextBlock Grid.Column="2" x:Name="HistoryCount" Text="0 items" 
-                                      FontSize="10" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                             <Button Grid.Column="1" x:Name="ClearHistoryButton" Content="Clear" Background="Transparent"
+                                    BorderThickness="0" FontSize="10" Foreground="#FF6C757D" Padding="5,0"
+                                    Click="ClearHistoryButton_Click"
+                                    AutomationProperties.Name="Clear History"
+                                    AutomationProperties.HelpText="Clear all status history items"/>
+                             <TextBlock Grid.Column="2" x:Name="HistoryCount" Text="0 items"
+                                       FontSize="10" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"
+                                       AutomationProperties.Name="History Count"/>
                         </Grid>
                     </Border>
                     
@@ -225,9 +229,11 @@
                                                 <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             
-                                            <!-- Status Indicator -->
-                                            <Ellipse Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Width="8" Height="8" 
-                                                     Fill="{Binding StatusColor}" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                             <!-- Status Indicator -->
+                                             <Ellipse Grid.Column="0" Grid.Row="0" Grid.RowSpan="2" Width="8" Height="8"
+                                                      Fill="{Binding StatusColor}" VerticalAlignment="Top" Margin="0,0,10,0"
+                                                      AutomationProperties.Name="Status Color Indicator"
+                                                      AutomationProperties.HelpText="{Binding StatusText, StringFormat='Status: {0}'}"/>
                                             
                                             <!-- Status Text -->
                                             <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding StatusText}" 
@@ -259,23 +265,29 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                    <TextBlock Text="Today's Recordings" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="TodayRecordings" Text="0" FontSize="16" FontWeight="Bold" 
-                              HorizontalAlignment="Center" Foreground="#FF007ACC"/>
+                    <TextBlock Text="Today's Recordings" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"
+                               AutomationProperties.Name="Today's Recordings Label"/>
+                    <TextBlock x:Name="TodayRecordings" Text="0" FontSize="16" FontWeight="Bold"
+                              HorizontalAlignment="Center" Foreground="#FF007ACC"
+                              AutomationProperties.Name="Today's Recordings Count"/>
                 </StackPanel>
-                
+
                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
-                    <TextBlock Text="Usage Time" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="UsageTime" Text="0m" FontSize="16" FontWeight="Bold" 
-                              HorizontalAlignment="Center" Foreground="#FF28A745"/>
+                    <TextBlock Text="Usage Time" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"
+                               AutomationProperties.Name="Usage Time Label"/>
+                    <TextBlock x:Name="UsageTime" Text="0m" FontSize="16" FontWeight="Bold"
+                              HorizontalAlignment="Center" Foreground="#FF28A745"
+                              AutomationProperties.Name="Usage Time Value"/>
                 </StackPanel>
-                
+
                 <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                    <TextBlock Text="API Usage" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="ApiUsage" Text="$0.00" FontSize="16" FontWeight="Bold" 
-                              HorizontalAlignment="Center" Foreground="#FF6F42C1"/>
+                    <TextBlock Text="API Usage" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"
+                               AutomationProperties.Name="API Usage Label"/>
+                    <TextBlock x:Name="ApiUsage" Text="$0.00" FontSize="16" FontWeight="Bold"
+                              HorizontalAlignment="Center" Foreground="#FF6F42C1"
+                              AutomationProperties.Name="API Usage Cost"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -283,10 +295,14 @@
         <!-- Footer Status -->
         <Border Grid.Row="4" Background="#FF2D2D30" Padding="15,8">
             <StackPanel>
-                <TextBlock x:Name="FooterStatus" Text="Ready" HorizontalAlignment="Center" 
-                          FontWeight="SemiBold" Foreground="White"/>
-                <TextBlock x:Name="FooterMessage" Text="System initialized" HorizontalAlignment="Center" 
-                          FontSize="10" Foreground="#FFADB5BD"/>
+                <TextBlock x:Name="FooterStatus" Text="Ready" HorizontalAlignment="Center"
+                          FontWeight="SemiBold" Foreground="White"
+                          AutomationProperties.Name="Footer Status"
+                          AutomationProperties.HelpText="Current application state"/>
+                <TextBlock x:Name="FooterMessage" Text="System initialized" HorizontalAlignment="Center"
+                          FontSize="10" Foreground="#FFADB5BD"
+                          AutomationProperties.Name="Footer Message"
+                          AutomationProperties.HelpText="Additional status information"/>
             </StackPanel>
         </Border>
     </Grid>
