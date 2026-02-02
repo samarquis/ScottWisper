@@ -4,6 +4,7 @@ using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using WhisperKey.Bootstrap;
 using WhisperKey.Services;
+using WhisperKey.UI;
 
 namespace WhisperKey
 {
@@ -117,6 +118,9 @@ namespace WhisperKey
                 // Initialize bootstrapper
                 _bootstrapper = new ApplicationBootstrapper(_serviceProvider);
                 
+                // Show first-time setup wizard if needed
+                await ShowFirstTimeSetupIfNeededAsync();
+                
                 if (!await _bootstrapper.InitializeAsync())
                 {
                     await Dispatcher.InvokeAsync(() => Shutdown());
@@ -166,6 +170,33 @@ namespace WhisperKey
             catch (System.Configuration.ConfigurationErrorsException ex)
             {
                 await ShowErrorAndShutdownAsync($"Configuration error: {ex.Message}");
+            }
+        }
+        
+        private async Task ShowFirstTimeSetupIfNeededAsync()
+        {
+            var settingsService = _serviceProvider?.GetRequiredService<ISettingsService>();
+            if (settingsService == null) return;
+            
+            // Check if first-time setup is needed
+            var settings = settingsService.Settings;
+            if (!settings.FirstTimeSetupCompleted || settings.ShowSetupWizardOnStartup)
+            {
+                // Show wizard on UI thread
+                var result = await Dispatcher.InvokeAsync(() =>
+                {
+                    var audioDeviceService = _serviceProvider!.GetRequiredService<IAudioDeviceService>();
+                    var wizard = new FirstTimeSetupWizard(settingsService, audioDeviceService);
+                    return wizard.ShowDialog() ?? false;
+                }, System.Windows.Threading.DispatcherPriority.Background);
+                
+                // Mark setup as completed if user finished the wizard
+                if (result)
+                {
+                    settings.FirstTimeSetupCompleted = true;
+                    await settingsService.SaveAsync();
+                }
+                // If cancelled, continue anyway - don't block initialization
             }
         }
         

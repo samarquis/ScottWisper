@@ -1137,25 +1137,33 @@ namespace WhisperKey
         private void EnableConflictWarnings_Checked(object sender, RoutedEventArgs e) { }
         private void EnableAccessibilityOptions_Checked(object sender, RoutedEventArgs e) { }
         private void EnableKeyboardLayoutAwareness_Checked(object sender, RoutedEventArgs e) { }
+        private void ImportExport_Click(object sender, RoutedEventArgs e) { MessageBox.Show("Import/Export profile feature not yet fully implemented."); }
         
         private void HotkeysDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
         
         private void StartRecording_Click(object sender, RoutedEventArgs e)
         {
-            _isRecordingHotkey = true;
-            _pressedKeys.Clear();
-            HotkeyRecordingTextBox.Text = "Recording... Press keys";
-            StartRecordingButton.IsEnabled = false;
-            StopRecordingButton.IsEnabled = true;
-            this.KeyDown += OnHotkeyRecordingKeyDown;
+            if (_isRecordingHotkey)
+            {
+                // Stop recording
+                StopRecordingHotkeyCapture();
+            }
+            else
+            {
+                // Start recording
+                _isRecordingHotkey = true;
+                _pressedKeys.Clear();
+                HotkeyRecordingTextBox.Text = "Recording... Press keys";
+                StartRecordingButton.Content = "⏹ Stop";
+                this.KeyDown += OnHotkeyRecordingKeyDown;
+            }
         }
 
-        private void StopRecording_Click(object sender, RoutedEventArgs e)
+        private void StopRecordingHotkeyCapture()
         {
             _isRecordingHotkey = false;
             this.KeyDown -= OnHotkeyRecordingKeyDown;
-            StartRecordingButton.IsEnabled = true;
-            StopRecordingButton.IsEnabled = false;
+            StartRecordingButton.Content = "🎤 Record";
             UpdateRecordingDisplay();
         }
 

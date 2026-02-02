@@ -8,6 +8,7 @@ using System.Windows.Input;
 using Microsoft.Extensions.Configuration;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
+using WhisperKey.Services.Validation;
 
 namespace WhisperKey.ViewModels
 {
@@ -806,33 +807,11 @@ namespace WhisperKey.ViewModels
 
                 var provider = TranscriptionProvider.ToLower();
                 
-                // Provider-specific validation
-                switch (provider)
+                // Use Strategy pattern for provider-specific validation
+                var validationStrategy = ApiKeyValidationFactory.GetStrategy(provider);
+                if (!validationStrategy.IsValid(apiKey))
                 {
-                    case "openai":
-                        if (!apiKey.StartsWith("sk-") || apiKey.Length < 20)
-                        {
-                            return false;
-                        }
-                        break;
-                    case "azure":
-                        if (!Guid.TryParse(apiKey, out _) && apiKey.Length < 32)
-                        {
-                            return false;
-                        }
-                        break;
-                    case "google":
-                        if (apiKey.Length < 30)
-                        {
-                            return false;
-                        }
-                        break;
-                    default:
-                        if (apiKey.Length < 10)
-                        {
-                            return false;
-                        }
-                        break;
+                    return false;
                 }
 
                 // Simulate API call with timeout

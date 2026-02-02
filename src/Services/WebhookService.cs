@@ -9,6 +9,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Polly;
+using Polly.CircuitBreaker;
+using Polly.Retry;
 using WhisperKey.Models;
 
 namespace WhisperKey.Services
@@ -85,6 +88,8 @@ namespace WhisperKey.Services
         private bool _isEnabled = false;
         private readonly List<WebhookLogEntry> _log = new();
         private readonly object _lock = new();
+        private AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+        private AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
         
         public bool IsEnabled => _isEnabled && _config.Enabled;
         
@@ -106,6 +111,9 @@ namespace WhisperKey.Services
             _httpClient.Timeout = TimeSpan.FromSeconds(config.TimeoutSeconds);
             
             _logger.LogInformation("Webhook configured for endpoint: {Endpoint}", config.EndpointUrl);
+            
+            InitializeResiliencePolicies();
+            
             return Task.CompletedTask;
         }
         
@@ -287,6 +295,39 @@ namespace WhisperKey.Services
         }
         
         /// <summary>
+        /// Initialize Polly resilience policies
+        /// </summary>
+        private void InitializeResiliencePolicies()
+        {
+            _retryPolicy = Policy<HttpResponseMessage>
+                .Handle<HttpRequestException>()
+                .OrResult(r => r.StatusCode == System.Net.HttpStatusCode.TooManyRequests
+                    || r.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable
+                    || r.StatusCode == System.Net.HttpStatusCode.BadGateway
+                    || r.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+                .WaitAndRetryAsync(3,
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (exception, timeSpan, retryCount, context) =>
+                    {
+                        _logger.LogWarning("Webhook retry {RetryCount} after {Delay}s due to: {Error}",
+                            retryCount, timeSpan.TotalSeconds, exception.Exception?.Message ?? "transient failure");
+                    });
+
+            _circuitBreakerPolicy = Policy
+                .Handle<Exception>()
+                .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30),
+                    (ex, duration) =>
+                    {
+                        _logger.LogError("Circuit breaker opened for {Duration}s due to: {Error}",
+                            duration.TotalSeconds, ex.Message);
+                    },
+                    () =>
+                    {
+                        _logger.LogInformation("Circuit breaker closed, webhooks resuming");
+                    });
+        }
+
+        /// <summary>
         /// Create webhook payload
         /// </summary>
         private WebhookPayload CreatePayload(WebhookEventType eventType, Dictionary<string, object> data, string? sessionId = null)
@@ -311,62 +352,63 @@ namespace WhisperKey.Services
             var startTime = DateTime.UtcNow;
             var result = new WebhookResult { PayloadId = payload.Id };
             
-            for (int attempt = 0; attempt <= _config.RetryCount; attempt++)
+            if (_circuitBreakerPolicy == null)
             {
-                try
-                {
-                    var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    });
-                    
-                    var content = new StringContent(json, Encoding.UTF8, "application/json");
-                    
-                    // Add headers
-                    AddHeaders(content, payload);
-                    
-                    var response = await _httpClient.PostAsync(_config.EndpointUrl, content);
-                    
-                    result.StatusCode = (int)response.StatusCode;
-                    result.Response = await response.Content.ReadAsStringAsync();
-                    result.Success = response.IsSuccessStatusCode;
-                    result.Duration = DateTime.UtcNow - startTime;
-                    
-                    if (response.IsSuccessStatusCode)
-                    {
-                        LogEntry(payload, result, true, attempt);
-                        return result;
-                    }
-                    
-                    if (attempt < _config.RetryCount)
-                    {
-                        _logger.LogWarning("Webhook attempt {Attempt} failed with status {StatusCode}, retrying...", 
-                            attempt + 1, (int)response.StatusCode);
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt))); // Exponential backoff
-                    }
-                }
-                catch (Exception ex)
-                {
-                    result.Error = SanitizeErrorMessage(ex.Message);
-                    
-                    if (attempt < _config.RetryCount)
-                    {
-                        _logger.LogWarning("Webhook attempt {Attempt} failed: {Error}, retrying...", 
-                            attempt + 1, SanitizeErrorMessage(ex.Message));
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
-                    }
-                    else
-                    {
-                        _logger.LogError("Webhook failed after {Retries} attempts: {Error}", 
-                            _config.RetryCount + 1, SanitizeErrorMessage(ex.Message));
-                    }
-                }
+                _logger.LogWarning("Resilience policies not initialized, webhook aborted");
+                result.Success = false;
+                result.Error = "Resilience policies not initialized";
+                return result;
             }
             
-            result.Success = false;
-            LogEntry(payload, result, false, _config.RetryCount);
+            // Check if circuit breaker is open
+            if (_circuitBreakerPolicy.CircuitState == CircuitState.Open)
+            {
+                _logger.LogWarning("Circuit breaker is open, webhook blocked");
+                result.Success = false;
+                result.Error = "Circuit breaker is open";
+                return result;
+            }
             
-            return result;
+            try
+            {
+                var response = await _circuitBreakerPolicy.ExecuteAsync(async () =>
+                {
+                    return await _retryPolicy.ExecuteAsync(async () =>
+                    {
+                        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        });
+                        
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+                        
+                        // Add headers
+                        AddHeaders(content, payload);
+                        
+                        return await _httpClient.PostAsync(_config.EndpointUrl, content);
+                    });
+                });
+                
+                result.StatusCode = (int)response.StatusCode;
+                result.Response = await response.Content.ReadAsStringAsync();
+                result.Success = response.IsSuccessStatusCode;
+                result.Duration = DateTime.UtcNow - startTime;
+                
+                LogEntry(payload, result, result.Success, 0);
+                
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = SanitizeErrorMessage(ex.Message);
+                result.Duration = DateTime.UtcNow - startTime;
+                
+                _logger.LogError("Webhook failed: {Error}", result.Error);
+                LogEntry(payload, result, false, 0);
+                
+                return result;
+            }
         }
         
         /// <summary>

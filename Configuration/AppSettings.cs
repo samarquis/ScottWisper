@@ -278,6 +278,11 @@ namespace WhisperKey.Configuration
         public DateTime LastDeviceRefresh { get; set; } = DateTime.MinValue;
         public int MaxTestHistory { get; set; } = 50;
         
+        // First-time setup wizard tracking
+        public bool FirstTimeSetupCompleted { get; set; } = false;
+        public bool ShowSetupWizardOnStartup { get; set; } = true;
+        public DateTime FirstRunDate { get; set; } = DateTime.MinValue;
+        
         // Enhanced device testing fields
         public List<AudioDeviceTestResult> AudioDeviceTestHistory { get; set; } = new List<AudioDeviceTestResult>();
         public List<AudioQualityMetrics> AudioQualityHistory { get; set; } = new List<AudioQualityMetrics>();

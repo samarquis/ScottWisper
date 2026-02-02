@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using WhisperKey.Models;
@@ -99,13 +100,13 @@ namespace WhisperKey.Services
     /// <summary>
     /// Implementation of audit logging service for HIPAA/GDPR compliance
     /// </summary>
-    public class AuditLoggingService : IAuditLoggingService
+    public class AuditLoggingService : IAuditLoggingService, IDisposable
     {
         private readonly ILogger<AuditLoggingService> _logger;
         private readonly string _logDirectory;
         private readonly List<RetentionPolicy> _retentionPolicies;
         private bool _isEnabled;
-        private readonly object _lock = new();
+        private readonly SemaphoreSlim _fileLock = new SemaphoreSlim(1, 1);
         
         public bool IsEnabled => _isEnabled;
         
@@ -447,7 +448,7 @@ namespace WhisperKey.Services
         /// </summary>
         public Task ConfigureRetentionPolicyAsync(RetentionPolicy policy)
         {
-            lock (_lock)
+            lock (_fileLock)
             {
                 var existing = _retentionPolicies.FirstOrDefault(p => p.Id == policy.Id);
                 if (existing != null)
@@ -575,29 +576,37 @@ namespace WhisperKey.Services
         }
         
         /// <summary>
-        /// Save a log entry to file
+        /// Save a log entry to file with proper locking to prevent race conditions
         /// </summary>
         private async Task SaveLogEntryAsync(AuditLogEntry entry)
         {
             var fileName = $"audit-{entry.Timestamp:yyyy-MM}.json";
             var filePath = Path.Combine(_logDirectory, fileName);
             
-            List<AuditLogEntry> entries;
-            
-            if (File.Exists(filePath))
+            await _fileLock.WaitAsync();
+            try
             {
-                var json = await File.ReadAllTextAsync(filePath);
-                entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
+                List<AuditLogEntry> entries;
+                
+                if (File.Exists(filePath))
+                {
+                    var json = await File.ReadAllTextAsync(filePath);
+                    entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
+                }
+                else
+                {
+                    entries = new List<AuditLogEntry>();
+                }
+                
+                entries.Add(entry);
+                
+                var newJson = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(filePath, newJson);
             }
-            else
+            finally
             {
-                entries = new List<AuditLogEntry>();
+                _fileLock.Release();
             }
-            
-            entries.Add(entry);
-            
-            var newJson = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, newJson);
         }
         
         /// <summary>
@@ -638,7 +647,7 @@ namespace WhisperKey.Services
         private RetentionPolicy? GetPolicyForEntry(AuditEventType eventType, DataSensitivity sensitivity,
             ComplianceType? complianceType = null)
         {
-            lock (_lock)
+            lock (_fileLock)
             {
                 // First, try to find a policy by compliance type
                 if (complianceType.HasValue)
@@ -710,6 +719,14 @@ namespace WhisperKey.Services
             var bytes = Encoding.UTF8.GetBytes(data);
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToHexString(hash);
+        }
+
+        /// <summary>
+        /// Dispose of resources
+        /// </summary>
+        public void Dispose()
+        {
+            _fileLock?.Dispose();
         }
     }
 }
