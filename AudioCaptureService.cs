@@ -374,6 +374,21 @@ namespace WhisperKey
         {
             try
             {
+                // Unsubscribe from AudioDeviceService permission events to prevent memory leaks
+                if (_audioDeviceService != null)
+                {
+                    _audioDeviceService.PermissionDenied -= OnPermissionDenied;
+                    _audioDeviceService.PermissionGranted -= OnPermissionGranted;
+                    _audioDeviceService.PermissionRequestFailed -= OnPermissionRequestFailed;
+                }
+
+                // Unsubscribe from waveIn events
+                if (_waveIn != null)
+                {
+                    _waveIn.DataAvailable -= OnDataAvailable;
+                    _waveIn.RecordingStopped -= OnRecordingStopped;
+                }
+
                 if (_isCapturing && _waveIn != null)
                 {
                     _waveIn.StopRecording();

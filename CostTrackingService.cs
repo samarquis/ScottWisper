@@ -37,10 +37,11 @@ namespace WhisperKey
                 "usage.json"
             );
             
+            // Initialize synchronously for constructor - async version available for explicit init
             LoadUsageData();
             
             // Auto-save timer - saves every minute
-            _saveTimer = new Timer(SaveUsageData, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            _saveTimer = new Timer(SaveUsageDataCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         }
         
         public CostTrackingService(ISettingsService settingsService)
@@ -53,6 +54,7 @@ namespace WhisperKey
                 "usage.json"
             );
             
+            // Initialize synchronously for constructor - async version available for explicit init
             LoadUsageData();
             
             // Subscribe to settings changes
@@ -62,7 +64,16 @@ namespace WhisperKey
             }
             
             // Auto-save timer - saves every minute
-            _saveTimer = new Timer(SaveUsageData, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+            _saveTimer = new Timer(SaveUsageDataCallback, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+
+        /// <summary>
+        /// Asynchronously initializes the service by loading usage data.
+        /// Call this after construction if you want async initialization.
+        /// </summary>
+        public async Task InitializeAsync()
+        {
+            await LoadUsageDataAsync();
         }
 
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
@@ -117,9 +128,29 @@ namespace WhisperKey
                     DailyUsage = new Dictionary<DateTime, DailyUsage>()
                 };
                 
+                // Synchronous save for backward compatibility
                 SaveUsageData(null);
                 UpdateAndNotify();
             }
+        }
+
+        public async Task ResetUsageDataAsync()
+        {
+            lock (_lockObject)
+            {
+                _usageData = new UsageData
+                {
+                    CreatedAt = DateTime.Now,
+                    TotalRequests = 0,
+                    FailedRequests = 0,
+                    TotalMinutes = 0,
+                    TotalCost = 0,
+                    DailyUsage = new Dictionary<DateTime, DailyUsage>()
+                };
+            }
+            
+            await SaveUsageDataAsync();
+            UpdateAndNotify();
         }
 
         public UsageReport GenerateReport(ReportPeriod period)
@@ -217,11 +248,18 @@ namespace WhisperKey
 
         private void LoadUsageData()
         {
+            // Synchronous wrapper that blocks on the async operation
+            // For true async, use LoadUsageDataAsync() with await
+            LoadUsageDataAsync().GetAwaiter().GetResult();
+        }
+
+        private async Task LoadUsageDataAsync()
+        {
             try
             {
                 if (File.Exists(_usageDataPath))
                 {
-                    var json = File.ReadAllText(_usageDataPath);
+                    var json = await File.ReadAllTextAsync(_usageDataPath);
                     var options = new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
@@ -255,6 +293,20 @@ namespace WhisperKey
 
         private void SaveUsageData(object? state)
         {
+            // Synchronous wrapper for backward compatibility
+            // For async operations from timer, use SaveUsageDataAsync directly
+            SaveUsageDataAsync().GetAwaiter().GetResult();
+        }
+
+        private void SaveUsageDataCallback(object? state)
+        {
+            // Fire-and-forget async save for timer callback
+            // Using ConfigureAwait(false) since we're on a background thread
+            _ = SaveUsageDataAsync().ConfigureAwait(false);
+        }
+
+        private async Task SaveUsageDataAsync()
+        {
             try
             {
                 var directory = Path.GetDirectoryName(_usageDataPath);
@@ -270,7 +322,7 @@ namespace WhisperKey
                 };
 
                 var json = JsonSerializer.Serialize(_usageData, options);
-                File.WriteAllText(_usageDataPath, json);
+                await File.WriteAllTextAsync(_usageDataPath, json);
             }
             catch (Exception ex)
             {
@@ -285,8 +337,15 @@ namespace WhisperKey
 
         public void Dispose()
         {
+            // Unsubscribe from settings changes to prevent memory leak
+            if (_settingsService != null)
+            {
+                _settingsService.SettingsChanged -= OnSettingsChanged;
+            }
+            
             _saveTimer?.Dispose();
-            SaveUsageData(null); // Save on dispose
+            // Fire-and-forget async save on dispose
+            _ = SaveUsageDataAsync().ConfigureAwait(false);
         }
     }
 
