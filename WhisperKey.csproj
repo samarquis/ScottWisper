@@ -16,6 +16,12 @@
   
   <ItemGroup>
     <Content Include="Resources\**" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Remove="Tests\**" />
+    <Compile Remove="Phase04ValidatorRunner.cs" />
+    <Compile Remove="Phase05ValidatorRunner.cs" />
+    <Compile Remove="SystemTrayVerification.cs" />
+    <Compile Remove="VerificationRunner.cs" />
+    <None Remove="Tests\**" />
   </ItemGroup>
   
   <ItemGroup>
@@ -32,11 +38,6 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-    <!-- Testing Framework -->
-    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
-    <PackageReference Include="Moq" Version="4.20.69" />
-    <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.2" />
     <PackageReference Include="Whisper.net" Version="1.8.1" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />

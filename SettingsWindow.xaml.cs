@@ -1118,6 +1118,133 @@ namespace WhisperKey
         private void AdvancedResetAPISettings_Click(object sender, RoutedEventArgs e) { }
         private void AdvancedResetAllSettings_Click(object sender, RoutedEventArgs e) { }
 
+        private void TestInjection_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    // Get the text injection service from application properties
+                    if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
+                    {
+                        var result = await textInjection.TestInjectionAsync();
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show($"Test injection result: {result}", "Text Injection Test", 
+                                MessageBoxButton.OK, result ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                        });
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"Error during test: {ex.Message}", "Test Error", 
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
+            });
+        }
+
+        private void CompatibilityCheck_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
+                    {
+                        var windowInfo = textInjection.GetCurrentWindowInfo();
+                        var activeApp = textInjection.DetectActiveApplication();
+                        var compatibility = textInjection.GetApplicationCompatibility(activeApp.ToString());
+                        
+                        Dispatcher.Invoke(() =>
+                        {
+                            var message = $"Active Application: {activeApp}\n" +
+                                         $"Window Title: {windowInfo}\n" +
+                                         $"Compatibility: {compatibility}";
+                            MessageBox.Show(message, "Application Compatibility Check", 
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+                        });
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"Error checking compatibility: {ex.Message}", "Check Error", 
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
+            });
+        }
+
+        private void DebugModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
+                    {
+                        var currentDebugMode = _settingsService?.Settings?.TextInjection?.EnableDebugMode ?? false;
+                        var newDebugMode = !currentDebugMode;
+                        
+                        textInjection.SetDebugMode(newDebugMode);
+                        
+                        if (_settingsService?.Settings?.TextInjection != null)
+                        {
+                            _settingsService.Settings.TextInjection.EnableDebugMode = newDebugMode;
+                            await _settingsService.SaveAsync();
+                        }
+                        
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (DebugModeStatusText != null)
+                            {
+                                DebugModeStatusText.Text = $"Debug mode: {(newDebugMode ? "On" : "Off")}";
+                            }
+                            
+                            MessageBox.Show($"Debug mode is now {(newDebugMode ? "ENABLED" : "DISABLED")}", 
+                                "Debug Mode Toggle", MessageBoxButton.OK, MessageBoxImage.Information);
+                        });
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"Error toggling debug mode: {ex.Message}", "Toggle Error", 
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                }
+            });
+        }
+
         private void EnableAutoPunctuation_Checked(object sender, RoutedEventArgs e) { }
         private void EnableRealTimeTranscription_Checked(object sender, RoutedEventArgs e) { }
         private void EnableProfanityFilter_Checked(object sender, RoutedEventArgs e) { }

@@ -1,0 +1,265 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.planning/**'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.planning/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.0.0)'
+        required: false
+        default: ''
+        type: string
+      publish_artifacts:
+        description: 'Publish build artifacts'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  CONFIGURATION: 'Release'
+  PUBLISH_DIR: './publish'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/WhisperKey.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Restore dependencies
+      run: |
+        dotnet restore WhisperKey.csproj
+        dotnet restore test/WhisperKey.Tests/WhisperKey.Tests.csproj
+
+    - name: Build application
+      run: dotnet build WhisperKey.csproj --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Build tests
+      run: dotnet build test/WhisperKey.Tests/WhisperKey.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-restore
+
+    - name: Run tests
+      run: dotnet test test/WhisperKey.Tests/WhisperKey.Tests.csproj --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal --logger trx
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: test/WhisperKey.Tests/TestResults/*.trx
+        retention-days: 30
+
+  publish:
+    name: Publish Application
+    needs: build-and-test
+    runs-on: windows-latest
+    if: github.event.inputs.publish_artifacts != 'false' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch')
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Get version
+      id: version
+      shell: pwsh
+      run: |
+        if ("${{ github.event.inputs.version }}") {
+          $version = "${{ github.event.inputs.version }}"
+        } else {
+          [xml]$csproj = Get-Content WhisperKey.csproj
+          $version = $csproj.Project.PropertyGroup.Version
+        }
+        Write-Output "version=$version" >> $env:GITHUB_OUTPUT
+        Write-Host "Building version: $version"
+
+    - name: Publish application
+      run: |
+        dotnet publish WhisperKey.csproj `
+          --configuration ${{ env.CONFIGURATION }} `
+          --runtime win-x64 `
+          --self-contained true `
+          --output ${{ env.PUBLISH_DIR }} `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true
+
+    - name: Upload publish artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: whisperkey-publish
+        path: ${{ env.PUBLISH_DIR }}
+        retention-days: 30
+
+  build-installer:
+    name: Build MSI Installer
+    needs: publish
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download publish artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: whisperkey-publish
+        path: ${{ env.PUBLISH_DIR }}
+
+    - name: Setup WiX Toolset
+      run: |
+        dotnet tool install --global wix --version 4.0.5
+        wix --version
+
+    - name: Build MSI installer
+      shell: pwsh
+      run: |
+        $version = "${{ needs.publish.outputs.version }}"
+        & .\Installer\build-msi.ps1 -Version $version -PublishDir "${{ env.PUBLISH_DIR }}" -OutputMsi "WhisperKey.msi"
+
+    - name: Upload MSI artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: whisperkey-installer
+        path: WhisperKey.msi
+        retention-days: 90
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore WhisperKey.csproj
+
+    - name: Run dotnet format check
+      run: dotnet format WhisperKey.csproj --verify-no-changes --verbosity detailed
+
+    - name: Run static analysis
+      run: |
+        dotnet build WhisperKey.csproj --configuration Release -p:TreatWarningsAsErrors=false -p:RunAnalyzersDuringBuild=true
+
+  security-scan:
+    name: Security Scan
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore WhisperKey.csproj
+
+    - name: Run dependency vulnerability scan
+      run: dotnet list WhisperKey.csproj package --vulnerable --include-transitive 2>&1 | tee vulnerable-packages.log
+      continue-on-error: true
+
+    - name: Upload vulnerability report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-results
+        path: vulnerable-packages.log
+        retention-days: 30
+
+  release:
+    name: Create Release
+    needs: [build-installer, publish]
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download MSI artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: whisperkey-installer
+        path: ./release
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ needs.publish.outputs.version }}
+        release_name: WhisperKey v${{ needs.publish.outputs.version }}
+        body: |
+          ## WhisperKey Release v${{ needs.publish.outputs.version }}
+          
+          ### Installation
+          Download and run `WhisperKey.msi` to install WhisperKey on your Windows machine.
+          
+          ### What's Included
+          - Self-contained .NET 8 WPF application
+          - No additional runtime required
+          - Full installer with uninstall support
+          
+          ### System Requirements
+          - Windows 10 or later (64-bit)
+          - 4GB RAM minimum
+          - Microphone for dictation features
+        draft: false
+        prerelease: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./release/WhisperKey.msi
+        asset_name: WhisperKey.msi
+        asset_content_type: application/x-msi

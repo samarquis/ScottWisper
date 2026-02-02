@@ -29,8 +29,6 @@ namespace WhisperKey.Bootstrap
         // Enhanced services for gap closure
         public IAudioDeviceService? AudioDeviceService { get; private set; }
         public ValidationService? ValidationService { get; private set; }
-        public ValidationTestRunner? ValidationTestRunner { get; private set; }
-        public TestEnvironmentManager? TestEnvironmentManager { get; private set; }
         
         // State
         public bool GracefulFallbackMode { get; private set; }
