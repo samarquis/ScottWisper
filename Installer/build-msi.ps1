@@ -1,11 +1,31 @@
 # Build script for WhisperKey MSI
 # This script generates WiX components from the publish folder and builds the MSI
+# Version is read from WhisperKey.csproj (single source of truth)
 
 param(
-    [string]$Version = "1.0.0",
+    [string]$Version = "",  # If empty, will be read from .csproj
     [string]$PublishDir = "./publish",
     [string]$OutputMsi = "./WhisperKey.msi"
 )
+
+# Read version from .csproj if not provided
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $csprojPath = Join-Path $PSScriptRoot "..\WhisperKey.csproj"
+    if (Test-Path $csprojPath) {
+        $csprojContent = Get-Content $csprojPath -Raw
+        # Extract Version from <Version>1.0.0</Version>
+        if ($csprojContent -match '<Version>([^<]+)</Version>') {
+            $Version = $Matches[1]
+            Write-Host "Version read from WhisperKey.csproj: $Version" -ForegroundColor Cyan
+        } else {
+            Write-Host "Warning: Could not find Version in .csproj, using default: 1.0.0" -ForegroundColor Yellow
+            $Version = "1.0.0"
+        }
+    } else {
+        Write-Host "Warning: WhisperKey.csproj not found at $csprojPath, using default version: 1.0.0" -ForegroundColor Yellow
+        $Version = "1.0.0"
+    }
+}
 
 Write-Host "Building WhisperKey MSI v$Version..." -ForegroundColor Green
 
@@ -76,7 +96,7 @@ Write-Host "Generated Files.wxs with $($files.Count) files" -ForegroundColor Yel
 
 # Build the MSI
 Write-Host "Building MSI..." -ForegroundColor Green
-wix build ./Installer/WhisperKey.wxs ./Installer/Files.wxs -o $OutputMsi
+wix build ./Installer/WhisperKey.wxs ./Installer/Files.wxs -d Version="$Version" -o $OutputMsi
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "MSI built successfully: $OutputMsi" -ForegroundColor Green
