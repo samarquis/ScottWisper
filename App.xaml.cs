@@ -38,15 +38,18 @@ namespace WhisperKey
                 var exception = args.ExceptionObject as Exception;
                 if (exception != null && !IsFatalException(exception))
                 {
+                    // Log technical details for debugging
                     System.Diagnostics.Debug.WriteLine($"Unhandled AppDomain exception: {exception}");
                     LogException(exception, "AppDomain.UnhandledException");
                     
-                    // Show error message on UI thread
+                    // Show user-friendly message (technical details are in the log)
                     Dispatcher.InvokeAsync(() =>
                     {
                         MessageBox.Show(
-                            $"An unexpected error occurred:\n\n{exception.Message}\n\nThe application will continue running, but may be in an unstable state.",
-                            "WhisperKey Error",
+                            "An unexpected error occurred in the background.\n\n" +
+                            "The application will continue running, but you may want to restart it if you notice any issues.\n\n" +
+                            "Technical details have been logged for troubleshooting.",
+                            "WhisperKey",
                             MessageBoxButton.OK,
                             MessageBoxImage.Warning);
                     });
@@ -57,6 +60,7 @@ namespace WhisperKey
             TaskScheduler.UnobservedTaskException += (sender, args) =>
             {
                 var exception = args.Exception;
+                // Log technical details only (no user message for background task failures)
                 System.Diagnostics.Debug.WriteLine($"Unobserved task exception: {exception}");
                 LogException(exception, "TaskScheduler.UnobservedTaskException");
                 
@@ -70,13 +74,16 @@ namespace WhisperKey
                 var exception = args.Exception;
                 if (!IsFatalException(exception))
                 {
+                    // Log technical details for debugging
                     System.Diagnostics.Debug.WriteLine($"Dispatcher unhandled exception: {exception}");
                     LogException(exception, "DispatcherUnhandledException");
                     
-                    // Show error and mark as handled to prevent application crash
+                    // Show user-friendly message without technical details
                     MessageBox.Show(
-                        $"An unexpected UI error occurred:\n\n{exception.Message}\n\nThe application will continue running.",
-                        "WhisperKey Error",
+                        "An error occurred while processing your request.\n\n" +
+                        "The application will continue running. If the problem persists, please restart WhisperKey.\n\n" +
+                        "Technical details have been saved to the error log.",
+                        "WhisperKey",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                     
@@ -161,15 +168,24 @@ namespace WhisperKey
             }
             catch (InvalidOperationException ex)
             {
-                await ShowErrorAndShutdownAsync($"Failed to start application: {ex.Message}");
+                LogException(ex, "InitializeAsync.InvalidOperation");
+                await ShowErrorAndShutdownAsync(
+                    "WhisperKey couldn't start properly due to an internal error.",
+                    "Try restarting the application. If the problem persists, reinstall WhisperKey.");
             }
             catch (System.IO.FileNotFoundException ex)
             {
-                await ShowErrorAndShutdownAsync($"Required file not found: {ex.Message}");
+                LogException(ex, "InitializeAsync.FileNotFound");
+                await ShowErrorAndShutdownAsync(
+                    "A required file is missing.",
+                    "Please reinstall WhisperKey to restore missing files.");
             }
             catch (System.Configuration.ConfigurationErrorsException ex)
             {
-                await ShowErrorAndShutdownAsync($"Configuration error: {ex.Message}");
+                LogException(ex, "InitializeAsync.Configuration");
+                await ShowErrorAndShutdownAsync(
+                    "WhisperKey's settings file is damaged.",
+                    "Your settings will be reset to defaults. The application will create a new settings file on restart.");
             }
         }
         
@@ -200,11 +216,17 @@ namespace WhisperKey
             }
         }
         
-        private async Task ShowErrorAndShutdownAsync(string message)
+        private async Task ShowErrorAndShutdownAsync(string userMessage, string? actionMessage = null)
         {
             await Dispatcher.InvokeAsync(() =>
             {
-                MessageBox.Show(message, "WhisperKey Error",
+                var fullMessage = userMessage;
+                if (!string.IsNullOrEmpty(actionMessage))
+                {
+                    fullMessage += $"\n\nWhat you can do:\n{actionMessage}";
+                }
+                
+                MessageBox.Show(fullMessage, "WhisperKey Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown();
             }, System.Windows.Threading.DispatcherPriority.Background);
