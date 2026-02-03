@@ -698,15 +698,25 @@ namespace WhisperKey
                     response.StatusCode == HttpStatusCode.BadGateway ||
                     response.StatusCode == HttpStatusCode.GatewayTimeout)
                 .WaitAndRetryAsync(
-                    retryCount: 3,
+                    retryCount: 5,
                     sleepDurationProvider: retryAttempt => 
-                        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Exponential: 2, 4, 8 seconds
+                        TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + GetJitter(), // Exponential: 2, 4, 8 seconds
                     onRetryAsync: (outcome, timespan, retryCount, context) =>
                     {
                         System.Diagnostics.Debug.WriteLine(
-                            $"Retry {retryCount} after {timespan.TotalSeconds}s due to: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
+                            $"Retry {retryCount} after {timespan.TotalSeconds:F1}s due to: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
                         return Task.CompletedTask;
                     });
+        }
+        
+        /// <summary>
+        /// Gets random jitter value to prevent thundering herd problem
+        /// Adds small random delay to retry intervals to avoid synchronized retries
+        /// </summary>
+        private static TimeSpan GetJitter()
+        {
+            // Random value between 0 and 1000ms
+            return TimeSpan.FromMilliseconds(new Random().Next(0, 1000));
         }
         
         /// <summary>
