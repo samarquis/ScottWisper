@@ -711,7 +711,7 @@ namespace WhisperKey.Tests.Unit
             _service.PermissionRequired += (s, e) => permissionRequiredRaised = true;
 
             // Act - Simulate permission denied from AudioDeviceService
-            _audioDeviceServiceMock.Raise(a => a.PermissionDenied += null, EventArgs.Empty);
+            _audioDeviceServiceMock.Raise(a => a.PermissionDenied += null, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Test permission denied"));
 
             // Assert
             Assert.IsTrue(permissionRequiredRaised);
@@ -727,7 +727,7 @@ namespace WhisperKey.Tests.Unit
             _service.PermissionRetry += (s, e) => permissionRetryRaised = true;
 
             // Act - Simulate permission granted from AudioDeviceService
-            _audioDeviceServiceMock.Raise(a => a.PermissionGranted += null, EventArgs.Empty);
+            _audioDeviceServiceMock.Raise(a => a.PermissionGranted += null, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Test permission granted"));
 
             // Assert
             Assert.IsTrue(permissionRetryRaised);
@@ -743,7 +743,7 @@ namespace WhisperKey.Tests.Unit
             _service.PermissionRequired += (s, e) => permissionRequiredRaised = true;
 
             // Act - Simulate permission request failed from AudioDeviceService
-            _audioDeviceServiceMock.Raise(a => a.PermissionRequestFailed += null, EventArgs.Empty);
+            _audioDeviceServiceMock.Raise(a => a.PermissionRequestFailed += null, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, "Test permission request failed"));
 
             // Assert
             Assert.IsTrue(permissionRequiredRaised);
@@ -796,13 +796,20 @@ namespace WhisperKey.Tests.Unit
         public void Dispose_HandlesException()
         {
             // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+            
             var mockWaveIn = new Mock<IWaveIn>();
             mockWaveIn.Setup(w => w.StopRecording()).Throws(new InvalidOperationException("Stop error"));
             
             _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn.Object);
-
+            
             Exception? capturedError = null;
             _service.CaptureError += (s, e) => capturedError = e;
+
+            // Start capturing so that StopRecording will be called during Dispose
+            _service.StartCaptureAsync().Wait();
 
             // Act & Assert - Should not throw
             _service.Dispose();
