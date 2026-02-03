@@ -192,8 +192,8 @@ namespace WhisperKey.Services
         _enumerator = new AudioDeviceEnumerator();
         _ownsEnumerator = true;
         
-        // Initialize device change monitoring
-        InitializeMonitoringAsync();
+        // Initialize device change monitoring (fire-and-forget with exception handling)
+        InitializeMonitoring();
     }
 
     /// <summary>
@@ -212,8 +212,31 @@ namespace WhisperKey.Services
         
         private void InitializeMonitoring()
         {
-            // Fire-and-forget with exception handling
-            _ = InitializeMonitoringAsync();
+            // Fire-and-forget with proper exception handling
+            _ = FireAndForgetWithExceptionHandling(InitializeMonitoringAsync, "InitializeMonitoring");
+        }
+        
+        /// <summary>
+        /// Safely executes an async method as fire-and-forget with exception handling
+        /// </summary>
+        private async Task FireAndForgetWithExceptionHandling(Func<Task> asyncMethod, string operationName)
+        {
+            try
+            {
+                await asyncMethod().ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Fire-and-forget operation '{operationName}' failed: {ex.Message}");
+            }
+            catch (COMException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Fire-and-forget operation '{operationName}' failed: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Fire-and-forget operation '{operationName}' failed unexpectedly: {ex.Message}");
+            }
         }
         
         private async Task InitializeMonitoringAsync()
@@ -1565,8 +1588,8 @@ namespace WhisperKey.Services
                         _isMonitoring = true;
                         System.Diagnostics.Debug.WriteLine("Device change monitoring started successfully");
                         
-                        // Start monitoring thread to process messages
-                        _ = MonitorDeviceMessages();
+                        // Start monitoring thread to process messages with proper exception handling
+                        _ = RunBackgroundMonitoringAsync();
                         return Task.FromResult(true);
                     }
                     else
@@ -1590,6 +1613,22 @@ namespace WhisperKey.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error starting device monitoring: {ex.Message}");
                 return Task.FromResult(false);
+            }
+        }
+
+        /// <summary>
+        /// Runs background monitoring with top-level exception handling for fire-and-forget safety
+        /// </summary>
+        private async Task RunBackgroundMonitoringAsync()
+        {
+            try
+            {
+                await MonitorDeviceMessages().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Background monitoring task failed unexpectedly: {ex.Message}");
+                _isMonitoring = false;
             }
         }
 
@@ -1677,7 +1716,7 @@ namespace WhisperKey.Services
         /// </summary>
         private void HandleDeviceReconnection(string deviceId)
         {
-            // Fire-and-forget with exception handling
+            // Fire-and-forget with proper exception handling
             _ = HandleDeviceReconnectionAsync(deviceId);
         }
         
@@ -1692,8 +1731,8 @@ namespace WhisperKey.Services
                     DeviceConnected?.Invoke(this, eventArgs);
                     System.Diagnostics.Debug.WriteLine($"Device reconnected: {deviceId}");
 
-                    // Test the reconnected device (fire-and-forget)
-                    _ = TestDeviceAsync(deviceId);
+                    // Test the reconnected device - await to properly handle exceptions
+                    await TestDeviceAsync(deviceId).ConfigureAwait(false);
                 }
             }
             catch (InvalidOperationException ex)
@@ -1950,14 +1989,14 @@ namespace WhisperKey.Services
         /// <summary>
         /// Enters graceful fallback mode when permission or device issues occur
         /// </summary>
-        public Task EnterGracefulFallbackModeAsync(string reason)
+        public async Task EnterGracefulFallbackModeAsync(string reason)
         {
             try
             {
                 System.Diagnostics.Debug.WriteLine($"Entering graceful fallback mode: {reason}");
                 
-                // Stop any active monitoring - fire and forget, this is synchronous
-                _ = StopRealTimeMonitoringAsync();
+                // Stop any active monitoring - await to properly handle any exceptions
+                await StopRealTimeMonitoringAsync().ConfigureAwait(false);
                 
                 // Notify about fallback mode
                 PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, reason)
@@ -1970,8 +2009,14 @@ namespace WhisperKey.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error entering graceful fallback mode: {ex.Message}");
             }
-
-            return Task.CompletedTask;
+            catch (IOException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping monitoring during fallback: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Unexpected error in graceful fallback: {ex.Message}");
+            }
         }
 
         /// <summary>
