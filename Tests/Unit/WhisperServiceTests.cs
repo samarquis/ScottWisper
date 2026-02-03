@@ -23,6 +23,51 @@ namespace WhisperKey.Tests.Unit
         private Mock<HttpMessageHandler> _httpHandlerMock = null!;
         private HttpClient _httpClient = null!;
 
+        /// <summary>
+        /// Creates a minimal valid WAV file with proper headers for testing.
+        /// Generates a 1-second silent mono 16-bit 16kHz WAV file.
+        /// </summary>
+        private static byte[] CreateValidWavData(int durationSeconds = 1)
+        {
+            const int sampleRate = 16000;
+            const short bitsPerSample = 16;
+            const short channels = 1;
+            const int byteRate = sampleRate * channels * bitsPerSample / 8;
+            const int blockAlign = channels * bitsPerSample / 8;
+            
+            int dataSize = sampleRate * durationSeconds * blockAlign;
+            int fileSize = 36 + dataSize; // 44 header bytes - 8 (RIFF size field)
+            
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms);
+            
+            // RIFF header
+            writer.Write(Encoding.ASCII.GetBytes("RIFF"));
+            writer.Write(fileSize);
+            writer.Write(Encoding.ASCII.GetBytes("WAVE"));
+            
+            // fmt subchunk
+            writer.Write(Encoding.ASCII.GetBytes("fmt "));
+            writer.Write(16); // Subchunk1Size (16 for PCM)
+            writer.Write((short)1); // AudioFormat (1 for PCM)
+            writer.Write(channels);
+            writer.Write(sampleRate);
+            writer.Write(byteRate);
+            writer.Write(blockAlign);
+            writer.Write(bitsPerSample);
+            
+            // data subchunk
+            writer.Write(Encoding.ASCII.GetBytes("data"));
+            writer.Write(dataSize);
+            
+            // Write silent audio data
+            byte[] audioData = new byte[dataSize];
+            writer.Write(audioData);
+            
+            writer.Flush();
+            return ms.ToArray();
+        }
+
         [TestInitialize]
         public void Setup()
         {
@@ -113,7 +158,7 @@ namespace WhisperKey.Tests.Unit
             var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
 
             // Act
-            var result = await service.TranscribeAudioAsync(new byte[32000]); // 1 second of audio
+            var result = await service.TranscribeAudioAsync(CreateValidWavData()); // 1 second of audio
 
             // Assert
             Assert.AreEqual(expectedText, result);
@@ -141,31 +186,31 @@ namespace WhisperKey.Tests.Unit
             // Act & Assert
             await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
             {
-                await service.TranscribeAudioAsync(new byte[32000]);
+                await service.TranscribeAudioAsync(CreateValidWavData());
             });
         }
 
         [TestMethod]
-        public async Task TranscribeAudioAsync_EmptyAudio_ThrowsArgumentException()
+        public async Task TranscribeAudioAsync_EmptyAudio_ThrowsSecurityException()
         {
             // Arrange
             var service = new WhisperService(_settingsServiceMock.Object, (LocalInferenceService?)null);
 
             // Act & Assert
-            await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+            await Assert.ThrowsExceptionAsync<System.Security.SecurityException>(async () =>
             {
                 await service.TranscribeAudioAsync(new byte[0]);
             });
         }
 
         [TestMethod]
-        public async Task TranscribeAudioAsync_NullAudio_ThrowsArgumentException()
+        public async Task TranscribeAudioAsync_NullAudio_ThrowsSecurityException()
         {
             // Arrange
             var service = new WhisperService(_settingsServiceMock.Object, (LocalInferenceService?)null);
 
             // Act & Assert
-            await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+            await Assert.ThrowsExceptionAsync<System.Security.SecurityException>(async () =>
             {
                 await service.TranscribeAudioAsync(null!);
             });
@@ -196,8 +241,8 @@ namespace WhisperKey.Tests.Unit
 
             try
             {
-                // Create test file
-                File.WriteAllBytes(tempFile, new byte[32000]);
+                // Create test file with valid WAV data
+                File.WriteAllBytes(tempFile, CreateValidWavData());
 
                 _httpHandlerMock.Protected()
                     .Setup<Task<HttpResponseMessage>>("SendAsync",
@@ -310,7 +355,7 @@ namespace WhisperKey.Tests.Unit
 
             // Act - In real scenario, local inference would throw and fallback occurs
             // For this test, we verify cloud path is available
-            var result = await service.TranscribeAudioAsync(new byte[32000]);
+            var result = await service.TranscribeAudioAsync(CreateValidWavData());
 
             // Assert
             Assert.AreEqual(expectedText, result);
@@ -345,7 +390,7 @@ namespace WhisperKey.Tests.Unit
             service.TranscriptionStarted += (s, e) => eventFired = true;
 
             // Act
-            await service.TranscribeAudioAsync(new byte[32000]);
+            await service.TranscribeAudioAsync(CreateValidWavData());
 
             // Assert
             Assert.IsTrue(eventFired, "TranscriptionStarted event should fire");
@@ -376,7 +421,7 @@ namespace WhisperKey.Tests.Unit
             service.TranscriptionProgress += (s, e) => progressValues.Add(e);
 
             // Act
-            await service.TranscribeAudioAsync(new byte[32000]);
+            await service.TranscribeAudioAsync(CreateValidWavData());
 
             // Assert
             Assert.IsTrue(progressValues.Count > 0, "TranscriptionProgress event should fire");
@@ -410,7 +455,7 @@ namespace WhisperKey.Tests.Unit
             service.TranscriptionCompleted += (s, e) => completedText = e;
 
             // Act
-            await service.TranscribeAudioAsync(new byte[32000]);
+            await service.TranscribeAudioAsync(CreateValidWavData());
 
             // Assert
             Assert.AreEqual(expectedText, completedText);
@@ -440,7 +485,7 @@ namespace WhisperKey.Tests.Unit
             // Act
             try
             {
-                await service.TranscribeAudioAsync(new byte[32000]);
+                await service.TranscribeAudioAsync(CreateValidWavData());
             }
             catch
             {
@@ -477,7 +522,7 @@ namespace WhisperKey.Tests.Unit
             service.UsageUpdated += (s, e) => capturedStats = e;
 
             // Act
-            await service.TranscribeAudioAsync(new byte[32000]); // 1 second of audio
+            await service.TranscribeAudioAsync(CreateValidWavData()); // 1 second of audio
 
             // Assert
             Assert.IsNotNull(capturedStats);
@@ -527,7 +572,7 @@ namespace WhisperKey.Tests.Unit
             var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
 
             // Act
-            await service.TranscribeAudioAsync(new byte[64000]); // 2 seconds of audio
+            await service.TranscribeAudioAsync(CreateValidWavData(2)); // 2 seconds of audio
             var stats = service.GetUsageStats();
 
             // Assert
@@ -559,9 +604,9 @@ namespace WhisperKey.Tests.Unit
             var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
 
             // Act
-            await service.TranscribeAudioAsync(new byte[32000]);
-            await service.TranscribeAudioAsync(new byte[32000]);
-            await service.TranscribeAudioAsync(new byte[32000]);
+            await service.TranscribeAudioAsync(CreateValidWavData());
+            await service.TranscribeAudioAsync(CreateValidWavData());
+            await service.TranscribeAudioAsync(CreateValidWavData());
             var stats = service.GetUsageStats();
 
             // Assert
@@ -611,7 +656,7 @@ namespace WhisperKey.Tests.Unit
             var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
 
             // Act
-            var result = await service.TranscribeAudioAsync(new byte[32000]);
+            var result = await service.TranscribeAudioAsync(CreateValidWavData());
 
             // Assert - Returns empty string when text field is missing
             Assert.AreEqual(string.Empty, result);
@@ -639,7 +684,7 @@ namespace WhisperKey.Tests.Unit
             // Act & Assert
             await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
             {
-                await service.TranscribeAudioAsync(new byte[32000]);
+                await service.TranscribeAudioAsync(CreateValidWavData());
             });
         }
 
@@ -661,7 +706,7 @@ namespace WhisperKey.Tests.Unit
             // Act & Assert
             await Assert.ThrowsExceptionAsync<OutOfMemoryException>(async () =>
             {
-                await service.TranscribeAudioAsync(new byte[32000]);
+                await service.TranscribeAudioAsync(CreateValidWavData());
             });
         }
 
@@ -683,7 +728,7 @@ namespace WhisperKey.Tests.Unit
 
             try
             {
-                File.WriteAllBytes(tempFile, new byte[32000]);
+                File.WriteAllBytes(tempFile, CreateValidWavData());
 
                 // Act & Assert
                 await Assert.ThrowsExceptionAsync<StackOverflowException>(async () =>

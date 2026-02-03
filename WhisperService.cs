@@ -29,6 +29,9 @@ namespace WhisperKey
         
         private const string DefaultApiEndpoint = "https://api.openai.com/v1/audio/transcriptions";
         
+        // Maximum audio file size (25MB - OpenAI API limit)
+        private const int MaxAudioSizeBytes = 25 * 1024 * 1024;
+        
         // API usage tracking
         private int _requestCount = 0;
         private decimal _estimatedCost = 0.0m;
@@ -121,7 +124,16 @@ namespace WhisperKey
                 var endpoint = await GetApiEndpointFromSettingsAsync().ConfigureAwait(false);
                 if (!string.IsNullOrEmpty(endpoint))
                 {
-                    _baseUrl = endpoint;
+                    // Validate endpoint URL format before using
+                    if (ValidateApiEndpoint(endpoint))
+                    {
+                        _baseUrl = endpoint;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Invalid API endpoint URL format: {endpoint}. Using default endpoint.");
+                        _baseUrl = DefaultApiEndpoint;
+                    }
                 }
             }
             catch (Exception ex)
@@ -134,14 +146,12 @@ namespace WhisperKey
         {
             try
             {
+                // Validate audio data before processing
+                ValidateAudioData(audioData);
+                
                 // Notify transcription started
                 TranscriptionStarted?.Invoke(this, EventArgs.Empty);
                 
-                if (audioData == null || audioData.Length == 0)
-                {
-                    throw new ArgumentException("Audio data cannot be null or empty");
-                }
-
                 // Check if we should use local inference
                 if (_settingsService?.Settings.Transcription.Mode == TranscriptionMode.Local && _localInference != null)
                 {
@@ -467,6 +477,99 @@ namespace WhisperKey
             _estimatedCost += (decimal)estimatedDurationMinutes * CostPerMinute;
             
             UsageUpdated?.Invoke(this, GetUsageStats());
+        }
+        
+        /// <summary>
+        /// Validates audio data before API upload.
+        /// Checks file size against MAX_AUDIO_SIZE limit.
+        /// Verifies WAV format headers.
+        /// Throws SecurityException if invalid.
+        /// </summary>
+        private static void ValidateAudioData(byte[] audioData)
+        {
+            if (audioData == null)
+            {
+                throw new SecurityException("Audio data cannot be null");
+            }
+            
+            if (audioData.Length == 0)
+            {
+                throw new SecurityException("Audio data cannot be empty");
+            }
+            
+            // Check file size against limit
+            if (audioData.Length > MaxAudioSizeBytes)
+            {
+                throw new SecurityException($"Audio file size ({audioData.Length} bytes) exceeds maximum allowed size ({MaxAudioSizeBytes} bytes = 25MB)");
+            }
+            
+            // Verify WAV format headers (minimum 44 bytes for standard WAV header)
+            if (audioData.Length < 44)
+            {
+                throw new SecurityException($"Audio file too small to be a valid WAV file ({audioData.Length} bytes, minimum 44 bytes required)");
+            }
+            
+            // Check RIFF header
+            if (audioData[0] != 'R' || audioData[1] != 'I' || audioData[2] != 'F' || audioData[3] != 'F')
+            {
+                throw new SecurityException("Invalid audio file format: missing RIFF header");
+            }
+            
+            // Check WAVE format
+            if (audioData[8] != 'W' || audioData[9] != 'A' || audioData[10] != 'V' || audioData[11] != 'E')
+            {
+                throw new SecurityException("Invalid audio file format: not a valid WAVE file");
+            }
+            
+            // Check fmt  subchunk
+            if (audioData[12] != 'f' || audioData[13] != 'm' || audioData[14] != 't' || audioData[15] != ' ')
+            {
+                throw new SecurityException("Invalid audio file format: missing fmt  subchunk");
+            }
+            
+            // Check data subchunk marker location (typically at byte 36, but can vary)
+            // We look for "data" starting from byte 36
+            bool foundDataChunk = false;
+            for (int i = 36; i < audioData.Length - 4; i++)
+            {
+                if (audioData[i] == 'd' && audioData[i + 1] == 'a' && 
+                    audioData[i + 2] == 't' && audioData[i + 3] == 'a')
+                {
+                    foundDataChunk = true;
+                    break;
+                }
+            }
+            
+            if (!foundDataChunk)
+            {
+                throw new SecurityException("Invalid audio file format: missing data chunk");
+            }
+        }
+        
+        /// <summary>
+        /// Validates the API endpoint URL format.
+        /// Ensures the URL is a valid absolute HTTPS URL.
+        /// </summary>
+        private static bool ValidateApiEndpoint(string endpoint)
+        {
+            if (string.IsNullOrWhiteSpace(endpoint))
+            {
+                return false;
+            }
+            
+            if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+            {
+                return false;
+            }
+            
+            // Require HTTPS for security
+            if (uri.Scheme != Uri.UriSchemeHttps)
+            {
+                System.Diagnostics.Debug.WriteLine($"API endpoint must use HTTPS. Got: {uri.Scheme}");
+                return false;
+            }
+            
+            return true;
         }
         
         public void Dispose()
