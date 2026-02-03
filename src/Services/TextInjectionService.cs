@@ -687,6 +687,13 @@ namespace WhisperKey.Services
         {
             var opts = options ?? new InjectionOptions();
             
+            // Validate input
+            if (string.IsNullOrEmpty(text))
+            {
+                _logger?.LogWarning("Cannot inject empty text");
+                return false;
+            }
+            
             try
             {
                 _logger?.LogDebug("Injecting text: {Text}", text);
