@@ -20,6 +20,7 @@ namespace WhisperKey.Services
         event EventHandler<AudioDeviceEventArgs> DefaultDeviceChanged;
         
         // Permission events
+        event EventHandler<PermissionEventArgs> PermissionRequired;
         event EventHandler<PermissionEventArgs> PermissionDenied;
         event EventHandler<PermissionEventArgs> PermissionGranted;
         event EventHandler<PermissionEventArgs> PermissionRequestFailed;
@@ -57,12 +58,8 @@ namespace WhisperKey.Services
         // Enhanced device change monitoring methods
         Task<bool> MonitorDeviceChangesAsync();
         void StopDeviceChangeMonitoring();
-        Task<bool> ShowPermissionRequestDialogAsync();
-        void GuideUserToSettings();
-        Task ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus status, string message);
         Task<bool> RetryPermissionRequestAsync(int maxAttempts = 3, int baseDelayMs = 1000);
         Task<string> GeneratePermissionDiagnosticReportAsync();
-        void OpenWindowsMicrophoneSettings();
         Task EnterGracefulFallbackModeAsync(string reason);
         Task<bool> HandleDeviceChangeRecoveryAsync(string deviceId, bool isConnected);
         Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null);
@@ -91,6 +88,7 @@ namespace WhisperKey.Services
         public event EventHandler<AudioDeviceEventArgs>? DeviceConnected;
         public event EventHandler<AudioDeviceEventArgs>? DeviceDisconnected;
         public event EventHandler<AudioDeviceEventArgs>? DefaultDeviceChanged;
+        public event EventHandler<PermissionEventArgs>? PermissionRequired;
         public event EventHandler<PermissionEventArgs>? PermissionDenied;
         public event EventHandler<PermissionEventArgs>? PermissionGranted;
         public event EventHandler<PermissionEventArgs>? PermissionRequestFailed;
@@ -1837,7 +1835,8 @@ namespace WhisperKey.Services
 
                     if (attempt < maxAttempts)
                     {
-                        await ShowPermissionRequestDialogAsync().ConfigureAwait(false);
+                        PermissionRequired?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Unknown, 
+                            $"Permission attempt {attempt}/{maxAttempts} failed. Please enable microphone access in Windows Settings."));
                     }
                 }
                 catch (InvalidOperationException ex)
@@ -2055,7 +2054,7 @@ namespace WhisperKey.Services
         /// <summary>
         /// Handles permission denied events with user guidance
         /// </summary>
-        public async Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null)
+        public Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null)
         {
             try
             {
@@ -2068,13 +2067,15 @@ namespace WhisperKey.Services
                 };
 
                 PermissionDenied?.Invoke(this, permissionEventArgs);
-
-                // Auto-open settings for user convenience
-                await ShowPermissionRequestDialogAsync().ConfigureAwait(false);
                 
-                // Show status notification
-                await ShowPermissionStatusNotifierAsync(MicrophonePermissionStatus.Denied, 
-                    "Microphone access denied. Please check Windows Settings.").ConfigureAwait(false);
+                // Also raise PermissionRequired to trigger UI handling by ViewModel
+                PermissionRequired?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied,
+                    "Microphone permission required. Please enable access in Windows Settings.", deviceId)
+                {
+                    Exception = error,
+                    RequiresUserAction = true,
+                    GuidanceAction = "Open Windows Settings > Privacy > Microphone"
+                });
             }
             catch (InvalidOperationException ex)
             {
@@ -2084,6 +2085,8 @@ namespace WhisperKey.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling permission denied event: {ex.Message}");
             }
+            
+            return Task.CompletedTask;
         }
 
         /// <summary>
