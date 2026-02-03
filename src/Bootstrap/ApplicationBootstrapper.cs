@@ -21,7 +21,7 @@ namespace WhisperKey.Bootstrap
         public SystemTrayService? SystemTrayService { get; private set; }
         public IWhisperService? WhisperService { get; private set; }
         public CostTrackingService? CostTrackingService { get; private set; }
-        public AudioCaptureService? AudioCaptureService { get; private set; }
+        public IAudioCaptureService? AudioCaptureService { get; private set; }
         public TranscriptionWindow? TranscriptionWindow { get; private set; }
         public ITextInjection? TextInjectionService { get; private set; }
         public IFeedbackService? FeedbackService { get; private set; }

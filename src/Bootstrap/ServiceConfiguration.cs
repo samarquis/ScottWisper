@@ -83,6 +83,7 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<IWhisperService>(sp => sp.GetRequiredService<WhisperService>());
             services.AddSingleton<CostTrackingService>();
             services.AddSingleton<AudioCaptureService>();
+            services.AddSingleton<IAudioCaptureService>(sp => sp.GetRequiredService<AudioCaptureService>());
             services.AddSingleton<HotkeyService>();
             services.AddSingleton<SystemTrayService>();
             services.AddSingleton<TranscriptionWindow>();
