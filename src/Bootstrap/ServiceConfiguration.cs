@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
@@ -79,7 +80,13 @@ namespace WhisperKey.Bootstrap
             });
             
             // Core transcription services - registered with interfaces for loose coupling
-            services.AddSingleton<WhisperService>();
+            // WhisperService internally manages HttpClient lifecycle when IHttpClientFactory is not provided
+            services.AddSingleton<WhisperService>(sp => new WhisperService(
+                sp.GetRequiredService<ISettingsService>(),
+                null,
+                sp.GetService<ICredentialService>(),
+                sp.GetService<LocalInferenceService>(),
+                sp.GetService<IConfiguration>()));
             services.AddSingleton<IWhisperService>(sp => sp.GetRequiredService<WhisperService>());
             services.AddSingleton<CostTrackingService>();
             services.AddSingleton<AudioCaptureService>();
