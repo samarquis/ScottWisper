@@ -24,6 +24,8 @@ namespace WhisperKey.Tests.Unit
         public void Test_PeriodCommand()
         {
             var result = _service.ProcessCommands("hello world period");
+            //Debug.WriteLine($"Actual Output: '{result.ProcessedText}'");
+            //Debug.WriteLine($"Expected Output: 'hello world.'");
             Assert.IsTrue(result.Success);
             Assert.AreEqual("hello world.", result.ProcessedText);
             Assert.AreEqual(1, result.Commands.Count);

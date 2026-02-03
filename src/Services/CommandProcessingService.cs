@@ -249,12 +249,26 @@ namespace WhisperKey.Services
                 switch (command.Type)
                 {
                     case VoiceCommandType.Punctuation:
-                        // Replace command text with punctuation
+                        // Replace command text with punctuation, with smart spacing
                         if (!string.IsNullOrEmpty(command.Replacement))
                         {
-                            result = result.Remove(adjustedPosition, command.Length)
-                                          .Insert(adjustedPosition, command.Replacement);
-                            offset += command.Replacement.Length - command.Length;
+                            var replacement = command.Replacement;
+                            bool shouldHandleSpacing = ShouldHandleSpacingForPunctuation(replacement);
+                            
+                            if (shouldHandleSpacing && adjustedPosition > 0 && result[adjustedPosition - 1] == ' ')
+                            {
+                                // Remove the space and the command text, then insert punctuation
+                                result = result.Remove(adjustedPosition - 1, command.Length + 1)
+                                              .Insert(adjustedPosition - 1, replacement);
+                                offset += replacement.Length - (command.Length + 1);
+                            }
+                            else
+                            {
+                                // No space before or spacing not needed, just replace the command text
+                                result = result.Remove(adjustedPosition, command.Length)
+                                              .Insert(adjustedPosition, replacement);
+                                offset += replacement.Length - command.Length;
+                            }
                         }
                         break;
                         
@@ -448,6 +462,20 @@ namespace WhisperKey.Services
                     return i;
             }
             return text.Length;
+        }
+        
+        /// <summary>
+        /// Determines if punctuation should have spacing handling applied
+        /// </summary>
+        private bool ShouldHandleSpacingForPunctuation(string replacement)
+        {
+            // These punctuation marks typically shouldn't have spaces before them in English
+            return replacement == "." || 
+                   replacement == "," || 
+                   replacement == "?" || 
+                   replacement == "!" || 
+                   replacement == ";" || 
+                   replacement == ":";
         }
         
         /// <summary>

@@ -18,9 +18,17 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="#FF2D2D30" Padding="16,12">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="🎤" FontSize="24" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                <TextBlock Text="WhisperKey Settings" FontSize="20" FontWeight="SemiBold" 
-                           Foreground="White" VerticalAlignment="Center"/>
+                <Border Width="32" Height="32" Margin="0,0,12,0" VerticalAlignment="Center"
+                        Background="{StaticResource WhiteBrush}" CornerRadius="6">
+                    <TextBlock Text="🎤" FontSize="18" HorizontalAlignment="Center" 
+                               VerticalAlignment="Center" Foreground="{StaticResource DarkBackgroundBrush}"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="WhisperKey Settings" FontSize="20" FontWeight="SemiBold" 
+                               Foreground="White"/>
+                    <TextBlock Text="Professional Voice Dictation" FontSize="12" 
+                               Foreground="#FFADB5BD" Margin="0,2,0,0"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -195,6 +203,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
@@ -238,14 +247,21 @@
                         </Grid>
                     </GroupBox>
 
+                    <!-- Simple Device Controls -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Center">
+                        <TextBlock x:Name="DeviceStatusText" Text="Device status: Ready" 
+                                   VerticalAlignment="Center" Margin="0,0,16,0" Foreground="Gray"/>
+                        <Button x:Name="RefreshDevicesButton" Content="Refresh Devices" 
+                                Width="120" Margin="0,0,8,0" Click="RefreshDevices_Click"/>
+                    </StackPanel>
+
                     <!-- Advanced Device Options -->
-                    <Expander Grid.Row="2" Header="Advanced Device Options" IsExpanded="False" Margin="0,0,0,0">
+                    <Expander Grid.Row="3" Header="Advanced Device Options" IsExpanded="False" Margin="0,12,0,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                         
                             <!-- Fallback Devices and Options -->
@@ -277,12 +293,8 @@
                                                   VerticalAlignment="Center" Margin="0,0,16,0" Checked="AutoSwitchDevices_Checked"/>
                                         <CheckBox x:Name="PreferHighQualityCheckBox" Content="Prefer high-quality devices" 
                                                   VerticalAlignment="Center" Margin="0,0,16,0" Checked="PreferHighQuality_Checked"/>
-                                        <Button x:Name="RefreshDevicesButton" Content="Refresh Device List" 
-                                                Width="120" Margin="0,0,8,0" Click="RefreshDevices_Click"/>
                                         <Button x:Name="TestAllDevicesButton" Content="Test All Devices" 
                                                 Width="120" Margin="0,0,8,0" Click="TestAllDevices_Click"/>
-                                        <TextBlock x:Name="DeviceStatusText" Text="Device status: Ready" 
-                                                   VerticalAlignment="Center" Margin="8,0,0,0" Foreground="Gray"/>
                                     </StackPanel>
                                 </Grid>
                             </GroupBox>
@@ -682,8 +694,8 @@
                         </Grid>
                     </Expander>
 
-                    <!-- Hotkey Configuration - Expanded by default -->
-                    <Expander Grid.Row="2" Header="Hotkey Configuration" Margin="0,0,0,12" IsExpanded="True">
+                    <!-- Hotkey Configuration - Collapsible -->
+                    <Expander Grid.Row="2" Header="Hotkey Configuration" Margin="0,0,0,12" IsExpanded="False">
                         <Grid Margin="12">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>

@@ -103,12 +103,24 @@
                     </Grid.RowDefinitions>
                     
                     <!-- Title and Main Status -->
-                    <StackPanel Grid.Row="0">
-                        <TextBlock Text="WhisperKey Voice Dictation" HorizontalAlignment="Center" 
-                                   FontSize="20" FontWeight="Bold" Foreground="#FF2D2D30"/>
-                        <TextBlock x:Name="MainStatusMessage" Text="Ready for dictation" HorizontalAlignment="Center" 
-                                   FontSize="12" Foreground="#FF6C757D" Margin="0,5,0,0"/>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Border Width="40" Height="40" Margin="0,0,12,0" VerticalAlignment="Center"
+                                Background="{StaticResource SuccessBrush}" CornerRadius="8">
+                            <TextBlock Text="🎤" FontSize="22" HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center" Foreground="White"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="WhisperKey" HorizontalAlignment="Center" 
+                                       FontSize="24" FontWeight="Bold" Foreground="#FF2D2D30"/>
+                            <TextBlock Text="Voice Dictation" HorizontalAlignment="Center" 
+                                       FontSize="14" Foreground="#FF6C757D" Margin="0,2,0,0"/>
+                        </StackPanel>
                     </StackPanel>
+                    
+                    <!-- Main Status Message -->
+                    <TextBlock x:Name="MainStatusMessage" Grid.Row="1" Text="Ready for dictation" 
+                               HorizontalAlignment="Center" FontSize="12" Foreground="#FF6C757D" 
+                               Margin="0,8,0,0"/>
                     
                     <!-- Injection Test Results Panel -->
                     <Border x:Name="InjectionTestPanel" Grid.Row="1" Background="#FFF8F9FA" Padding="10" 
