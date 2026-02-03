@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Polly;
 using Polly.CircuitBreaker;
@@ -23,11 +24,16 @@ namespace WhisperKey
         private readonly ISettingsService? _settingsService;
         private readonly ICredentialService? _credentialService;
         private readonly LocalInferenceService? _localInference;
+        private readonly IConfiguration? _configuration;
         private readonly bool _ownsHttpClient;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
         
-        private const string DefaultApiEndpoint = "https://api.openai.com/v1/audio/transcriptions";
+        // Configuration key for API endpoint
+        private const string ApiEndpointConfigKey = "Transcription:ApiEndpoint";
+        
+        // Default API endpoint value (loaded from configuration)
+        private const string DefaultApiEndpointValue = "https://api.openai.com/v1/audio/transcriptions";
         
         // Maximum audio file size (25MB - OpenAI API limit)
         private const int MaxAudioSizeBytes = 25 * 1024 * 1024;
@@ -52,7 +58,7 @@ namespace WhisperKey
         public WhisperService()
         {
             _apiKey = GetApiKey();
-            _baseUrl = DefaultApiEndpoint;
+            _baseUrl = DefaultApiEndpointValue;
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             _ownsHttpClient = true;
@@ -73,12 +79,20 @@ namespace WhisperKey
         }
         
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, LocalInferenceService? localInference = null)
+            : this(settingsService, httpClientFactory, credentialService, localInference, null)
+        {
+        }
+        
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, LocalInferenceService? localInference, IConfiguration? configuration)
         {
             _settingsService = settingsService;
             _credentialService = credentialService;
             _localInference = localInference;
+            _configuration = configuration;
             _apiKey = GetApiKey(); // Sync version for constructor (env var only)
-            _baseUrl = DefaultApiEndpoint; // Will be updated async
+            
+            // Load API endpoint from configuration immediately
+            _baseUrl = GetApiEndpointFromConfiguration();
             
             // Use IHttpClientFactory if available to prevent socket exhaustion
             if (httpClientFactory != null)
@@ -100,7 +114,7 @@ namespace WhisperKey
                 _settingsService.SettingsChanged += OnSettingsChanged;
             }
             
-            // Async initialization - fire and forget is acceptable for constructor
+            // Async initialization for API key and other settings
             _ = InitializeAsync();
             
             // Initialize policies for API calls
@@ -120,9 +134,9 @@ namespace WhisperKey
                     _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
                 }
                 
-                // Load endpoint asynchronously
+                // Load endpoint asynchronously from settings (may override configuration value)
                 var endpoint = await GetApiEndpointFromSettingsAsync().ConfigureAwait(false);
-                if (!string.IsNullOrEmpty(endpoint))
+                if (!string.IsNullOrEmpty(endpoint) && endpoint != _baseUrl)
                 {
                     // Validate endpoint URL format before using
                     if (ValidateApiEndpoint(endpoint))
@@ -131,8 +145,7 @@ namespace WhisperKey
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Invalid API endpoint URL format: {endpoint}. Using default endpoint.");
-                        _baseUrl = DefaultApiEndpoint;
+                        System.Diagnostics.Debug.WriteLine($"Invalid API endpoint URL format: {endpoint}. Using configuration value.");
                     }
                 }
             }
@@ -403,6 +416,42 @@ namespace WhisperKey
             return await GetApiKeyAsync().ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Loads the API endpoint from IConfiguration (appsettings.json).
+        /// Validates the URL format on startup and falls back to default if invalid.
+        /// </summary>
+        private string GetApiEndpointFromConfiguration()
+        {
+            try
+            {
+                // Try to get from IConfiguration first
+                if (_configuration != null)
+                {
+                    var endpoint = _configuration[ApiEndpointConfigKey];
+                    if (!string.IsNullOrEmpty(endpoint))
+                    {
+                        // Validate URL format before using
+                        if (ValidateApiEndpoint(endpoint))
+                        {
+                            return endpoint;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Invalid API endpoint URL in configuration: {endpoint}. Using default.");
+                        }
+                    }
+                }
+                
+                // Fall back to default value
+                return DefaultApiEndpointValue;
+            }
+            catch (Exception ex) when (!IsFatalException(ex))
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading API endpoint from configuration: {ex.Message}. Using default.");
+                return DefaultApiEndpointValue;
+            }
+        }
+
         private async Task<string> GetApiEndpointFromSettingsAsync()
         {
             if (_settingsService != null)
@@ -419,11 +468,13 @@ namespace WhisperKey
                 }
                 catch (Exception ex) when (!IsFatalException(ex))
                 {
-                    // Fall back to default endpoint
+                    // Log error but don't fall back - let configuration value be used
+                    System.Diagnostics.Debug.WriteLine($"Error reading endpoint from settings: {ex.Message}");
                 }
             }
             
-            return DefaultApiEndpoint;
+            // Return empty string - configuration value is the source of truth
+            return string.Empty;
         }
 
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
