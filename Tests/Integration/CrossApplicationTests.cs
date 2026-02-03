@@ -4,9 +4,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using WhisperKey;
 using WhisperKey.Services;
 using Microsoft.Extensions.DependencyInjection;
-using static WhisperKey.Tests.Common.IntegrationTestFramework; // Access TargetApplication enum
+using WhisperKey.Tests.Common;
 
 namespace WhisperKey.Tests.Integration
 {

@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 using static WhisperKey.ApplicationCategory;
+using WhisperKey.Tests.Common;
 
 namespace WhisperKey.Tests.Integration
 {

@@ -89,7 +89,7 @@ namespace WhisperKey.Tests.Unit
         }
 
         [TestMethod]
-        public void Constructor_WithNullProfile_CreatesDefaultProfile()
+        public async Task Constructor_WithNullProfile_CreatesDefaultProfile()
         {
             _testSettings.Hotkeys.Profiles.Clear();
             _testSettings.Hotkeys.CurrentProfile = "NonExistent";
@@ -99,6 +99,9 @@ namespace WhisperKey.Tests.Unit
                 _hotkeyRegistrarMock.Object,
                 _testWindowHandle
             );
+
+            // Wait for async initialization to complete
+            await Task.Delay(100);
 
             Assert.IsNotNull(service.CurrentProfile);
             Assert.AreEqual("Default", service.CurrentProfile.Id);
@@ -274,10 +277,11 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public void ValidateHotkey_ValidCombination_ReturnsValidResult()
         {
-            var result = _hotkeyService.ValidateHotkey("Ctrl+Alt+V");
+            // Use a combination that's not already registered in the test setup
+            var result = _hotkeyService.ValidateHotkey("Ctrl+Alt+Z");
 
-            Assert.IsTrue(result.IsValid);
-            Assert.IsNull(result.ErrorMessage);
+            Assert.IsTrue(result.IsValid, $"Expected valid result but got error: {result.ErrorMessage}");
+            Assert.IsTrue(string.IsNullOrEmpty(result.ErrorMessage), "ErrorMessage should be null or empty for valid combination");
         }
 
         [TestMethod]

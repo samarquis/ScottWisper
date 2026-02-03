@@ -14,6 +14,7 @@ namespace WhisperKey.Services
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public bool RequiresUserAction { get; set; }
         public string? GuidanceAction { get; set; }
+        public MicrophonePermissionStatus Status { get; set; } = MicrophonePermissionStatus.Unknown;
 
         // Default constructor
         public PermissionEventArgs() { }
@@ -36,6 +37,7 @@ namespace WhisperKey.Services
         // Constructor for permission status
         public PermissionEventArgs(MicrophonePermissionStatus status, string message, string? deviceId = null, Exception? exception = null)
         {
+            Status = status;
             Message = message;
             DeviceId = deviceId;
             Exception = exception;
