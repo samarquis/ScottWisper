@@ -185,8 +185,9 @@ namespace WhisperKey.Bootstrap
         
         private async Task InitializeEnhancedServicesAsync()
         {
-            // Initialize enhanced services for gap closure
-            // These are placeholder implementations - actual services would be initialized here
+            // Initialize AudioDeviceService from DI container
+            AudioDeviceService = _serviceProvider.GetRequiredService<IAudioDeviceService>();
+            
             await Task.CompletedTask;
         }
     }

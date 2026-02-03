@@ -94,6 +94,13 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<FeedbackService>();
             services.AddSingleton<IFeedbackService>(sp => sp.GetRequiredService<FeedbackService>());
             
+            // Register AudioDeviceEnumerator for hardware abstraction
+            services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceEnumerator>();
+            
+            // Register AudioDeviceService with interface
+            services.AddSingleton<AudioDeviceService>();
+            services.AddSingleton<IAudioDeviceService>(sp => sp.GetRequiredService<AudioDeviceService>());
+            
             // Bootstrapper - all dependencies injected via constructor
             services.AddSingleton<ApplicationBootstrapper>();
         }
