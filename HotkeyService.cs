@@ -1,15 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Interop;
 using System.Windows.Input;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
+using Microsoft.Extensions.Logging;
 
 namespace WhisperKey
 {
@@ -82,12 +80,14 @@ namespace WhisperKey
             ["F12"] = Key.F12
         };
 
-        private IntPtr _windowHandle;
+        private readonly HotkeyRegistrationService _registrationService;
+        private readonly HotkeyProfileManager _profileManager;
+        private readonly HotkeyConflictDetector _conflictDetector;
+        private readonly ILogger<HotkeyService> _logger;
         private HwndSource? _source;
         private readonly Dictionary<string, int> _registeredHotkeys = new Dictionary<string, int>();
         private readonly Dictionary<int, HotkeyDefinition> _hotkeyById = new Dictionary<int, HotkeyDefinition>();
         private readonly ISettingsService _settingsService;
-        private readonly IHotkeyRegistrar _hotkeyRegistrar;
         private Timer? _conflictCheckTimer;
         private int _nextHotkeyId = HOTKEY_ID_BASE;
 
@@ -97,28 +97,18 @@ namespace WhisperKey
         public bool IsHotkeyRegistered => _registeredHotkeys.Any();
         public HotkeyProfile CurrentProfile { get; private set; } = new HotkeyProfile { Id = "Default", Name = "Default" };
 
-        public HotkeyService(ISettingsService settingsService) : this(settingsService, new Win32HotkeyRegistrar(), null)
-        {
-        }
-
-        public HotkeyService(ISettingsService settingsService, IHotkeyRegistrar hotkeyRegistrar, IntPtr? windowHandle = null)
+        public HotkeyService(
+            ISettingsService settingsService,
+            HotkeyRegistrationService registrationService,
+            HotkeyProfileManager profileManager,
+            HotkeyConflictDetector conflictDetector,
+            ILogger<HotkeyService> logger)
         {
             _settingsService = settingsService;
-            _hotkeyRegistrar = hotkeyRegistrar;
-            
-            if (windowHandle.HasValue)
-            {
-                _windowHandle = windowHandle.Value;
-            }
-            else
-            {
-                // Get the main window handle
-                var mainWindow = System.Windows.Application.Current?.MainWindow;
-                if (mainWindow != null)
-                {
-                    _windowHandle = new WindowInteropHelper(mainWindow).Handle;
-                }
-            }
+            _registrationService = registrationService;
+            _profileManager = profileManager;
+            _conflictDetector = conflictDetector;
+            _logger = logger;
             
             Initialize();
         }

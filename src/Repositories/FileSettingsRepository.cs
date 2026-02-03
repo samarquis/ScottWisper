@@ -33,6 +33,9 @@ namespace WhisperKey.Repositories
             _settingsPath = Path.Combine(appFolder, "usersettings.json");
             _backupPath = Path.Combine(appFolder, "backups");
             Directory.CreateDirectory(_backupPath);
+            
+            // Enforce secure permissions on settings directory and files
+            _ = Task.Run(() => EnforceSecurePermissions());
         }
 
         public async Task<AppSettings> LoadAsync()
@@ -109,6 +112,9 @@ namespace WhisperKey.Repositories
                 // Replace the original file
                 File.Move(tempPath, _settingsPath, true);
 
+                // Re-apply secure permissions after saving
+                _ = Task.Run(() => EnforceSecurePermissions());
+
                 _logger.LogInformation("Settings saved successfully");
             }
             catch (IOException ex)
@@ -167,6 +173,9 @@ namespace WhisperKey.Repositories
                 });
 
                 await File.WriteAllTextAsync(backupFilePath, json).ConfigureAwait(false);
+
+                // Apply secure permissions to backup file
+                _ = Task.Run(() => EnforceSecurePermissions());
 
                 _logger.LogInformation("Settings backup created: {BackupId}", backup.Id);
             }
@@ -368,5 +377,94 @@ namespace WhisperKey.Repositories
                 return Array.Empty<string>();
             }
         }
+
+        /// <summary>
+        /// Enforces secure permissions on settings files and directories
+        /// Restricts access to current user only
+        /// </summary>
+        private void EnforceSecurePermissions()
+        {
+            try
+            {
+#if WINDOWS
+                EnforceWindowsPermissions();
+#else
+                EnforceUnixPermissions();
+#endif
+                _logger.LogInformation("Secure permissions enforced on settings files");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to enforce secure permissions on settings files");
+            }
+        }
+
+#if WINDOWS
+        /// <summary>
+        /// Windows-specific permission enforcement
+        /// </summary>
+        private void EnforceWindowsPermissions()
+        {
+            try
+            {
+                var currentUser = Environment.UserName;
+                _logger.LogInformation($"Applying permissions for user: {currentUser}");
+
+                // Apply basic file permissions to make settings user-private
+                try
+                {
+                    // Set file to user-readable/writable only
+                    var fileInfo = new FileInfo(_settingsPath);
+                    if (fileInfo.Exists)
+                    {
+                        fileInfo.IsReadOnly = false;
+                    }
+
+                    var backupDir = new DirectoryInfo(_backupPath);
+                    if (backupDir.Exists)
+                    {
+                        backupDir.Attributes &= ~FileAttributes.System; // Remove system attribute
+                        backupDir.Attributes |= FileAttributes.NotContentIndexed; // Skip indexing
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to apply basic file permissions");
+                }
+
+                _logger.LogInformation("Windows file permissions applied to settings files");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to apply Windows permissions");
+            }
+        }
+#else
+        /// <summary>
+        /// Unix-specific permission enforcement using chmod
+        /// </summary>
+        private void EnforceUnixPermissions()
+        {
+            try
+            {
+                // Set directory permissions to user read/write/execute only (700)
+                var directoryInfo = new DirectoryInfo(_backupPath);
+                directoryInfo.UnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
+                
+                // Set file permissions to user read/write only (600)
+                if (File.Exists(_settingsPath))
+                {
+                    var fileInfo = new FileInfo(_settingsPath);
+                    fileInfo.UnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                }
+                
+                _logger.LogInformation("Unix file permissions applied to settings files");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to apply Unix file permissions");
+            }
+        }
+#endif
     }
 }

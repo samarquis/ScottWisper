@@ -135,7 +135,17 @@ namespace WhisperKey.Bootstrap
             if (SettingsService == null)
                 throw new InvalidOperationException("SettingsService must be initialized first");
                 
-            HotkeyService = new HotkeyService(SettingsService);
+            // Get window handle for hotkey registration
+            var mainWindow = System.Windows.Application.Current?.MainWindow;
+            var windowHandle = mainWindow != null ? new WindowInteropHelper(mainWindow).Handle : IntPtr.Zero;
+            
+            HotkeyService = new HotkeyService(
+                SettingsService,
+                serviceProvider.GetRequiredService<HotkeyRegistrationService>(),
+                serviceProvider.GetRequiredService<HotkeyProfileManager>(),
+                serviceProvider.GetRequiredService<HotkeyConflictDetector>(),
+                serviceProvider.GetRequiredService<ILogger<HotkeyService>>()
+            );
         }
         
         /// <summary>

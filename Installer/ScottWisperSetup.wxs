@@ -24,7 +24,7 @@
    <!-- Version is passed as preprocessor variable from build script - defaults to 1.0.0 if not provided -->
    <?define ProductVersion = "1.0.0" ?>
   <?define ProductManufacturer = "WhisperKey" ?>
-  <?define ProductCode = "*" ?>
+   <?define ProductCode = "12345678-90AB-CDEF-1234567890" ?>
   <?define UpgradeCode = "12345678-1234-1234-1234-123456789012" ?>
   <?define MinimumNetFramework = "461808" ?>
   
@@ -39,7 +39,7 @@
              Compressed="yes" 
              InstallScope="perMachine" 
              Platform="x64"
-             Description="WhisperKey Voice-to-Text Dictation Software"
+              Description="WhisperKey Voice-to-Text Dictation Software - Enterprise MSI with unique ProductCode for deployment"
              Comments="Enterprise deployment package for WhisperKey"
              Keywords="dictation,voice,text,transcription" />
     

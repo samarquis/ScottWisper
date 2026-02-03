@@ -680,18 +680,65 @@ namespace WhisperKey.Tests.Unit
             // Arrange
             var settings = new AppSettings();
             _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
+            
             var service = new TestableSettingsService(
                 _mockConfiguration.Object, 
                 _mockOptions.Object, 
                 _logger,
                 _userSettingsPath);
-
+            
             // Act
             var value = await service.GetValueAsync<string>("Invalid:Key:Path");
-
+            
             // Assert
             Assert.IsNull(value);
+        }
+        
+        [TestMethod]
+        public async Task GetValueAsync_NestedKey_ReturnsCorrectValue()
+        {
+            // Arrange
+            var settings = new AppSettings
+            {
+                Transcription = new TranscriptionSettings { 
+                    Provider = "NestedProvider",
+                    Model = "TestModel"
+                }
+            };
+            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
+            
+            var service = new TestableSettingsService(
+                _mockConfiguration.Object, 
+                _mockOptions.Object, 
+                _logger,
+                _userSettingsPath);
+            
+            // Act
+            var value = await service.GetValueAsync<string>("Transcription:Provider");
+            
+            // Assert
+            Assert.AreEqual("NestedProvider", value);
+        }
+        
+        [TestMethod]
+        public async Task SetValueAsync_WithNullValue_DoesNotThrow()
+        {
+            // Arrange
+            var settings = new AppSettings();
+            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
+            
+            var Service = new TestableSettingsService(
+                _mockConfiguration.Object, 
+                _mockOptions.Object, 
+                _logger,
+                _userSettingsPath);
+            
+            // Act & Assert - should not throw when setting null value
+            await Service.SetValueAsync("Test:Key", null!);
+            
+            // Verify no exception thrown and value is set to null
+            var finalValue = await Service.GetValueAsync<string>("Test:Key");
+            Assert.IsNull(finalValue);
         }
 
         #endregion
@@ -741,30 +788,101 @@ namespace WhisperKey.Tests.Unit
             // Assert
             Assert.AreEqual(specialValue, settings.Transcription.Provider);
         }
-
+        
+        [TestMethod]
+        public async Task SetValueAsync_WithNullValue_DoesNotThrow()
+        {
+            // Arrange
+            var settings = new AppSettings();
+            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
+            
+            var Service = new TestableSettingsService(
+                _mockConfiguration.Object, 
+                _mockOptions.Object, 
+                _logger,
+                _userSettingsPath);
+            
+            // Act & Assert - should not throw when setting null value
+            await Service.SetValueAsync("Test:Key", null!);
+            
+            // Verify no exception thrown and value is set to null
+            var finalValue = await Service.GetValueAsync<string>("Test:Key");
+            Assert.IsNull(finalValue);
+        }
+        
         [TestMethod]
         public async Task SetEncryptedValueAsync_VeryLongKey_HandlesCorrectly()
         {
             // Arrange
             var settings = new AppSettings();
             _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
+            
+            var Service = new TestableSettingsService(
                 _mockConfiguration.Object, 
                 _mockOptions.Object, 
                 _logger,
                 _userSettingsPath);
-
+            
             var longKey = new string('k', 500);
             var value = "test-value";
-
+            
             // Act
-            await service.SetEncryptedValueAsync(longKey, value);
-            var retrieved = await service.GetEncryptedValueAsync(longKey);
-
+            await Service.SetEncryptedValueAsync(longKey, value);
+            var retrieved = await Service.GetEncryptedValueAsync(longKey);
+            
             // Assert
             Assert.AreEqual(value, retrieved);
         }
+        
+        [TestMethod]
+        public async Task GetValueAsync_EmptyKey_ReturnsNull()
+        {
+            // Arrange
+            var settings = new AppSettings();
+            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
+            
+            var Service = new TestableSettingsService(
+                _mockConfiguration.Object, 
+                _mockOptions.Object, 
+                _logger,
+                _userSettingsPath);
+            
+            // Act
+            var value = await Service.GetValueAsync<string>("");
+            
+            // Assert
+            Assert.IsNull(value);
+        }
+        
+        [TestMethod]
+        public async Task GetValueAsync_NestedKey_ReturnsCorrectValue()
+        {
+            // Arrange
+            var settings = new AppSettings
+            {
+                Transcription = new TranscriptionSettings { 
+                    Provider = "NestedProvider",
+                    Model = "TestModel"
+                }
+            };
+            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
+            
+            var Service = new TestableSettingsService(
+                _mockConfiguration.Object, 
+                _mockOptions.Object, 
+                _logger,
+                _userSettingsPath);
+            
+            // Act
+            var value = await Service.GetValueAsync<string>("Transcription:Provider");
+            
+            // Assert
+            Assert.AreEqual("NestedProvider", value);
+        }
+        
+        #endregion
+    }
+}
 
         #endregion
 

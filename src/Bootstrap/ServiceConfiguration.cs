@@ -81,62 +81,61 @@ namespace WhisperKey.Bootstrap
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
             
-            // Core transcription services - registered with interfaces for loose coupling
-            // WhisperService internally manages HttpClient lifecycle when IHttpClientFactory is not provided
-            services.AddSingleton<WhisperService>(sp => new WhisperService(
-                sp.GetRequiredService<ISettingsService>(),
-                null,
-                sp.GetService<ICredentialService>(),
-                sp.GetService<LocalInferenceService>(),
-                sp.GetService<IConfiguration>()));
-            services.AddSingleton<IWhisperService>(sp => sp.GetRequiredService<WhisperService>());
-            services.AddSingleton<CostTrackingService>();
-            services.AddSingleton<AudioCaptureService>();
-            services.AddSingleton<IAudioCaptureService>(sp => sp.GetRequiredService<AudioCaptureService>());
-            services.AddSingleton<HotkeyService>();
-            services.AddSingleton<IHotkeyService>(sp => sp.GetRequiredService<HotkeyService>());
-            services.AddSingleton<SystemTrayService>();
-            services.AddSingleton<TranscriptionWindow>();
-            
-            // Register FeedbackService with its interface and concrete type
-            // SystemTrayService and IDispatcherService dependencies are injected via constructor
-            services.AddSingleton<FeedbackService>(sp => new FeedbackService(
-                sp.GetService<SystemTrayService>(),
-                sp.GetService<IDispatcherService>()));
-            services.AddSingleton<IFeedbackService>(sp => sp.GetRequiredService<FeedbackService>());
-            
-            // Register AudioDeviceEnumerator for hardware abstraction
-            services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceEnumerator>();
-            
-            // Register AudioDeviceService with interface
-            services.AddSingleton<AudioDeviceService>();
-            services.AddSingleton<IAudioDeviceService>(sp => sp.GetRequiredService<AudioDeviceService>());
-            
-            // Register DispatcherService for UI thread marshaling
-            services.AddSingleton<IDispatcherService, DispatcherService>();
-            
-            // Register ValidationService for system validation
-            services.AddSingleton<ValidationService>();
-            
-            // Register CredentialService for secure API key storage
-            services.AddSingleton<ICredentialService, WindowsCredentialService>();
-            
-            // Bootstrapper - all dependencies injected via constructor
-            services.AddSingleton<ApplicationBootstrapper>();
-            
-            // Additional services - register with interfaces for loose coupling
-            services.AddSingleton<IAuditLoggingService, AuditLoggingService>();
-            services.AddSingleton<IPermissionService, PermissionService>();
-            services.AddSingleton<IVocabularyService, VocabularyService>();
-            services.AddSingleton<IWebhookService, WebhookService>();
-            services.AddSingleton<IModelManagerService, ModelManagerService>();
-            services.AddSingleton<IUserErrorService, UserErrorService>();
-            services.AddSingleton<IRegistryService, RegistryService>();
-            services.AddSingleton<IFileSystemService, FileSystemService>();
-            services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
-            services.AddSingleton<ILocalInferenceService, LocalInferenceService>();
-            services.AddSingleton<CostTrackingService>();
-            services.AddSingleton<IEnterpriseDeploymentService, EnterpriseDeploymentService>();
+        }
+        /// Configures and returns service provider
+        /// </summary>
+        public static IServiceProvider ConfigureServices(IServiceCollection services)
+        {
+            // Core transcription services
+            services.AddSingleton<ISettingsService, SettingsService>();
+            services.AddSingleton<ITextInjection, TextInjectionService>();
+                
+                // Core device services
+            services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceService>();
+            services.AddSingleton<IAudioDeviceService, AudioDeviceService>();
+                
+                // Core validation services
+                services.AddSingleton<IValidationService, ValidationService>();
+                services.AddSingleton<IVocabularyService, VocabularyService>();
+                services.AddSingleton<IUserErrorService, UserErrorService>();
+                
+                // Core management services
+                services.AddSingleton<ApplicationBootstrapper, ApplicationBootstrapper>();
+                services.AddSingleton<SystemTrayService, SystemTrayService>();
+                
+                // Permission services
+                services.AddSingleton<IPermissionService, PermissionService>();
+                services.AddSingleton<IRegistryService, RegistryService>();
+                services.AddSingleton<IFileSystemService, FileSystemService>();
+                
+                // Feedback and notification services
+                services.AddSingleton<IFeedbackService, FeedbackService>();
+                
+                // Command processing service
+                services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
+                
+                 // Misc services
+                 services.AddSingleton<CostTrackingService, CostTrackingService>();
+                 
+                 // Hotkey services (refactored from HotkeyService)
+                 services.AddSingleton<HotkeyRegistrationService, HotkeyRegistrationService>();
+                 services.AddSingleton<HotkeyProfileManager, HotkeyProfileManager>();
+                 services.AddSingleton<HotkeyConflictDetector, HotkeyConflictDetector>();
+                 services.AddSingleton<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
+                 services.AddSingleton<HotkeyService, HotkeyService>();
+                
+                // Settings service with repository pattern
+                services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
+                
+                 // Security services
+                 services.AddSingleton<ISecurityService, SecurityService>();
+                 
+                 // Hotkey services (refactored from HotkeyService)
+                 services.AddSingleton<HotkeyRegistrationService, HotkeyRegistrationService>();
+                 services.AddSingleton<HotkeyProfileManager, HotkeyProfileManager>();
+                 services.AddSingleton<HotkeyConflictDetector, HotkeyConflictDetector>();
+                 services.AddSingleton<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
+                 services.AddSingleton<HotkeyService, HotkeyService>();
         }
     }
 }
