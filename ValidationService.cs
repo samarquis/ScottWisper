@@ -15,14 +15,14 @@ namespace WhisperKey
     {
         private readonly IAudioCaptureService _audioCaptureService;
         private readonly IWhisperService _whisperService;
-        private readonly HotkeyService _hotkeyService;
+        private readonly IHotkeyService _hotkeyService;
         private readonly CostTrackingService _costTrackingService;
         private readonly List<ValidationResult> _results = new();
 
         public ValidationService(
             IAudioCaptureService audioCaptureService,
             IWhisperService whisperService, 
-            HotkeyService hotkeyService,
+            IHotkeyService hotkeyService,
             CostTrackingService costTrackingService)
         {
             _audioCaptureService = audioCaptureService ?? throw new ArgumentNullException(nameof(audioCaptureService));
