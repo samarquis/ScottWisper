@@ -90,8 +90,10 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<TranscriptionWindow>();
             
             // Register FeedbackService with its interface and concrete type
-            // SystemTrayService dependency is injected via constructor
-            services.AddSingleton<FeedbackService>();
+            // SystemTrayService and IDispatcherService dependencies are injected via constructor
+            services.AddSingleton<FeedbackService>(sp => new FeedbackService(
+                sp.GetService<SystemTrayService>(),
+                sp.GetService<IDispatcherService>()));
             services.AddSingleton<IFeedbackService>(sp => sp.GetRequiredService<FeedbackService>());
             
             // Register AudioDeviceEnumerator for hardware abstraction
@@ -100,6 +102,9 @@ namespace WhisperKey.Bootstrap
             // Register AudioDeviceService with interface
             services.AddSingleton<AudioDeviceService>();
             services.AddSingleton<IAudioDeviceService>(sp => sp.GetRequiredService<AudioDeviceService>());
+            
+            // Register DispatcherService for UI thread marshaling
+            services.AddSingleton<IDispatcherService, DispatcherService>();
             
             // Bootstrapper - all dependencies injected via constructor
             services.AddSingleton<ApplicationBootstrapper>();

@@ -12,6 +12,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
+using WhisperKey.Services;
 
 namespace WhisperKey
 {
@@ -108,6 +109,7 @@ namespace WhisperKey
     public class FeedbackService : IFeedbackService, IDisposable
     {
         private readonly SystemTrayService? _systemTrayService;
+        private readonly IDispatcherService? _dispatcherService;
         private IFeedbackService.DictationStatus _currentStatus = IFeedbackService.DictationStatus.Idle;
         private StatusIndicatorWindow? _statusIndicatorWindow;
         private AudioVisualizer? _audioVisualizer;
@@ -187,9 +189,10 @@ namespace WhisperKey
 
         public ProgressState CurrentProgress => _currentProgress;
 
-        public FeedbackService(SystemTrayService? systemTrayService = null)
+        public FeedbackService(SystemTrayService? systemTrayService = null, IDispatcherService? dispatcherService = null)
         {
             _systemTrayService = systemTrayService;
+            _dispatcherService = dispatcherService;
             
             try
             {
@@ -268,7 +271,7 @@ namespace WhisperKey
 
         public async Task ShowNotificationAsync(string title, string message, int duration = 3000)
         {
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 // Try to show system tray notification first
                 if (_systemTrayService != null)
@@ -291,7 +294,7 @@ namespace WhisperKey
             if (!_preferences.ToastEnabled || !_preferences.EnabledNotifications.Any(nt => nt == type))
                 return;
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 try
                 {
@@ -369,7 +372,7 @@ namespace WhisperKey
             if (!_preferences.ProgressIndicatorsEnabled)
                 return;
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 _currentProgress = new ProgressState
                 {
@@ -392,7 +395,7 @@ namespace WhisperKey
             if (!_preferences.ProgressIndicatorsEnabled || !_currentProgress.IsActive)
                 return;
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 _currentProgress.Progress = Math.Max(0, Math.Min(100, progress));
                 if (!string.IsNullOrEmpty(details))
@@ -409,7 +412,7 @@ namespace WhisperKey
             if (!_preferences.ProgressIndicatorsEnabled)
                 return;
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 if (_currentProgress.IsActive)
                 {
@@ -515,7 +518,7 @@ namespace WhisperKey
 
         public async Task ShowStatusIndicatorAsync(IFeedbackService.DictationStatus status, int duration = 2000)
         {
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 try
                 {
@@ -556,7 +559,7 @@ namespace WhisperKey
 
         public async Task ClearStatusIndicatorAsync()
         {
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 HideStatusIndicator();
             });
@@ -609,7 +612,7 @@ namespace WhisperKey
 
         private async Task HandleVisualizationAsync(IFeedbackService.DictationStatus status)
         {
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 try
                 {
@@ -720,7 +723,7 @@ namespace WhisperKey
 
             _isDisposed = true;
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 _statusIndicatorWindow?.Close();
                 _statusIndicatorWindow = null;
@@ -754,7 +757,7 @@ namespace WhisperKey
             // Also update local audio visualizer if available
             if (_audioVisualizer != null)
             {
-                Application.Current.Dispatcher.InvokeAsync(() =>
+                _dispatcherService?.InvokeAsync(() =>
                 {
                     _audioVisualizer.UpdateAudioData(audioData);
                 });
@@ -875,7 +878,7 @@ namespace WhisperKey
             if (!_preferences.VisualEnabled)
                 return;
 
-            await Application.Current.Dispatcher.InvokeAsync(() =>
+            await _dispatcherService.InvokeAsync(() =>
             {
                 // Show status indicator with enhanced animations
                 if (_preferences.UseAdvancedAnimations)
