@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
+using WhisperKey.Repositories;
 
 namespace WhisperKey.Bootstrap
 {
@@ -69,6 +70,7 @@ namespace WhisperKey.Bootstrap
         private static void RegisterApplicationServices(IServiceCollection services)
         {
             // Core services - register interfaces with implementations
+            services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
             

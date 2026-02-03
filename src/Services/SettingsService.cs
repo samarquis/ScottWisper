@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using WhisperKey.Configuration;
+using WhisperKey.Repositories;
 
 namespace WhisperKey.Services
 {
@@ -51,6 +52,13 @@ namespace WhisperKey.Services
         Task SetValueAsync<T>(string key, T value);
         Task<string> GetEncryptedValueAsync(string key);
         Task SetEncryptedValueAsync(string key, string value);
+        
+        // Backup and restore methods
+        Task BackupSettingsAsync(string description);
+        Task RestoreSettingsAsync(string backupId);
+        Task<SettingsBackup[]> GetAvailableBackupsAsync();
+        Task DeleteBackupAsync(string backupId);
+        Task<bool> ValidateSettingsFileAsync();
         
         // Audio device management methods
         Task SetSelectedInputDeviceAsync(string deviceId);
@@ -93,27 +101,26 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         private readonly IConfiguration _configuration;
         private readonly IOptionsMonitor<AppSettings> _options;
         private readonly ILogger<SettingsService> _logger;
-        private readonly string _userSettingsPath;
+        private readonly ISettingsRepository _repository;
         private AppSettings _currentSettings;
 
         public AppSettings Settings => _currentSettings;
 
         public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
 
-        public SettingsService(IConfiguration configuration, IOptionsMonitor<AppSettings> options, ILogger<SettingsService> logger)
+        public SettingsService(
+            IConfiguration configuration, 
+            IOptionsMonitor<AppSettings> options, 
+            ILogger<SettingsService> logger,
+            ISettingsRepository repository)
         {
             _configuration = configuration;
             _options = options;
             _logger = logger;
+            _repository = repository;
             _currentSettings = options.CurrentValue;
             
-            // Initialize user settings path in %APPDATA%
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var appFolder = Path.Combine(appDataPath, "WhisperKey");
-            Directory.CreateDirectory(appFolder);
-            _userSettingsPath = Path.Combine(appFolder, "usersettings.json");
-            
-            // Load user-specific settings
+            // Load user-specific settings from repository
             _ = LoadUserSettingsAsync();
         }
 
@@ -124,19 +131,19 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                 // Validate settings before saving
                 ValidateSettings(_currentSettings);
                 
-                var json = JsonSerializer.Serialize(_currentSettings, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-
-                await File.WriteAllTextAsync(_userSettingsPath, json).ConfigureAwait(false);
+                // Use repository to save settings
+                await _repository.SaveAsync(_currentSettings).ConfigureAwait(false);
+                
+                _logger.LogInformation("Settings saved via repository");
             }
-            catch (IOException ex)
+            catch (InvalidOperationException)
             {
-                throw new InvalidOperationException($"Failed to save settings: {ex.Message}", ex);
+                // Re-throw repository exceptions
+                throw;
             }
-            catch (UnauthorizedAccessException ex)
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Unexpected error saving settings");
                 throw new InvalidOperationException($"Failed to save settings: {ex.Message}", ex);
             }
         }
@@ -229,32 +236,21 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         {
             try
             {
-                if (File.Exists(_userSettingsPath))
+                // Use repository to load settings
+                var userSettings = await _repository.LoadAsync().ConfigureAwait(false);
+                
+                if (userSettings != null)
                 {
-                    var json = await File.ReadAllTextAsync(_userSettingsPath).ConfigureAwait(false);
-                    var userSettings = JsonSerializer.Deserialize<AppSettings>(json);
-                    
-                    if (userSettings != null)
-                    {
-                        // Merge user settings with default settings
-                        MergeSettings(_currentSettings, userSettings);
-                    }
+                    // Merge user settings with default settings
+                    MergeSettings(_currentSettings, userSettings);
                 }
+                
+                _logger.LogInformation("User settings loaded via repository");
             }
-            catch (IOException ex)
+            catch (Exception ex)
             {
                 // Log error but continue with default settings
-                _logger.LogWarning(ex, "Failed to load user settings due to IO error");
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                // Log error but continue with default settings
-                _logger.LogWarning(ex, "Failed to load user settings due to access denied");
-            }
-            catch (JsonException ex)
-            {
-                // Log error but continue with default settings
-                _logger.LogWarning(ex, "Failed to parse user settings JSON");
+                _logger.LogWarning(ex, "Failed to load user settings via repository, using defaults");
             }
         }
 
@@ -857,6 +853,92 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             }
 
             return result;
+        }
+
+        public async Task BackupSettingsAsync(string description)
+        {
+            try
+            {
+                await _repository.BackupAsync(_currentSettings, description).ConfigureAwait(false);
+                _logger.LogInformation("Settings backup created successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create settings backup");
+                throw new InvalidOperationException($"Failed to create backup: {ex.Message}", ex);
+            }
+        }
+
+        public async Task RestoreSettingsAsync(string backupId)
+        {
+            try
+            {
+                var restoredSettings = await _repository.RestoreFromBackupAsync(backupId).ConfigureAwait(false);
+                
+                // Validate restored settings
+                ValidateSettings(restoredSettings);
+                
+                // Apply restored settings
+                _currentSettings = restoredSettings;
+                await SaveAsync().ConfigureAwait(false);
+                
+                // Fire settings changed event
+                SettingsChanged?.Invoke(this, new SettingsChangedEventArgs
+                {
+                    Key = "RestoreBackup",
+                    OldValue = null,
+                    NewValue = backupId,
+                    Category = "System",
+                    RequiresRestart = true
+                });
+                
+                _logger.LogInformation("Settings restored from backup: {BackupId}", backupId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to restore settings from backup");
+                throw;
+            }
+        }
+
+        public async Task<SettingsBackup[]> GetAvailableBackupsAsync()
+        {
+            try
+            {
+                return await _repository.GetBackupsAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get available backups");
+                throw new InvalidOperationException($"Failed to get backups: {ex.Message}", ex);
+            }
+        }
+
+        public async Task DeleteBackupAsync(string backupId)
+        {
+            try
+            {
+                await _repository.DeleteBackupAsync(backupId).ConfigureAwait(false);
+                _logger.LogInformation("Settings backup deleted: {BackupId}", backupId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete settings backup");
+                throw new InvalidOperationException($"Failed to delete backup: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<bool> ValidateSettingsFileAsync()
+        {
+            try
+            {
+                return await _repository.ValidateAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to validate settings file");
+                return false;
+            }
         }
 
         private string GetEncryptedFilePath(string key)
