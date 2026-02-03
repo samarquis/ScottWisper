@@ -45,6 +45,43 @@ namespace WhisperKey
         private const uint MOD_WIN = 0x0008;
         private const uint MOD_NOREPEAT = 0x4000;
 
+        // Special key name mappings for common aliases
+        private static readonly Dictionary<string, Key> _specialKeyMappings = new Dictionary<string, Key>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SPACE"] = Key.Space,
+            ["ENTER"] = Key.Enter,
+            ["RETURN"] = Key.Enter,
+            ["TAB"] = Key.Tab,
+            ["DELETE"] = Key.Delete,
+            ["DEL"] = Key.Delete,
+            ["INSERT"] = Key.Insert,
+            ["INS"] = Key.Insert,
+            ["BACKSPACE"] = Key.Back,
+            ["BACK"] = Key.Back,
+            ["ESCAPE"] = Key.Escape,
+            ["ESC"] = Key.Escape,
+            ["PAGEUP"] = Key.PageUp,
+            ["PAGEDOWN"] = Key.PageDown,
+            ["HOME"] = Key.Home,
+            ["END"] = Key.End,
+            ["LEFT"] = Key.Left,
+            ["RIGHT"] = Key.Right,
+            ["UP"] = Key.Up,
+            ["DOWN"] = Key.Down,
+            ["F1"] = Key.F1,
+            ["F2"] = Key.F2,
+            ["F3"] = Key.F3,
+            ["F4"] = Key.F4,
+            ["F5"] = Key.F5,
+            ["F6"] = Key.F6,
+            ["F7"] = Key.F7,
+            ["F8"] = Key.F8,
+            ["F9"] = Key.F9,
+            ["F10"] = Key.F10,
+            ["F11"] = Key.F11,
+            ["F12"] = Key.F12
+        };
+
         private IntPtr _windowHandle;
         private HwndSource? _source;
         private readonly Dictionary<string, int> _registeredHotkeys = new Dictionary<string, int>();
@@ -355,6 +392,10 @@ namespace WhisperKey
                         {
                             virtualKey = (uint)char.ToUpper(part[0]);
                         }
+                        else if (_specialKeyMappings.TryGetValue(part, out var mappedKey))
+                        {
+                            virtualKey = (uint)KeyInterop.VirtualKeyFromKey(mappedKey);
+                        }
                         else if (Enum.TryParse<Key>(part, out var key))
                         {
                             virtualKey = (uint)KeyInterop.VirtualKeyFromKey(key);
@@ -622,25 +663,32 @@ namespace WhisperKey
             if (!File.Exists(filePath))
                 throw new FileNotFoundException($"Profile file not found: {filePath}");
 
-            var json = await File.ReadAllTextAsync(filePath);
-            var importData = JsonSerializer.Deserialize<JsonElement>(json);
-            
-            var profile = JsonSerializer.Deserialize<HotkeyProfile>(
-                importData.GetProperty("Profile").GetRawText());
-
-            if (profile == null)
-                throw new InvalidOperationException("Invalid profile file format");
-
-            // Ensure unique ID
-            var originalId = profile.Id;
-            var counter = 1;
-            while (_settingsService.Settings.Hotkeys.Profiles.ContainsKey(profile.Id))
+            try
             {
-                profile.Id = $"{originalId}_{counter++}";
-            }
+                var json = await File.ReadAllTextAsync(filePath);
+                var importData = JsonSerializer.Deserialize<JsonElement>(json);
+                
+                var profile = JsonSerializer.Deserialize<HotkeyProfile>(
+                    importData.GetProperty("Profile").GetRawText());
 
-            await CreateProfileAsync(profile);
-            return profile;
+                if (profile == null)
+                    throw new InvalidOperationException("Invalid profile file format");
+
+                // Ensure unique ID
+                var originalId = profile.Id;
+                var counter = 1;
+                while (_settingsService.Settings.Hotkeys.Profiles.ContainsKey(profile.Id))
+                {
+                    profile.Id = $"{originalId}_{counter++}";
+                }
+
+                await CreateProfileAsync(profile);
+                return profile;
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                throw new InvalidOperationException("Invalid profile file format", ex);
+            }
         }
 
         public async Task<List<HotkeyProfile>> GetAllProfilesAsync()
