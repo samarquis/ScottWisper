@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ namespace WhisperKey.ViewModels
         private bool _isLoading = true;
         private string _statusMessage = "Loading settings...";
         private string _apiStatus = "Not tested";
+        private bool _isDirty = false;
 
         // Commands
         public ICommand SaveCommand { get; private set; }
@@ -77,7 +79,8 @@ namespace WhisperKey.ViewModels
             {
                 if (SetProperty(ref _selectedInputDevice, value))
                 {
-                    _ = _settingsService.SetSelectedInputDeviceAsync(value);
+                    _settings.Audio.InputDeviceId = value;
+                    _isDirty = true;
                 }
             }
         }
@@ -90,7 +93,8 @@ namespace WhisperKey.ViewModels
             {
                 if (SetProperty(ref _fallbackInputDevice, value))
                 {
-                    _ = _settingsService.SetFallbackInputDeviceAsync(value);
+                    _settings.Audio.FallbackInputDeviceId = value;
+                    _isDirty = true;
                 }
             }
         }
@@ -103,7 +107,8 @@ namespace WhisperKey.ViewModels
             {
                 if (SetProperty(ref _selectedOutputDevice, value))
                 {
-                    _ = _settingsService.SetSelectedOutputDeviceAsync(value);
+                    _settings.Audio.OutputDeviceId = value;
+                    _isDirty = true;
                 }
             }
         }
@@ -116,7 +121,8 @@ namespace WhisperKey.ViewModels
             {
                 if (SetProperty(ref _fallbackOutputDevice, value))
                 {
-                    _ = _settingsService.SetFallbackOutputDeviceAsync(value);
+                    _settings.Audio.FallbackOutputDeviceId = value;
+                    _isDirty = true;
                 }
             }
         }
@@ -130,7 +136,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _autoSwitchDevices, value))
                 {
                     _settings.Audio.AutoSwitchDevices = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -144,7 +150,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _preferHighQualityDevices, value))
                 {
                     _settings.Audio.PreferHighQualityDevices = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -159,7 +165,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _transcriptionProvider, value))
                 {
                     _settings.Transcription.Provider = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                     OnPropertyChanged(nameof(AvailableModels));
                 }
             }
@@ -174,7 +180,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _localProvider, value))
                 {
                     _settings.Transcription.LocalProvider = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                     OnPropertyChanged(nameof(AvailableLocalProviders));
                 }
             }
@@ -196,7 +202,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _transcriptionModel, value))
                 {
                     _settings.Transcription.Model = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -210,7 +216,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _transcriptionLanguage, value))
                 {
                     _settings.Transcription.Language = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -224,7 +230,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _apiKey, value))
                 {
                     _settings.Transcription.ApiKey = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -238,7 +244,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _enableAutoPunctuation, value))
                 {
                     _settings.Transcription.EnableAutoPunctuation = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -252,7 +258,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _enableRealTimeTranscription, value))
                 {
                     _settings.Transcription.EnableRealTimeTranscription = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -266,7 +272,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _confidenceThreshold, value))
                 {
                     _settings.Transcription.ConfidenceThreshold = value / 100f;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -280,7 +286,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _maxRecordingDuration, value))
                 {
                     _settings.Transcription.MaxRecordingDuration = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -295,7 +301,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _apiEndpoint, value))
                 {
                     _settings.Transcription.ApiEndpoint = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -309,7 +315,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _apiTimeout, value))
                 {
                     _settings.Transcription.RequestTimeout = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -323,7 +329,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _useProxy, value))
                 {
                     _settings.Transcription.UseProxy = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -338,7 +344,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _showVisualFeedback, value))
                 {
                     _settings.UI.ShowVisualFeedback = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -352,7 +358,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _showTranscriptionWindow, value))
                 {
                     _settings.UI.ShowTranscriptionWindow = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -366,7 +372,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _minimizeToTray, value))
                 {
                     _settings.UI.MinimizeToTray = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -380,7 +386,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _windowOpacity, value))
                 {
                     _settings.UI.WindowOpacity = value / 100.0;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -394,7 +400,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _feedbackVolume, value))
                 {
                     _settings.UI.FeedbackVolume = value / 100f;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -409,7 +415,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _enableTextReview, value))
                 {
                     _settings.UI.EnableTextReview = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                     OnPropertyChanged(nameof(AutoInsertEnabled));
                 }
             }
@@ -424,7 +430,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _autoInsertAfterReview, value))
                 {
                     _settings.UI.AutoInsertAfterReview = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                     OnPropertyChanged(nameof(ReviewTimeoutEnabled));
                 }
             }
@@ -442,7 +448,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _reviewTimeoutSeconds, value))
                 {
                     _settings.UI.ReviewWindowTimeoutSeconds = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -457,7 +463,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _toggleRecordingHotkey, value))
                 {
                     _settings.Hotkeys.ToggleRecording = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -471,7 +477,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _showSettingsHotkey, value))
                 {
                     _settings.Hotkeys.ShowSettings = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -486,7 +492,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _enableDebugLogging, value))
                 {
                     _settings.TextInjection.EnableDebugMode = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -500,7 +506,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _logLevel, value))
                 {
                     // _settings.TextInjection.LogLevel = value; // LogLevel not in TextInjection, using a placeholder or skipping
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -514,7 +520,7 @@ namespace WhisperKey.ViewModels
                 if (SetProperty(ref _enablePerformanceMetrics, value))
                 {
                     _settings.TextInjection.EnablePerformanceMonitoring = value;
-                    _ = _settingsService.SaveAsync();
+                    _isDirty = true;
                 }
             }
         }
@@ -718,6 +724,7 @@ namespace WhisperKey.ViewModels
             {
                 StatusMessage = "Saving settings...";
                 await _settingsService.SaveAsync().ConfigureAwait(false);
+                _isDirty = false;
                 StatusMessage = "Settings saved successfully";
             }
             catch (InvalidOperationException ex)
@@ -739,11 +746,25 @@ namespace WhisperKey.ViewModels
             try
             {
                 StatusMessage = "Resetting settings...";
-                // Implementation would reset all settings to defaults
-                await Task.CompletedTask;
+                
+                // Reset all settings to defaults
+                _settings = new AppSettings();
+                _isDirty = true;
+                
+                // Save the reset settings immediately
+                await _settingsService.SaveAsync().ConfigureAwait(false);
+                _isDirty = false;
+                
+                // Reload the view model with default settings
+                await LoadSettingsAsync().ConfigureAwait(false);
+                
                 StatusMessage = "Settings reset successfully";
             }
             catch (InvalidOperationException ex)
+            {
+                StatusMessage = $"Error resetting settings: {ex.Message}";
+            }
+            catch (IOException ex)
             {
                 StatusMessage = $"Error resetting settings: {ex.Message}";
             }
