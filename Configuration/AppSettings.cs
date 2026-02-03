@@ -64,6 +64,11 @@ namespace WhisperKey.Configuration
         
         // Local provider selection (Whisper, Vosk, etc.)
         public LocalProviderType LocalProvider { get; set; } = LocalProviderType.Whisper;
+        
+        // Rate limiting settings
+        public bool EnableRateLimiting { get; set; } = true;
+        public int MaxRequestsPerMinute { get; set; } = 60; // Default: 60 requests per minute
+        public bool ApplyRateLimitToLocal { get; set; } = true; // Apply to both local and cloud
     }
 
     public enum TranscriptionMode

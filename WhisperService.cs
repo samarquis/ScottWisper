@@ -7,6 +7,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Polly;
 using Polly.CircuitBreaker;
@@ -25,9 +26,11 @@ namespace WhisperKey
         private readonly ICredentialService? _credentialService;
         private readonly LocalInferenceService? _localInference;
         private readonly IConfiguration? _configuration;
+        private readonly ILogger<WhisperService>? _logger;
         private readonly bool _ownsHttpClient;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
+        private readonly TokenBucketRateLimiter? _rateLimiter;
         
         // Configuration key for API endpoint
         private const string ApiEndpointConfigKey = "Transcription:ApiEndpoint";
@@ -94,6 +97,14 @@ namespace WhisperKey
             // Load API endpoint from configuration immediately
             _baseUrl = GetApiEndpointFromConfiguration();
             
+            // Initialize rate limiter from configuration
+            if (_settingsService?.Settings.Transcription.EnableRateLimiting == true)
+            {
+                var maxRequests = _settingsService.Settings.Transcription.MaxRequestsPerMinute;
+                _rateLimiter = new TokenBucketRateLimiter(maxRequests, 1);
+                System.Diagnostics.Debug.WriteLine($"Rate limiting enabled: {maxRequests} requests per minute");
+            }
+            
             // Use IHttpClientFactory if available to prevent socket exhaustion
             if (httpClientFactory != null)
             {
@@ -159,6 +170,29 @@ namespace WhisperKey
         {
             try
             {
+                // Check rate limiting if enabled
+                if (_rateLimiter != null)
+                {
+                    var applyToLocal = _settingsService?.Settings.Transcription.ApplyRateLimitToLocal ?? true;
+                    var isLocalMode = _settingsService?.Settings.Transcription.Mode == TranscriptionMode.Local;
+                    
+                    // Apply rate limiting if it's cloud mode, or if configured to apply to local mode too
+                    if (!isLocalMode || applyToLocal)
+                    {
+                        if (!_rateLimiter.TryConsume())
+                        {
+                            var waitTime = _rateLimiter.GetTimeUntilNextToken();
+                            var message = $"Rate limit exceeded. Maximum {_rateLimiter.MaxTokens} requests per {_rateLimiter.PeriodMinutes} minute(s). Please try again in {waitTime.TotalSeconds:F1} seconds.";
+                            
+                            _logger?.LogWarning("Rate limit exceeded for transcription request. Wait time: {WaitSeconds:F1}s", waitTime.TotalSeconds);
+                            System.Diagnostics.Debug.WriteLine(message);
+                            
+                            // Return 429 Too Many Requests
+                            throw new HttpRequestException(message, null, HttpStatusCode.TooManyRequests);
+                        }
+                    }
+                }
+                
                 // Validate audio data before processing
                 ValidateAudioData(audioData);
                 

@@ -849,5 +849,195 @@ namespace WhisperKey.Tests.Unit
         }
 
         #endregion
+
+        #region Rate Limiting Tests
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_RateLimitEnabled_WithinLimit_Succeeds()
+        {
+            // Arrange
+            var expectedText = "Test transcription";
+            var response = new { text = expectedText };
+            var jsonResponse = JsonConvert.SerializeObject(response);
+
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
+                });
+
+            // Setup rate limiting (5 requests per minute for testing)
+            _settingsServiceMock.Setup(s => s.Settings).Returns(new AppSettings
+            {
+                Transcription = new TranscriptionSettings
+                {
+                    Mode = TranscriptionMode.Cloud,
+                    EnableRateLimiting = true,
+                    MaxRequestsPerMinute = 5,
+                    AutoFallbackToCloud = true
+                }
+            });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+
+            // Act
+            var result = await service.TranscribeAudioAsync(CreateValidWavData());
+
+            // Assert
+            Assert.AreEqual(expectedText, result);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_RateLimitEnabled_ExceedsLimit_Returns429()
+        {
+            // Arrange
+            var expectedText = "Test transcription";
+            var response = new { text = expectedText };
+            var jsonResponse = JsonConvert.SerializeObject(response);
+
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
+                });
+
+            // Setup rate limiting (1 request per minute for testing)
+            _settingsServiceMock.Setup(s => s.Settings).Returns(new AppSettings
+            {
+                Transcription = new TranscriptionSettings
+                {
+                    Mode = TranscriptionMode.Cloud,
+                    EnableRateLimiting = true,
+                    MaxRequestsPerMinute = 1,
+                    AutoFallbackToCloud = true
+                }
+            });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+
+            // First request should succeed
+            await service.TranscribeAudioAsync(CreateValidWavData());
+
+            // Act & Assert - Second request should fail with 429
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_RateLimitDisabled_NoLimitingApplied()
+        {
+            // Arrange
+            var expectedText = "Test transcription";
+            var response = new { text = expectedText };
+            var jsonResponse = JsonConvert.SerializeObject(response);
+
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
+                });
+
+            // Setup rate limiting disabled
+            _settingsServiceMock.Setup(s => s.Settings).Returns(new AppSettings
+            {
+                Transcription = new TranscriptionSettings
+                {
+                    Mode = TranscriptionMode.Cloud,
+                    EnableRateLimiting = false,
+                    AutoFallbackToCloud = true
+                }
+            });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+
+            // Act - Multiple requests should all succeed when rate limiting is disabled
+            var result1 = await service.TranscribeAudioAsync(CreateValidWavData());
+            var result2 = await service.TranscribeAudioAsync(CreateValidWavData());
+            var result3 = await service.TranscribeAudioAsync(CreateValidWavData());
+
+            // Assert
+            Assert.AreEqual(expectedText, result1);
+            Assert.AreEqual(expectedText, result2);
+            Assert.AreEqual(expectedText, result3);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_LocalMode_RateLimitApplied_WhenConfigured()
+        {
+            // Arrange - Local mode with rate limiting enabled for local
+            _settingsServiceMock.Setup(s => s.Settings).Returns(new AppSettings
+            {
+                Transcription = new TranscriptionSettings
+                {
+                    Mode = TranscriptionMode.Local,
+                    EnableRateLimiting = true,
+                    MaxRequestsPerMinute = 2,
+                    ApplyRateLimitToLocal = true,
+                    AutoFallbackToCloud = true
+                }
+            });
+
+            // Setup cloud fallback mock
+            var expectedText = "Cloud fallback transcription";
+            var response = new { text = expectedText };
+            var jsonResponse = JsonConvert.SerializeObject(response);
+
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
+                });
+
+            // Local inference service will throw, causing fallback to cloud
+            var throwingInferenceMock = new Mock<LocalInferenceService>(_settingsServiceMock.Object, null, null);
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, throwingInferenceMock.Object);
+
+            // Act & Assert - First request fails locally but succeeds with cloud fallback
+            var result1 = await service.TranscribeAudioAsync(CreateValidWavData());
+            Assert.AreEqual(expectedText, result1);
+            
+            // Second request also succeeds (within rate limit of 2)
+            var result2 = await service.TranscribeAudioAsync(CreateValidWavData());
+            Assert.AreEqual(expectedText, result2);
+            
+            // Third request should fail with rate limit
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+        }
+
+        #endregion
     }
 }
