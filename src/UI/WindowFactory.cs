@@ -63,7 +63,7 @@ namespace WhisperKey.UI
             var window = new TranscriptionWindow();
             
             // Initialize services if available
-            var whisperService = _serviceProvider.GetService<WhisperService>();
+            var whisperService = _serviceProvider.GetService<IWhisperService>();
             var costService = _serviceProvider.GetService<CostTrackingService>();
             
             if (whisperService != null && costService != null)

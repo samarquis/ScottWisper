@@ -14,14 +14,14 @@ namespace WhisperKey
     public class ValidationService
     {
         private readonly AudioCaptureService _audioCaptureService;
-        private readonly WhisperService _whisperService;
+        private readonly IWhisperService _whisperService;
         private readonly HotkeyService _hotkeyService;
         private readonly CostTrackingService _costTrackingService;
         private readonly List<ValidationResult> _results = new();
 
         public ValidationService(
             AudioCaptureService audioCaptureService,
-            WhisperService whisperService, 
+            IWhisperService whisperService, 
             HotkeyService hotkeyService,
             CostTrackingService costTrackingService)
         {

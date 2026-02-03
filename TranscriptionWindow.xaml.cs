@@ -12,7 +12,7 @@ namespace WhisperKey
     {
         private readonly DispatcherTimer _autoHideTimer;
         private DateTime _lastActivity = DateTime.Now;
-        private WhisperService? _whisperService;
+        private IWhisperService? _whisperService;
         private CostTrackingService? _costTrackingService;
 
         // Windows API for cursor position
@@ -46,7 +46,7 @@ namespace WhisperKey
             TranscriptionText.MouseMove += OnMouseMove;
         }
 
-        public void InitializeServices(WhisperService whisperService, CostTrackingService costTrackingService)
+        public void InitializeServices(IWhisperService whisperService, CostTrackingService costTrackingService)
         {
             _whisperService = whisperService;
             _costTrackingService = costTrackingService;

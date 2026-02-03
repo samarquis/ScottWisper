@@ -78,8 +78,9 @@ namespace WhisperKey.Bootstrap
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
             
-            // Concrete services - all dependencies injected via constructors
+            // Core transcription services - registered with interfaces for loose coupling
             services.AddSingleton<WhisperService>();
+            services.AddSingleton<IWhisperService>(sp => sp.GetRequiredService<WhisperService>());
             services.AddSingleton<CostTrackingService>();
             services.AddSingleton<AudioCaptureService>();
             services.AddSingleton<HotkeyService>();
