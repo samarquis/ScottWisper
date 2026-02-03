@@ -106,8 +106,28 @@ namespace WhisperKey.Bootstrap
             // Register DispatcherService for UI thread marshaling
             services.AddSingleton<IDispatcherService, DispatcherService>();
             
+            // Register ValidationService for system validation
+            services.AddSingleton<ValidationService>();
+            
+            // Register CredentialService for secure API key storage
+            services.AddSingleton<ICredentialService, WindowsCredentialService>();
+            
             // Bootstrapper - all dependencies injected via constructor
             services.AddSingleton<ApplicationBootstrapper>();
+            
+            // Additional services - register with interfaces for loose coupling
+            services.AddSingleton<IAuditLoggingService, AuditLoggingService>();
+            services.AddSingleton<IPermissionService, PermissionService>();
+            services.AddSingleton<IVocabularyService, VocabularyService>();
+            services.AddSingleton<IWebhookService, WebhookService>();
+            services.AddSingleton<IModelManagerService, ModelManagerService>();
+            services.AddSingleton<IUserErrorService, UserErrorService>();
+            services.AddSingleton<IRegistryService, RegistryService>();
+            services.AddSingleton<IFileSystemService, FileSystemService>();
+            services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
+            services.AddSingleton<ILocalInferenceService, LocalInferenceService>();
+            services.AddSingleton<CostTrackingService>();
+            services.AddSingleton<IEnterpriseDeploymentService, EnterpriseDeploymentService>();
         }
     }
 }

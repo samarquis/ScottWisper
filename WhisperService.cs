@@ -21,6 +21,7 @@ namespace WhisperKey
         private string _apiKey;
         private string _baseUrl;
         private readonly ISettingsService? _settingsService;
+        private readonly ICredentialService? _credentialService;
         private readonly LocalInferenceService? _localInference;
         private readonly bool _ownsHttpClient;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
@@ -64,8 +65,14 @@ namespace WhisperKey
         }
         
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, LocalInferenceService? localInference = null)
+            : this(settingsService, httpClientFactory, null, localInference)
+        {
+        }
+        
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, LocalInferenceService? localInference = null)
         {
             _settingsService = settingsService;
+            _credentialService = credentialService;
             _localInference = localInference;
             _apiKey = GetApiKey(); // Sync version for constructor (env var only)
             _baseUrl = DefaultApiEndpoint; // Will be updated async
@@ -327,20 +334,46 @@ namespace WhisperKey
 
         private async Task<string> GetApiKeyAsync()
         {
-            // Try environment variable first
+            // Try credential service first (Windows Credential Manager)
+            if (_credentialService != null)
+            {
+                var credentialKey = await _credentialService.RetrieveCredentialAsync("OpenAI_ApiKey").ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(credentialKey))
+                {
+                    return credentialKey;
+                }
+            }
+            
+            // Fall back to environment variable
             var envKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
             if (!string.IsNullOrEmpty(envKey))
             {
                 return envKey;
             }
 
-            // Note: File-based encrypted API key storage is handled by SettingsService
-            // via GetApiKeyFromSettingsAsync() method which uses GetEncryptedValueAsync
             return string.Empty;
         }
 
         private async Task<string> GetApiKeyFromSettingsAsync()
         {
+            // Try credential service first (Windows Credential Manager)
+            if (_credentialService != null)
+            {
+                try
+                {
+                    var credentialKey = await _credentialService.RetrieveCredentialAsync("OpenAI_ApiKey").ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(credentialKey))
+                    {
+                        return credentialKey;
+                    }
+                }
+                catch (Exception ex) when (!IsFatalException(ex))
+                {
+                    // Fall back to settings service
+                }
+            }
+            
+            // Fall back to settings service encrypted storage
             if (_settingsService != null)
             {
                 try
