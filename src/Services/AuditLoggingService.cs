@@ -268,7 +268,7 @@ namespace WhisperKey.Services
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
                     
                     // Apply filters
@@ -308,7 +308,7 @@ namespace WhisperKey.Services
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
                     
                     stats.TotalEntries += entries.Count;
@@ -361,7 +361,7 @@ namespace WhisperKey.Services
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
                     
                     var expired = entries.Where(e => e.RetentionExpiry < now).ToList();
@@ -387,7 +387,7 @@ namespace WhisperKey.Services
                         if (valid.Any())
                         {
                             var newJson = JsonSerializer.Serialize(valid, new JsonSerializerOptions { WriteIndented = true });
-                            await File.WriteAllTextAsync(file, newJson);
+                            await File.WriteAllTextAsync(file, newJson).ConfigureAwait(false);
                         }
                         else
                         {
@@ -485,7 +485,7 @@ namespace WhisperKey.Services
             {
                 try
                 {
-                    var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                     var entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
                     
                     var toArchive = entries.Where(e => e.Timestamp < cutoffDate && !e.IsArchived).ToList();
@@ -538,7 +538,7 @@ namespace WhisperKey.Services
                     var fileDate = File.GetCreationTimeUtc(file);
                     if (fileDate < cutoffDate)
                     {
-                        var json = await File.ReadAllTextAsync(file);
+                    var json = await File.ReadAllTextAsync(file).ConfigureAwait(false);
                         var entries = JsonSerializer.Deserialize<List<AuditLogEntry>>(json) ?? new List<AuditLogEntry>();
                         purgedCount += entries.Count;
                         File.Delete(file);

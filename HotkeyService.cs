@@ -651,7 +651,7 @@ namespace WhisperKey
             };
 
             var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json);
+            await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
 
             // Store backup path
             settings.Hotkeys.BackupProfilePath = filePath;
@@ -665,7 +665,7 @@ namespace WhisperKey
 
             try
             {
-                var json = await File.ReadAllTextAsync(filePath);
+                var json = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
                 var importData = JsonSerializer.Deserialize<JsonElement>(json);
                 
                 var profile = JsonSerializer.Deserialize<HotkeyProfile>(

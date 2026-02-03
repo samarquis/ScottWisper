@@ -428,7 +428,7 @@ namespace WhisperKey.Services
                 
                 var configPath = Path.Combine(configDir, "deployment-config.json");
                 var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(configPath, json);
+                await File.WriteAllTextAsync(configPath, json).ConfigureAwait(false);
                 
                 _logger.LogInformation("Enterprise settings configured at {ConfigPath}", configPath);
                 return true;

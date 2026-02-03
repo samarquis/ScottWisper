@@ -440,7 +440,7 @@ namespace WhisperKey.Services
             
             var filePath = Path.Combine(_dataDirectory, "custom-vocabulary.json");
             var json = JsonSerializer.Serialize(_customVocabulary, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json);
+             await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
         }
         
         #region Vocabulary Pack Management
@@ -818,7 +818,7 @@ namespace WhisperKey.Services
             }
             
             var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(filePath, json);
+             await File.WriteAllTextAsync(filePath, json).ConfigureAwait(false);
             
             return filePath;
         }

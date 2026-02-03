@@ -73,7 +73,7 @@ namespace WhisperKey
         /// </summary>
         public async Task InitializeAsync()
         {
-            await LoadUsageDataAsync();
+            await LoadUsageDataAsync().ConfigureAwait(false);
         }
 
         private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
@@ -149,7 +149,7 @@ namespace WhisperKey
                 };
             }
             
-            await SaveUsageDataAsync();
+            await SaveUsageDataAsync().ConfigureAwait(false);
             UpdateAndNotify();
         }
 
@@ -259,7 +259,7 @@ namespace WhisperKey
             {
                 if (File.Exists(_usageDataPath))
                 {
-                    var json = await File.ReadAllTextAsync(_usageDataPath);
+                    var json = await File.ReadAllTextAsync(_usageDataPath).ConfigureAwait(false);
                     var options = new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
@@ -322,7 +322,7 @@ namespace WhisperKey
                 };
 
                 var json = JsonSerializer.Serialize(_usageData, options);
-                await File.WriteAllTextAsync(_usageDataPath, json);
+                await File.WriteAllTextAsync(_usageDataPath, json).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
