@@ -19,7 +19,7 @@ namespace WhisperKey
         private DictationManager? _dictationManager;
         private MainWindow? _mainWindow;
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected async override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
             
@@ -27,7 +27,7 @@ namespace WhisperKey
             RegisterGlobalExceptionHandlers();
             
             // Initialize application asynchronously
-            Task.Run(async () => await InitializeAsync()).ConfigureAwait(false);
+            await InitializeAsync();
         }
         
         private void RegisterGlobalExceptionHandlers()
@@ -303,22 +303,19 @@ namespace WhisperKey
             }, System.Windows.Threading.DispatcherPriority.Background);
         }
 
-        private void OnMainWindowStartDictationRequested(object? sender, EventArgs e)
+        private async void OnMainWindowStartDictationRequested(object? sender, EventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (_dictationManager != null)
                 {
-                    if (_dictationManager != null)
-                    {
-                        await _dictationManager.ToggleAsync();
-                    }
+                    await _dictationManager.ToggleAsync();
                 }
-                catch (Exception ex) when (!IsFatalException(ex))
-                {
-                    System.Diagnostics.Debug.WriteLine($"Start dictation error: {ex.Message}");
-                }
-            }).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!IsFatalException(ex))
+            {
+                System.Diagnostics.Debug.WriteLine($"Start dictation error: {ex.Message}");
+            }
         }
     }
 }
