@@ -16,9 +16,10 @@
          <!-- Header -->
         <Border Grid.Row="0" Background="#2196F3" Padding="20">
             <StackPanel>
-                <TextBlock Text="Welcome to WhisperKey"
-                          FontSize="24" FontWeight="Bold" Foreground="White"
-                          AutomationProperties.Name="Welcome to WhisperKey Setup Wizard"/>
+                <TextBlock Text="Welcome to WhisperKey Setup"
+                           FontSize="24" FontWeight="Bold" Foreground="White"
+                           AutomationProperties.Name="Welcome Screen"
+                           AutomationProperties.HelpText="First-time setup to configure your WhisperKey voice dictation application"/>
                 <TextBlock Text="Let's get you set up in just a few steps"
                           FontSize="14" Foreground="White" Opacity="0.9" Margin="0,4,0,0"
                           AutomationProperties.Name="Setup Wizard Description"/>
@@ -34,19 +35,21 @@
             
              <!-- Step indicator -->
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
-                <Ellipse Width="12" Height="12" Fill="#2196F3" x:Name="Step1Indicator"
-                         AutomationProperties.Name="Step 1"
-                         AutomationProperties.HelpText="API Key Configuration step"/>
-                <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"
-                           AutomationProperties.Name="Step Progress Line"/>
-                <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step2Indicator"
-                         AutomationProperties.Name="Step 2"
-                         AutomationProperties.HelpText="Microphone Test step"/>
-                <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"
-                           AutomationProperties.Name="Step Progress Line"/>
-                <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step3Indicator"
-                         AutomationProperties.Name="Step 3"
-                         AutomationProperties.HelpText="Setup Complete step"/>
+                 <Ellipse Width="12" Height="12" Fill="#2196F3" x:Name="Step1Indicator"
+                          AutomationProperties.Name="Setup Step"
+                          AutomationProperties.HelpText="Step 1: Configure your OpenAI API key for transcription service"/>
+                 <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"
+                            AutomationProperties.Name="Setup Progress"
+                            AutomationProperties.HelpText="Current progress through setup wizard"/>
+                 <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step2Indicator"
+                          AutomationProperties.Name="Setup Step"
+                          AutomationProperties.HelpText="Step 2: Test your microphone to ensure audio capture works properly"/>
+                 <Rectangle Width="40" Height="2" Fill="#CCCCCC" Margin="4,0"
+                            AutomationProperties.Name="Setup Progress"
+                            AutomationProperties.HelpText="Current progress through setup wizard"/>
+                 <Ellipse Width="12" Height="12" Fill="#CCCCCC" x:Name="Step3Indicator"
+                          AutomationProperties.Name="Setup Step"
+                          AutomationProperties.HelpText="Step 3: Complete setup and start using WhisperKey"/>
             </StackPanel>
             
             <!-- Step 1: API Key (Optional for Cloud, Skip for Local) -->
@@ -140,6 +143,12 @@
                 
                 <Button x:Name="BackButton" Grid.Column="0" Content="Back" Width="80" Height="32" 
                         Click="BackButton_Click" IsEnabled="False"/>
+                
+                <Button x:Name="SkipButton" Grid.Column="1" Content="Skip Setup" HorizontalAlignment="Center" 
+                        Width="100" Height="32" Background="Transparent" BorderThickness="0"
+                        Foreground="Gray" Cursor="Hand" Click="SkipButton_Click"
+                        AutomationProperties.Name="Skip Setup"
+                        AutomationProperties.HelpText="Bypass the setup wizard and use default settings"/>
                 
                 <Button x:Name="NextButton" Grid.Column="2" Content="Next" Width="80" Height="32" 
                         Background="#2196F3" Foreground="White" FontWeight="SemiBold"

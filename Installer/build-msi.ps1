@@ -51,9 +51,9 @@ function Sanitize-WixId {
     if ($sanitized -match '^[0-9]') {
         $sanitized = "_$sanitized"
     }
-    # Truncate to 72 characters max (WiX limit)
-    if ($sanitized.Length -gt 72) {
-        $sanitized = $sanitized.Substring(0, 72)
+    # Truncate to 50 characters max to be safe for both Component and File IDs
+    if ($sanitized.Length -gt 50) {
+        $sanitized = $sanitized.Substring(0, 50)
     }
     return $sanitized
 }

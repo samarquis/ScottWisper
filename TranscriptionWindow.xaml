@@ -45,7 +45,7 @@
                         Background="Transparent" BorderThickness="0"
                         Click="CloseButton_Click" FontSize="14" Cursor="Hand"
                         AutomationProperties.Name="Close Window"
-                        AutomationProperties.HelpText="Close the transcription window. You can also press Escape key."/>
+                        AutomationProperties.HelpText="Close transcription window and return to main interface"/>
             </Grid>
         </Border>
         

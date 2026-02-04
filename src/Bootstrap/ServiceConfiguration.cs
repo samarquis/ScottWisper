@@ -7,6 +7,7 @@ using System.IO;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
 using WhisperKey.Repositories;
+using WhisperKey;
 
 namespace WhisperKey.Bootstrap
 {
@@ -69,73 +70,48 @@ namespace WhisperKey.Bootstrap
         /// </summary>
         private static void RegisterApplicationServices(IServiceCollection services)
         {
-            // Core services - register interfaces with implementations
+            // Core services
             services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
+            services.AddSingleton<IAudioDeviceService, AudioDeviceService>();
             
-            // Configure HttpClient for Whisper API to prevent socket exhaustion
+            // Validation services
+            services.AddSingleton<ValidationService>();
+            services.AddSingleton<VocabularyService>();
+            services.AddSingleton<UserErrorService>();
+            
+            // Management services
+            services.AddSingleton<ApplicationBootstrapper, ApplicationBootstrapper>();
+            services.AddSingleton<SystemTrayService, SystemTrayService>();
+            
+            // Permission services
+            services.AddSingleton<IPermissionService, PermissionService>();
+            services.AddSingleton<IRegistryService, RegistryService>();
+            services.AddSingleton<IFileSystemService>(sp => new FileSystemService()); 
+            
+            // Feedback
+            services.AddSingleton<IFeedbackService, FeedbackService>();
+            
+            // Command Processing
+            services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
+            
+            // Cost Tracking
+            services.AddSingleton<CostTrackingService, CostTrackingService>();
+            
+            // Hotkey services
+            services.AddSingleton<HotkeyRegistrationService, HotkeyRegistrationService>();
+            services.AddSingleton<HotkeyProfileManager, HotkeyProfileManager>();
+            services.AddSingleton<HotkeyConflictDetector, HotkeyConflictDetector>();
+            services.AddSingleton<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
+            services.AddSingleton<HotkeyService, HotkeyService>();
+            
+            // Configure HttpClient for Whisper API
             services.AddHttpClient("WhisperApi", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
             });
-            
-        }
-        /// Configures and returns service provider
-        /// </summary>
-        public static IServiceProvider ConfigureServices(IServiceCollection services)
-        {
-            // Core transcription services
-            services.AddSingleton<ISettingsService, SettingsService>();
-            services.AddSingleton<ITextInjection, TextInjectionService>();
-                
-                // Core device services
-            services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceService>();
-            services.AddSingleton<IAudioDeviceService, AudioDeviceService>();
-                
-                // Core validation services
-                services.AddSingleton<IValidationService, ValidationService>();
-                services.AddSingleton<IVocabularyService, VocabularyService>();
-                services.AddSingleton<IUserErrorService, UserErrorService>();
-                
-                // Core management services
-                services.AddSingleton<ApplicationBootstrapper, ApplicationBootstrapper>();
-                services.AddSingleton<SystemTrayService, SystemTrayService>();
-                
-                // Permission services
-                services.AddSingleton<IPermissionService, PermissionService>();
-                services.AddSingleton<IRegistryService, RegistryService>();
-                services.AddSingleton<IFileSystemService, FileSystemService>();
-                
-                // Feedback and notification services
-                services.AddSingleton<IFeedbackService, FeedbackService>();
-                
-                // Command processing service
-                services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
-                
-                 // Misc services
-                 services.AddSingleton<CostTrackingService, CostTrackingService>();
-                 
-                 // Hotkey services (refactored from HotkeyService)
-                 services.AddSingleton<HotkeyRegistrationService, HotkeyRegistrationService>();
-                 services.AddSingleton<HotkeyProfileManager, HotkeyProfileManager>();
-                 services.AddSingleton<HotkeyConflictDetector, HotkeyConflictDetector>();
-                 services.AddSingleton<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
-                 services.AddSingleton<HotkeyService, HotkeyService>();
-                
-                // Settings service with repository pattern
-                services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
-                
-                 // Security services
-                 services.AddSingleton<ISecurityService, SecurityService>();
-                 
-                 // Hotkey services (refactored from HotkeyService)
-                 services.AddSingleton<HotkeyRegistrationService, HotkeyRegistrationService>();
-                 services.AddSingleton<HotkeyProfileManager, HotkeyProfileManager>();
-                 services.AddSingleton<HotkeyConflictDetector, HotkeyConflictDetector>();
-                 services.AddSingleton<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
-                 services.AddSingleton<HotkeyService, HotkeyService>();
         }
     }
 }

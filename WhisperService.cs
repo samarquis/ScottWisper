@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using WhisperKey.Exceptions;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
@@ -50,7 +51,7 @@ namespace WhisperKey
         
         // Circuit breaker configuration
         private const int CircuitBreakerThreshold = 5; // Open after 5 failures
-        private const int CircuitBreakerDurationSeconds = 30; // Stay open for 30 seconds
+        private const int CircuitBreakerDurationSeconds = 60; // Stay open for 1 minute
         
         public event EventHandler? TranscriptionStarted;
         public event EventHandler<int>? TranscriptionProgress;
@@ -309,7 +310,7 @@ namespace WhisperKey
                 
                 if (transcriptionResponse?.Text == null)
                 {
-                    throw new InvalidOperationException("Invalid response from Whisper API");
+                    throw new TranscriptionModelException("Whisper API", "Invalid response from Whisper API");
                 }
                 
                 // Update usage statistics

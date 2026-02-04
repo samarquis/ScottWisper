@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
+using WhisperKey.Exceptions;
 using WhisperKey.Configuration;
 
 namespace WhisperKey.Services
@@ -369,12 +370,12 @@ namespace WhisperKey.Services
                 catch (UnauthorizedAccessException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
-                    throw new InvalidOperationException("Unable to get default input device", ex);
+                    throw new AudioDevicePermissionException(null, "Audio device access", "Unable to get default input device - unauthorized access", ex);
                 }
                 catch (SecurityException ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
-                    throw new InvalidOperationException("Unable to get default input device", ex);
+                    throw new AudioDevicePermissionException(null, "Audio device access", "Unable to get default input device - security exception", ex);
                 }
                 catch (COMException ex)
                 {

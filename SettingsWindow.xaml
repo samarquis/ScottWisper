@@ -63,19 +63,27 @@
                             
                             <CheckBox x:Name="StartWithWindowsCheckBox" Grid.Row="0" Grid.Column="0" 
                                       Content="Start with Windows" VerticalAlignment="Center" 
-                                      Margin="0,0,0,8" Checked="StartWithWindows_Checked"/>
+                                      Margin="0,0,0,8" Checked="StartWithWindows_Checked"
+                                      AutomationProperties.Name="Startup Option"
+                                      AutomationProperties.HelpText="Launch WhisperKey when Windows starts"/>
                             
                             <CheckBox x:Name="StartMinimizedCheckBox" Grid.Row="0" Grid.Column="1" 
                                       Content="Start minimized" VerticalAlignment="Center" 
-                                      Margin="20,0,0,8" Checked="StartMinimized_Checked"/>
+                                      Margin="20,0,0,8" Checked="StartMinimized_Checked"
+                                      AutomationProperties.Name="Startup Option"
+                                      AutomationProperties.HelpText="Start WhisperKey minimized to system tray"/>
                             
                             <CheckBox x:Name="CheckForUpdatesCheckBox" Grid.Row="1" Grid.Column="0" 
                                       Content="Check for updates on startup" VerticalAlignment="Center" 
-                                      Margin="0,8,0,0" Checked="CheckForUpdates_Checked"/>
+                                      Margin="0,8,0,0" Checked="CheckForUpdates_Checked"
+                                      AutomationProperties.Name="Startup Option"
+                                      AutomationProperties.HelpText="Automatically check for application updates when starting"/>
                             
                             <CheckBox x:Name="AutoStartDictationCheckBox" Grid.Row="1" Grid.Column="1" 
                                       Content="Auto-start dictation" VerticalAlignment="Center" 
-                                      Margin="20,8,0,0" Checked="AutoStartDictation_Checked"/>
+                                      Margin="20,8,0,0" Checked="AutoStartDictation_Checked"
+                                      AutomationProperties.Name="Startup Option"
+                                      AutomationProperties.HelpText="Begin recording automatically when application starts"/>
                             
                             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
                                 <Label Content="Startup delay:" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -101,17 +109,25 @@
                             
                             <CheckBox x:Name="AutoUpdateCheckBox" Grid.Row="0" Grid.Column="0" 
                                       Content="Automatic updates" VerticalAlignment="Center" 
-                                      Margin="0,0,0,8" Checked="AutoUpdate_Checked"/>
+                                      Margin="0,0,0,8" Checked="AutoUpdate_Checked"
+                                      AutomationProperties.Name="Automatic Updates"
+                                      AutomationProperties.HelpText="Enable automatic background application updates"/>
                             
                             <CheckBox x:Name="BetaUpdatesCheckBox" Grid.Row="0" Grid.Column="1" 
                                       Content="Include beta updates" VerticalAlignment="Center" 
-                                      Margin="20,0,0,8" Checked="BetaUpdates_Checked"/>
+                                      Margin="20,0,0,8" Checked="BetaUpdates_Checked"
+                                      AutomationProperties.Name="Beta Updates"
+                                      AutomationProperties.HelpText="Participate in beta program to receive early updates"/>
                             
                             <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal">
                                 <Button x:Name="CheckUpdatesButton" Content="Check for Updates" Width="140" 
-                                        Margin="0,0,8,0" Click="CheckUpdates_Click"/>
+                                        Margin="0,0,8,0" Click="CheckUpdates_Click"
+                                        AutomationProperties.Name="Check for Updates"
+                                        AutomationProperties.HelpText="Manually check if a new version is available"/>
                                 <Button x:Name="UpdateHistoryButton" Content="Update History" Width="140" 
-                                        Margin="0,0,8,0" Click="UpdateHistory_Click"/>
+                                        Margin="0,0,8,0" Click="UpdateHistory_Click"
+                                        AutomationProperties.Name="Update History"
+                                        AutomationProperties.HelpText="View history of previously installed updates"/>
                             </StackPanel>
                             
                             <TextBlock x:Name="CurrentVersionText" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
@@ -135,23 +151,33 @@
                             
                             <CheckBox x:Name="SingleInstanceCheckBox" Grid.Row="0" Grid.Column="0" 
                                       Content="Allow only one instance" VerticalAlignment="Center" 
-                                      Margin="0,0,0,8" Checked="SingleInstance_Checked"/>
+                                      Margin="0,0,0,8" Checked="SingleInstance_Checked"
+                                      AutomationProperties.Name="Single Instance Mode"
+                                      AutomationProperties.HelpText="Prevent multiple copies of WhisperKey from running simultaneously"/>
                             
                             <CheckBox x:Name="MinimizeToTrayCheckBox" Grid.Row="0" Grid.Column="1" 
                                       Content="Minimize to system tray" VerticalAlignment="Center" 
-                                      Margin="20,0,0,8" Checked="MinimizeToTray_Checked"/>
+                                      Margin="20,0,0,8" Checked="MinimizeToTray_Checked"
+                                      AutomationProperties.Name="Minimize to Tray"
+                                      AutomationProperties.HelpText="Hide main window to system tray instead of closing when minimized"/>
                             
                             <CheckBox x:Name="ShowNotificationsCheckBox" Grid.Row="1" Grid.Column="0" 
                                       Content="Show notifications" VerticalAlignment="Center" 
-                                      Margin="0,8,0,0" Checked="ShowNotifications_Checked"/>
+                                      Margin="0,8,0,0" Checked="ShowNotifications_Checked"
+                                      AutomationProperties.Name="Show Notifications"
+                                      AutomationProperties.HelpText="Enable visual toast notifications for application events"/>
                             
                             <CheckBox x:Name="RememberWindowPositionCheckBox" Grid.Row="1" Grid.Column="1" 
                                       Content="Remember window position" VerticalAlignment="Center" 
-                                      Margin="20,8,0,0" Checked="RememberWindowPosition_Checked"/>
+                                      Margin="20,8,0,0" Checked="RememberWindowPosition_Checked"
+                                      AutomationProperties.Name="Remember Position"
+                                      AutomationProperties.HelpText="Save and restore application window size and location"/>
                             
                              <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,12,0,0">
                                  <Label Content="Theme:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                 <ComboBox x:Name="ThemeComboBox" Width="150" SelectionChanged="Theme_SelectionChanged">
+                                 <ComboBox x:Name="ThemeComboBox" Width="150" SelectionChanged="Theme_SelectionChanged"
+                                           AutomationProperties.Name="Application Theme"
+                                           AutomationProperties.HelpText="Choose between light, dark, or high contrast visual themes">
                                      <ComboBoxItem Content="System Default" Tag="system"/>
                                      <ComboBoxItem Content="Light" Tag="light"/>
                                      <ComboBoxItem Content="Dark" Tag="dark"/>
@@ -177,19 +203,26 @@
                              <CheckBox x:Name="EnableTextReviewCheckBox" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
                                        Content="Enable text review before injection (allows editing transcription)" 
                                        VerticalAlignment="Center" 
-                                       Margin="0,0,0,8" Checked="EnableTextReview_Checked" Unchecked="EnableTextReview_Unchecked"/>
+                                       Margin="0,0,0,8" Checked="EnableTextReview_Checked" Unchecked="EnableTextReview_Unchecked"
+                                       AutomationProperties.Name="Enable Text Review"
+                                       AutomationProperties.HelpText="Show a preview window to edit text before it is typed into other applications"/>
                              
                              <CheckBox x:Name="AutoInsertCheckBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                        Content="Auto-insert after timeout (if no user action)" 
                                        VerticalAlignment="Center" 
                                        Margin="20,8,0,8" IsEnabled="False"
-                                       Checked="AutoInsert_Checked" Unchecked="AutoInsert_Unchecked"/>
+                                       Checked="AutoInsert_Checked" Unchecked="AutoInsert_Unchecked"
+                                       AutomationProperties.Name="Auto Insert"
+                                       AutomationProperties.HelpText="Automatically inject text after the review timeout expires"/>
                              
                              <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="20,8,0,0">
                                  <Label Content="Review timeout:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                  <Slider x:Name="ReviewTimeoutSlider" Minimum="5" Maximum="120" Value="30" 
-                                          Width="150" IsEnabled="False" ValueChanged="ReviewTimeout_ValueChanged"/>
-                                 <TextBlock x:Name="ReviewTimeoutText" Text="30 seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                          Width="150" IsEnabled="False" ValueChanged="ReviewTimeout_ValueChanged"
+                                          AutomationProperties.Name="Review Timeout"
+                                          AutomationProperties.HelpText="Number of seconds to wait before auto-inserting text"/>
+                                 <TextBlock x:Name="ReviewTimeoutText" Text="30 seconds" VerticalAlignment="Center" Margin="8,0,0,0"
+                                            AutomationProperties.Name="Review Timeout Display"/>
                                  <TextBlock Text="(0 to disable auto-insert)" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="Gray" FontSize="12"/>
                              </StackPanel>
                          </Grid>
@@ -407,46 +440,61 @@
                             <Label Grid.Row="0" Grid.Column="0" Content="Transcription Mode:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
                             <ComboBox x:Name="TranscriptionModeComboBox" Grid.Row="0" Grid.Column="0" 
                                       Width="200" HorizontalAlignment="Left" Margin="130,0,0,0" 
-                                      SelectionChanged="TranscriptionMode_SelectionChanged"/>
+                                      SelectionChanged="TranscriptionMode_SelectionChanged"
+                                      AutomationProperties.Name="Transcription Mode"
+                                      AutomationProperties.HelpText="Choose between Local (offline) or Cloud based transcription"/>
                             
                             <!-- Local Provider Selection (shown only in Local mode) -->
                             <StackPanel x:Name="LocalProviderPanel" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
                                         Orientation="Horizontal" Margin="0,8,0,0" Visibility="Collapsed">
                                 <Label Content="Local Provider:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
                                 <ComboBox x:Name="LocalProviderComboBox" Width="200" 
-                                          SelectionChanged="LocalProvider_SelectionChanged"/>
+                                          SelectionChanged="LocalProvider_SelectionChanged"
+                                          AutomationProperties.Name="Local Transcription Engine"
+                                          AutomationProperties.HelpText="Select the specific engine to use for local processing"/>
                                 <TextBlock x:Name="LocalProviderDescription" VerticalAlignment="Center" 
                                            Margin="12,0,0,0" Foreground="Gray" FontSize="11" 
-                                           TextWrapping="Wrap" MaxWidth="300"/>
+                                           TextWrapping="Wrap" MaxWidth="300"
+                                           AutomationProperties.Name="Provider Description"/>
                             </StackPanel>
                             
                             <!-- Cloud Provider (shown only in Cloud mode) -->
                             <StackPanel x:Name="CloudProviderPanel" Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0,8,0,0">
                                 <Label Content="Cloud Provider:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <ComboBox x:Name="ProviderComboBox" Width="200" 
-                                          SelectionChanged="Provider_SelectionChanged"/>
+                                          SelectionChanged="Provider_SelectionChanged"
+                                          AutomationProperties.Name="Cloud Provider"
+                                          AutomationProperties.HelpText="Select the AI service provider for cloud transcription"/>
                             </StackPanel>
                             
                             <Label Grid.Row="3" Grid.Column="0" Content="Model:" VerticalAlignment="Center" Margin="0,8,8,0"/>
                             <ComboBox x:Name="ModelComboBox" Grid.Row="3" Grid.Column="0" 
                                       Width="200" HorizontalAlignment="Left" Margin="80,8,0,0" 
-                                      SelectionChanged="Model_SelectionChanged"/>
+                                      SelectionChanged="Model_SelectionChanged"
+                                      AutomationProperties.Name="AI Model"
+                                      AutomationProperties.HelpText="Select the specific AI model size and capability"/>
                             
                             <Label Grid.Row="4" Grid.Column="0" Content="Language:" VerticalAlignment="Center" Margin="0,8,8,0"/>
                             <ComboBox x:Name="LanguageComboBox" Grid.Row="4" Grid.Column="0" 
                                       Width="200" HorizontalAlignment="Left" Margin="80,8,0,0" 
-                                      SelectionChanged="Language_SelectionChanged"/>
+                                      SelectionChanged="Language_SelectionChanged"
+                                      AutomationProperties.Name="Transcription Language"
+                                      AutomationProperties.HelpText="Choose the spoken language for transcription or use auto-detect"/>
                             
                             <!-- Cloud-specific settings panel -->
                             <StackPanel x:Name="CloudSettingsPanel" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
                                 <Label Content="Endpoint URL:" VerticalAlignment="Center" Margin="0,8,8,0"/>
                                 <TextBox x:Name="ApiEndpointTextBox" Width="250" HorizontalAlignment="Left" Margin="80,0,0,0" 
-                                         TextChanged="ApiEndpoint_TextChanged"/>
+                                         TextChanged="ApiEndpoint_TextChanged"
+                                         AutomationProperties.Name="API Endpoint URL"
+                                         AutomationProperties.HelpText="The web address of the transcription service API"/>
                                 
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                     <Label Content="Request Timeout:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <TextBox x:Name="ApiTimeoutTextBox" Text="30" Width="60" 
-                                             TextChanged="ApiTimeout_TextChanged"/>
+                                             TextChanged="ApiTimeout_TextChanged"
+                                             AutomationProperties.Name="API Timeout"
+                                             AutomationProperties.HelpText="Seconds to wait for a response from the cloud service"/>
                                     <TextBlock Text="seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
                                 </StackPanel>
                             </StackPanel>
@@ -454,11 +502,15 @@
                             <Label Grid.Row="2" Grid.Column="1" Content="API Key:" VerticalAlignment="Center" Margin="20,0,8,0"/>
                             <PasswordBox x:Name="ApiKeyPasswordBox" Grid.Row="2" Grid.Column="1" 
                                          Width="250" HorizontalAlignment="Left" Margin="70,0,0,0" 
-                                         PasswordChanged="ApiKey_PasswordChanged"/>
+                                         PasswordChanged="ApiKey_PasswordChanged"
+                                         AutomationProperties.Name="API Key"
+                                         AutomationProperties.HelpText="Your private access key for the cloud service"/>
                             
                             <Button x:Name="TestApiKeyButton" Grid.Row="3" Grid.Column="1" 
                                     Content="Test API Key" Width="120" HorizontalAlignment="Left" 
-                                    Margin="70,8,0,0" Click="TestApiKey_Click"/>
+                                    Margin="70,8,0,0" Click="TestApiKey_Click"
+                                    AutomationProperties.Name="Test Connection"
+                                    AutomationProperties.HelpText="Verify that the API key and endpoint are working correctly"/>
                             
                             <Button x:Name="ValidateEndpointButton" Grid.Row="5" Grid.Column="1" 
                                     Content="Validate Endpoint" Width="120" HorizontalAlignment="Left" 
@@ -489,30 +541,43 @@
                             
                             <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,8">
                                 <CheckBox x:Name="EnableAutoPunctuationCheckBox" Content="Auto-punctuation" 
-                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableAutoPunctuation_Checked"/>
+                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableAutoPunctuation_Checked"
+                                          AutomationProperties.Name="Auto Punctuation"
+                                          AutomationProperties.HelpText="Automatically add commas, periods, and question marks to transcription"/>
                                 <CheckBox x:Name="EnableRealTimeTranscriptionCheckBox" Content="Real-time transcription" 
-                                          VerticalAlignment="Center" Checked="EnableRealTimeTranscription_Checked"/>
+                                          VerticalAlignment="Center" Checked="EnableRealTimeTranscription_Checked"
+                                          AutomationProperties.Name="Real-time Transcription"
+                                          AutomationProperties.HelpText="Show transcription results as you speak instead of waiting for the end"/>
                             </StackPanel>
                             
                             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,8">
                                 <CheckBox x:Name="EnableProfanityFilterCheckBox" Content="Profanity filter" 
-                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableProfanityFilter_Checked"/>
+                                          VerticalAlignment="Center" Margin="0,0,16,0" Checked="EnableProfanityFilter_Checked"
+                                          AutomationProperties.Name="Profanity Filter"
+                                          AutomationProperties.HelpText="Hide or mask offensive language in transcribed text"/>
                                 <CheckBox x:Name="EnableTimestampsCheckBox" Content="Include timestamps" 
-                                          VerticalAlignment="Center" Checked="EnableTimestamps_Checked"/>
+                                          VerticalAlignment="Center" Checked="EnableTimestamps_Checked"
+                                          AutomationProperties.Name="Include Timestamps"
+                                          AutomationProperties.HelpText="Add start and end times to transcription segments"/>
                             </StackPanel>
                             
                             <Label Grid.Row="1" Grid.Column="0" Content="Confidence Threshold:" VerticalAlignment="Center" Margin="0,8,8,0"/>
                             <Slider x:Name="ConfidenceThresholdSlider" Grid.Row="1" Grid.Column="0" 
                                      Minimum="0" Maximum="100" Value="80" Width="200" 
                                      HorizontalAlignment="Left" Margin="140,8,0,0" 
-                                     ValueChanged="ConfidenceThreshold_ValueChanged"/>
+                                     ValueChanged="ConfidenceThreshold_ValueChanged"
+                                     AutomationProperties.Name="Confidence Threshold"
+                                     AutomationProperties.HelpText="Minimum accuracy level required to accept a transcription"/>
                             <TextBlock x:Name="ConfidenceThresholdText" Grid.Row="1" Grid.Column="0" 
-                                       Text="80%" VerticalAlignment="Center" Margin="350,8,0,0"/>
+                                       Text="80%" VerticalAlignment="Center" Margin="350,8,0,0"
+                                       AutomationProperties.Name="Threshold Display"/>
                             
                             <Label Grid.Row="2" Grid.Column="0" Content="Max Recording Duration:" VerticalAlignment="Center" Margin="0,8,8,0"/>
                             <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="170,8,0,0">
                                 <TextBox x:Name="MaxDurationTextBox" Text="30" Width="60" 
-                                         TextChanged="MaxDuration_TextChanged"/>
+                                         TextChanged="MaxDuration_TextChanged"
+                                         AutomationProperties.Name="Maximum Recording Duration"
+                                         AutomationProperties.HelpText="Automatic cutoff time for a single recording session in seconds"/>
                                 <TextBlock Text="seconds" VerticalAlignment="Center" Margin="8,0,0,0"/>
                             </StackPanel>
                         </Grid>

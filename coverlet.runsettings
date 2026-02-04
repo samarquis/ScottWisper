@@ -1,0 +1,23 @@
+{
+  "coverlet.collector": {
+    "enabled": true,
+    "exclude": [
+      "[*]*",
+      "WhisperKey.*Tests*",
+      "*Migrations*"
+    ],
+    "include": [
+      "WhisperKey.Services*",
+      "WhisperKey.Exceptions*"
+    ],
+    "format": "json,opencover,lcov,teamcity",
+    "output": "./CoverageResults/",
+    "threshold": {
+      "type": "line",
+      "minimum": 80,
+      "branch": 80,
+      "method": 80
+    },
+    "verbosity": "normal"
+  }
+}

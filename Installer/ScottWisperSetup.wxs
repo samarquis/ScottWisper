@@ -22,7 +22,7 @@
      
    <?define ProductName = "WhisperKey" ?>
    <!-- Version is passed as preprocessor variable from build script - defaults to 1.0.0 if not provided -->
-   <?define ProductVersion = "1.0.0" ?>
+   <?define ProductVersion = "$(var.Version)" ?>
   <?define ProductManufacturer = "WhisperKey" ?>
    <?define ProductCode = "12345678-90AB-CDEF-1234567890" ?>
   <?define UpgradeCode = "12345678-1234-1234-1234-123456789012" ?>

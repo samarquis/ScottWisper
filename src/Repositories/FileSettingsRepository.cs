@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -401,42 +403,110 @@ namespace WhisperKey.Repositories
 
 #if WINDOWS
         /// <summary>
-        /// Windows-specific permission enforcement
+        /// Windows-specific permission enforcement using ACLs
         /// </summary>
         private void EnforceWindowsPermissions()
         {
             try
             {
-                var currentUser = Environment.UserName;
-                _logger.LogInformation($"Applying permissions for user: {currentUser}");
-
-                // Apply basic file permissions to make settings user-private
-                try
+                // Get current user identity
+                var currentUser = WindowsIdentity.GetCurrent();
+                if (currentUser?.User == null)
                 {
-                    // Set file to user-readable/writable only
-                    var fileInfo = new FileInfo(_settingsPath);
-                    if (fileInfo.Exists)
-                    {
-                        fileInfo.IsReadOnly = false;
-                    }
-
-                    var backupDir = new DirectoryInfo(_backupPath);
-                    if (backupDir.Exists)
-                    {
-                        backupDir.Attributes &= ~FileAttributes.System; // Remove system attribute
-                        backupDir.Attributes |= FileAttributes.NotContentIndexed; // Skip indexing
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to apply basic file permissions");
+                    _logger.LogWarning("Could not determine current Windows user identity or SID");
+                    return;
                 }
 
-                _logger.LogInformation("Windows file permissions applied to settings files");
+                _logger.LogDebug($"Enforcing Windows ACLs for user: {currentUser.Name}");
+
+                // 1. Enforce permissions on the settings directory (WhisperKey folder)
+                var settingsDir = Path.GetDirectoryName(_settingsPath);
+                if (!string.IsNullOrEmpty(settingsDir) && Directory.Exists(settingsDir))
+                {
+                    ApplyDirectorySecurity(settingsDir, currentUser.User);
+                }
+
+                // 2. Enforce permissions on the settings file
+                if (File.Exists(_settingsPath))
+                {
+                    ApplyFileSecurity(_settingsPath, currentUser.User);
+                }
+
+                // 3. Enforce permissions on the backup directory
+                if (Directory.Exists(_backupPath))
+                {
+                    ApplyDirectorySecurity(_backupPath, currentUser.User);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to apply Windows permissions");
+                _logger.LogError(ex, "Failed to apply Windows permissions via ACLs");
+            }
+        }
+
+        private void ApplyFileSecurity(string filePath, SecurityIdentifier userSid)
+        {
+            try
+            {
+                var fileInfo = new FileInfo(filePath);
+                var fileSecurity = fileInfo.GetAccessControl();
+                
+                // Disable inheritance and remove inherited rules
+                fileSecurity.SetAccessRuleProtection(true, false);
+
+                // Remove existing rules to ensure clean state (optional but safer)
+                var rules = fileSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
+                foreach (FileSystemAccessRule rule in rules)
+                {
+                    fileSecurity.RemoveAccessRule(rule);
+                }
+
+                // Add FullControl for the current user
+                fileSecurity.AddAccessRule(new FileSystemAccessRule(
+                    userSid,
+                    FileSystemRights.FullControl,
+                    AccessControlType.Allow));
+
+                // Apply to file
+                fileInfo.SetAccessControl(fileSecurity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to apply ACL to file: {filePath}");
+            }
+        }
+
+        private void ApplyDirectorySecurity(string dirPath, SecurityIdentifier userSid)
+        {
+            try
+            {
+                var dirInfo = new DirectoryInfo(dirPath);
+                var dirSecurity = dirInfo.GetAccessControl();
+
+                // Disable inheritance and remove inherited rules
+                dirSecurity.SetAccessRuleProtection(true, false);
+
+                // Remove existing rules
+                var rules = dirSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
+                foreach (FileSystemAccessRule rule in rules)
+                {
+                    dirSecurity.RemoveAccessRule(rule);
+                }
+
+                // Add FullControl for the current user (with inheritance for sub-items)
+                dirSecurity.AddAccessRule(new FileSystemAccessRule(
+                    userSid,
+                    FileSystemRights.FullControl,
+                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                    PropagationFlags.None,
+                    AccessControlType.Allow));
+
+                // Apply to directory
+                dirInfo.SetAccessControl(dirSecurity);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to apply ACL to directory: {dirPath}");
             }
         }
 #else

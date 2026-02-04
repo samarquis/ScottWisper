@@ -109,6 +109,11 @@ namespace WhisperKey.Configuration
         public bool IsEmergency { get; set; } = false;
         public string Description { get; set; } = string.Empty;
         public string TargetApplication { get; set; } = string.Empty; // Application-specific
+        public string Application 
+        { 
+            get => TargetApplication; 
+            set => TargetApplication = value; 
+        }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime LastUsed { get; set; } = DateTime.MinValue;
         public int UsageCount { get; set; } = 0;

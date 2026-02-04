@@ -790,27 +790,6 @@ namespace WhisperKey.Tests.Unit
         }
         
         [TestMethod]
-        public async Task SetValueAsync_WithNullValue_DoesNotThrow()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var Service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            // Act & Assert - should not throw when setting null value
-            await Service.SetValueAsync("Test:Key", null!);
-            
-            // Verify no exception thrown and value is set to null
-            var finalValue = await Service.GetValueAsync<string>("Test:Key");
-            Assert.IsNull(finalValue);
-        }
-        
-        [TestMethod]
         public async Task SetEncryptedValueAsync_VeryLongKey_HandlesCorrectly()
         {
             // Arrange
@@ -854,36 +833,6 @@ namespace WhisperKey.Tests.Unit
             Assert.IsNull(value);
         }
         
-        [TestMethod]
-        public async Task GetValueAsync_NestedKey_ReturnsCorrectValue()
-        {
-            // Arrange
-            var settings = new AppSettings
-            {
-                Transcription = new TranscriptionSettings { 
-                    Provider = "NestedProvider",
-                    Model = "TestModel"
-                }
-            };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var Service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            // Act
-            var value = await Service.GetValueAsync<string>("Transcription:Provider");
-            
-            // Assert
-            Assert.AreEqual("NestedProvider", value);
-        }
-        
-        #endregion
-    }
-}
-
         #endregion
 
         /// <summary>

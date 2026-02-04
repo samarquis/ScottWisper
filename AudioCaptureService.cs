@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using NAudio.Wave;
 using NAudio.CoreAudioApi;
 using WhisperKey.Services;
+using WhisperKey.Exceptions;
 
 namespace WhisperKey
 {
@@ -178,7 +179,7 @@ namespace WhisperKey
                 // Check for available audio devices
                 if (WaveIn.DeviceCount == 0)
                 {
-                    throw new InvalidOperationException("No audio input devices found");
+                    throw new NoAudioDeviceException("No audio input devices found on the system");
                 }
                 
                 // Initialize audio capture with injected or created IWaveIn

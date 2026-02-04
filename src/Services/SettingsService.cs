@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using WhisperKey.Configuration;
@@ -96,13 +97,19 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         Task<HotkeyValidationResult> ValidateHotkeyAsync(string combination);
     }
 
-    public class SettingsService : ISettingsService
+    public class SettingsService : ISettingsService, IDisposable
     {
         private readonly IConfiguration _configuration;
         private readonly IOptionsMonitor<AppSettings> _options;
         private readonly ILogger<SettingsService> _logger;
         private readonly ISettingsRepository _repository;
         private AppSettings _currentSettings;
+        
+        // Debouncing fields for settings saves
+        private readonly SemaphoreSlim _saveSemaphore = new SemaphoreSlim(1, 1);
+ private System.Timers.Timer? _debounceTimer;
+        private readonly TimeSpan _debounceDelay = TimeSpan.FromMilliseconds(500);
+        private volatile bool _savePending = false;
 
         public AppSettings Settings => _currentSettings;
 
@@ -126,15 +133,23 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
 
         public async Task SaveAsync()
         {
+            await SaveAsyncInternal();
+        }
+        
+        /// <summary>
+        /// Internal save method with debouncing logic
+        /// </summary>
+        private async Task SaveAsyncInternal()
+        {
             try
             {
                 // Validate settings before saving
                 ValidateSettings(_currentSettings);
                 
-                // Use repository to save settings
-                await _repository.SaveAsync(_currentSettings).ConfigureAwait(false);
+                // Use debouncing to prevent excessive save operations
+                await SaveWithDebounceAsync();
                 
-                _logger.LogInformation("Settings saved via repository");
+                _logger.LogInformation("Settings saved via repository with debouncing");
             }
             catch (InvalidOperationException)
             {
@@ -146,6 +161,47 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                 _logger.LogError(ex, "Unexpected error saving settings");
                 throw new InvalidOperationException($"Failed to save settings: {ex.Message}", ex);
             }
+        }
+        
+        /// <summary>
+        /// Save settings with debouncing to prevent rapid successive saves
+        /// </summary>
+        private async Task SaveWithDebounceAsync()
+        {
+            // Cancel any existing timer
+            _debounceTimer?.Stop();
+            _debounceTimer?.Dispose();
+            
+            // Mark as pending and restart timer
+            _savePending = true;
+            
+            // Create new timer for debounced save
+            _debounceTimer = new System.Timers.Timer((int)_debounceDelay.TotalMilliseconds);
+            _debounceTimer.AutoReset = false;
+            _debounceTimer.Elapsed += async (s, e) =>
+            {
+                if (_savePending)
+                {
+                    _savePending = false;
+                    
+                    // Use semaphore to prevent concurrent saves
+                    await _saveSemaphore.WaitAsync();
+                    try
+                    {
+                        // Use repository to save settings
+                        await _repository.SaveAsync(_currentSettings).ConfigureAwait(false);
+                        
+                        _logger.LogDebug("Debounced save executed");
+                    }
+                    finally
+                    {
+                        _saveSemaphore.Release();
+                    }
+                }
+            };
+            
+            // Start the timer
+            _debounceTimer.Enabled = true;
         }
 
         public async Task<T> GetValueAsync<T>(string key)
@@ -947,6 +1003,16 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             var appFolder = Path.Combine(appDataPath, "WhisperKey");
             Directory.CreateDirectory(appFolder);
             return Path.Combine(appFolder, $"{key}.encrypted");
+        }
+        
+        /// <summary>
+        /// Dispose of debouncing resources
+        /// </summary>
+        public void Dispose()
+        {
+            _debounceTimer?.Stop();
+            _debounceTimer?.Dispose();
+            _saveSemaphore?.Dispose();
         }
     }
 }

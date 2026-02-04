@@ -8,6 +8,7 @@ using NAudio.Wave;
 using WhisperKey.Configuration;
 using WhisperKey.Models;
 using Whisper.net;
+using WhisperKey.Exceptions;
 
 namespace WhisperKey.Services
 {
@@ -272,7 +273,7 @@ namespace WhisperKey.Services
                 // Validate audio data
                 if (audioData == null || audioData.Length == 0)
                 {
-                    throw new ArgumentException("Audio data cannot be null or empty");
+                    throw new TranscriptionFormatException("wav", "Audio data cannot be null or empty for local inference");
                 }
 
                 lock (_lock)

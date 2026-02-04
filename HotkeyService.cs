@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
 using System.Windows.Interop;
 using System.Windows.Input;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
+using WhisperKey.Exceptions;
 using Microsoft.Extensions.Logging;
 
 namespace WhisperKey
@@ -84,6 +87,8 @@ namespace WhisperKey
         private readonly HotkeyProfileManager _profileManager;
         private readonly HotkeyConflictDetector _conflictDetector;
         private readonly ILogger<HotkeyService> _logger;
+        private readonly IHotkeyRegistrar _hotkeyRegistrar;
+        private readonly IntPtr _windowHandle;
         private HwndSource? _source;
         private readonly Dictionary<string, int> _registeredHotkeys = new Dictionary<string, int>();
         private readonly Dictionary<int, HotkeyDefinition> _hotkeyById = new Dictionary<int, HotkeyDefinition>();
@@ -102,12 +107,16 @@ namespace WhisperKey
             HotkeyRegistrationService registrationService,
             HotkeyProfileManager profileManager,
             HotkeyConflictDetector conflictDetector,
+            IHotkeyRegistrar hotkeyRegistrar,
+            IntPtr windowHandle,
             ILogger<HotkeyService> logger)
         {
             _settingsService = settingsService;
             _registrationService = registrationService;
             _profileManager = profileManager;
             _conflictDetector = conflictDetector;
+            _hotkeyRegistrar = hotkeyRegistrar;
+            _windowHandle = windowHandle;
             _logger = logger;
             
             Initialize();
@@ -630,7 +639,7 @@ namespace WhisperKey
         {
             var settings = _settingsService.Settings;
             if (!settings.Hotkeys.Profiles.TryGetValue(profileId, out var profile))
-                throw new ArgumentException($"Profile {profileId} not found");
+                throw new HotkeyRegistrationException($"Profile {profileId} not found");
 
             var exportData = new
             {

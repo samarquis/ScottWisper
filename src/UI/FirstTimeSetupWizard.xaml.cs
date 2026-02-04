@@ -88,6 +88,24 @@ namespace WhisperKey.UI
                 UpdateStepIndicators();
             }
         }
+
+        private void SkipButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Mark as completed so it doesn't show again
+            try
+            {
+                var settings = _settingsService.Settings;
+                settings.FirstTimeSetupCompleted = true;
+                _settingsService.SaveAsync().Wait();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving settings during skip: {ex.Message}");
+            }
+
+            DialogResult = false;
+            Close();
+        }
         
         private async void NextButton_Click(object sender, RoutedEventArgs e)
         {

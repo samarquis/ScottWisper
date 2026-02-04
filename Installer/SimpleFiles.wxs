@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="WhisperKey">
+        <!-- Main application files only -->
+        <Component Id="MainExe" Guid="*">
+          <File Id="WhisperKeyEXE" Source="C:\Programming\ScottWisper\publish\WhisperKey.exe" KeyPath="yes" />
+        </Component>
+        
+        <Component Id="ConfigFiles" Guid="*">
+          <File Id="AppSettings" Source="C:\Programming\ScottWisper\publish\appsettings.json" />
+        </Component>
+        
+        <!-- Core dependencies only - separate components -->
+        <Component Id="NAudioComp" Guid="*">
+          <File Id="NAudio" Source="C:\Programming\ScottWisper\publish\NAudio.dll" />
+        </Component>
+        <Component Id="NewtonsoftJsonComp" Guid="*">
+          <File Id="NewtonsoftJson" Source="C:\Programming\ScottWisper\publish\Newtonsoft.Json.dll" />
+        </Component>
+        <Component Id="HNotifyIconComp" Guid="*">
+          <File Id="HNotifyIcon" Source="C:\Programming\ScottWisper\publish\H.NotifyIcon.dll" />
+        </Component>
+        <Component Id="HNotifyIconWpfComp" Guid="*">
+          <File Id="HNotifyIconWpf" Source="C:\Programming\ScottWisper\publish\H.NotifyIcon.Wpf.dll" />
+        </Component>
+        <Component Id="InputSimulatorComp" Guid="*">
+          <File Id="InputSimulator" Source="C:\Programming\ScottWisper\publish\H.InputSimulator.dll" />
+        </Component>
+        <Component Id="WhisperNetComp" Guid="*">
+          <File Id="WhisperNet" Source="C:\Programming\ScottWisper\publish\Whisper.net.dll" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <ComponentRef Id="MainExe" />
+      <ComponentRef Id="ConfigFiles" />
+      <ComponentRef Id="NAudioComp" />
+      <ComponentRef Id="NewtonsoftJsonComp" />
+      <ComponentRef Id="HNotifyIconComp" />
+      <ComponentRef Id="HNotifyIconWpfComp" />
+      <ComponentRef Id="InputSimulatorComp" />
+      <ComponentRef Id="WhisperNetComp" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

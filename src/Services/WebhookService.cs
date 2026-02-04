@@ -315,7 +315,7 @@ namespace WhisperKey.Services
 
             _circuitBreakerPolicy = Policy
                 .Handle<Exception>()
-                .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30),
+                .CircuitBreakerAsync(5, TimeSpan.FromSeconds(60),
                     (ex, duration) =>
                     {
                         _logger.LogError("Circuit breaker opened for {Duration}s due to: {Error}",

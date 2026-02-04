@@ -53,6 +53,7 @@ namespace WhisperKey.Services
     /// </summary>
     public class PermissionService : IPermissionService
     {
+        private readonly IRegistryService _registryService;
         private readonly List<PermissionRequestRecord> _requestHistory = new List<PermissionRequestRecord>();
         private bool _isMonitoring = false;
 
@@ -77,8 +78,10 @@ namespace WhisperKey.Services
         private const string MICROPHONE_SETTINGS_PATH = "ms-settings:privacy-microphone";
         private const string PRIVACY_SETTINGS_PATH = "ms-settings:privacy";
 
-        public PermissionService()
+        public PermissionService(IRegistryService registryService)
         {
+            _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
+
             // Initialize permission monitoring
             _ = Task.Run(async () =>
             {
@@ -297,12 +300,23 @@ namespace WhisperKey.Services
         {
             try
             {
-                // This is a simplified check - in production you would:
-                // 1. Check Windows Registry privacy settings
-                // 2. Use Windows Management Instrumentation (WMI)
-                // 3. Check AppContainer permissions for UWP apps
-                
-                // For now, we'll use a basic check that works in most scenarios
+                // Check Windows Registry privacy settings
+                string keyPath = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone";
+                string? value = _registryService.ReadValue(RegistryHiveOption.CurrentUser, keyPath, "Value");
+
+                if (value != null)
+                {
+                    if (string.Equals(value, "Allow", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return MicrophonePermissionStatus.Granted;
+                    }
+                    if (string.Equals(value, "Deny", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return MicrophonePermissionStatus.Denied;
+                    }
+                }
+
+                // Fallback to process check if registry key is missing or invalid
                 var processes = Process.GetProcessesByName("audiodg");
                 if (processes.Length > 0)
                 {

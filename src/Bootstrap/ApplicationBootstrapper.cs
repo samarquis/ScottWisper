@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WhisperKey.Services;
 
 namespace WhisperKey.Bootstrap
@@ -141,10 +143,12 @@ namespace WhisperKey.Bootstrap
             
             HotkeyService = new HotkeyService(
                 SettingsService,
-                serviceProvider.GetRequiredService<HotkeyRegistrationService>(),
-                serviceProvider.GetRequiredService<HotkeyProfileManager>(),
-                serviceProvider.GetRequiredService<HotkeyConflictDetector>(),
-                serviceProvider.GetRequiredService<ILogger<HotkeyService>>()
+                _serviceProvider.GetRequiredService<HotkeyRegistrationService>(),
+                _serviceProvider.GetRequiredService<HotkeyProfileManager>(),
+                _serviceProvider.GetRequiredService<HotkeyConflictDetector>(),
+                _serviceProvider.GetRequiredService<Win32HotkeyRegistrar>(),
+                windowHandle,
+                _serviceProvider.GetRequiredService<ILogger<HotkeyService>>()
             );
         }
         

@@ -1,0 +1,9 @@
+<Project>
+  <Import Project="version.props" Condition="Exists('$(MSBuildThisFileDirectory)version.props')" />
+  
+  <PropertyGroup>
+    <Version>$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH)</Version>
+    <AssemblyVersion>$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH).$(VERSION_BUILD)</AssemblyVersion>
+    <FileVersion>$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH).$(VERSION_BUILD)</FileVersion>
+  </PropertyGroup>
+</Project>

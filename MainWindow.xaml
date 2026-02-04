@@ -32,14 +32,27 @@
 
                 <!-- Status Text and Indicator -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse x:Name="StatusIndicator" Width="14" Height="14"
-                             Fill="Gray" Margin="0,0,8,0" VerticalAlignment="Center"
-                             AutomationProperties.Name="Status Indicator"
-                             AutomationProperties.HelpText="Current application status shown by color: Gray for idle, Green for active, Red for error"/>
-                    <TextBlock Text="Status: " FontWeight="Bold" Foreground="White"/>
-                    <TextBlock x:Name="StatusText" Text="Idle" Foreground="White"
-                               AutomationProperties.Name="Status Text"
-                               AutomationProperties.HelpText="Current application status description"/>
+                    <!-- Visual status indicator with shape alternative for better accessibility -->
+                    <Border x:Name="StatusIndicator" Width="14" Height="14" 
+                            Background="Transparent" BorderBrush="Gray" BorderThickness="2" CornerRadius="7"
+                            VerticalAlignment="Center" Margin="0,0,8,0"
+                            AutomationProperties.Name="Status Indicator"
+                            AutomationProperties.HelpText="Current system state indicator color">
+                        <Ellipse Width="10" Height="10" Fill="Gray" VerticalAlignment="Center"/>
+                    </Border>
+                    
+                    <!-- Accessible status text with multiple indicators -->
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBlock Text="●" FontSize="12" Foreground="Gray" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="StatusText" Text="Idle" FontWeight="Bold" Foreground="White" 
+                                   Margin="8,0,0,0" VerticalAlignment="Center"
+                                   AutomationProperties.Name="Status Text"
+                                   AutomationProperties.HelpText="Current application status. ● indicates idle, ●● indicates active, ●● indicates error"/>
+                        <TextBlock x:Name="StatusDescription" Text="Application is idle" FontSize="10" Foreground="Gray" 
+                                   Margin="0,4,0,0" VerticalAlignment="Center"
+                                   AutomationProperties.Name="Status Description"
+                                   AutomationProperties.HelpText="Detailed status description for screen readers"/>
+                    </StackPanel>
                 </StackPanel>
                 
                 <!-- Current Time -->
@@ -49,15 +62,15 @@
                 <!-- Quick Actions -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="SettingsButton" Content="⚙️" Background="Transparent" Foreground="White"
-                           BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
-                           ToolTip="Settings" Click="SettingsButton_Click"
-                           AutomationProperties.Name="Settings"
-                           AutomationProperties.HelpText="Open application settings window"/>
+                            BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
+                            ToolTip="Application Settings" Click="SettingsButton_Click"
+                            AutomationProperties.Name="Settings"
+                            AutomationProperties.HelpText="Open settings to configure audio, hotkeys, and transcription options"/>
                     <Button x:Name="HelpButton" Content="❓" Background="Transparent" Foreground="White"
-                           BorderThickness="0" FontSize="14" Width="25" Height="25"
-                           ToolTip="Help" Click="HelpButton_Click"
-                           AutomationProperties.Name="Help"
-                           AutomationProperties.HelpText="Open help documentation"/>
+                            BorderThickness="0" FontSize="14" Width="25" Height="25"
+                            ToolTip="Help and Documentation" Click="HelpButton_Click"
+                            AutomationProperties.Name="Help"
+                            AutomationProperties.HelpText="Open user guide and documentation"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -120,7 +133,10 @@
                     <!-- Main Status Message -->
                     <TextBlock x:Name="MainStatusMessage" Grid.Row="1" Text="Ready for dictation" 
                                HorizontalAlignment="Center" FontSize="12" Foreground="#FF6C757D" 
-                               Margin="0,8,0,0"/>
+                               Margin="0,8,0,0"
+                               AutomationProperties.Name="Main Status Message"
+                               AutomationProperties.HelpText="Overall status of the voice dictation system"
+                               AutomationProperties.LiveSetting="Polite"/>
                     
                     <!-- Injection Test Results Panel -->
                     <Border x:Name="InjectionTestPanel" Grid.Row="1" Background="#FFF8F9FA" Padding="10" 
@@ -131,7 +147,9 @@
                                        HorizontalAlignment="Center" Margin="0,0,10,0"/>
                             <Border Background="White" Padding="8" CornerRadius="2" Margin="0,0,5,0">
                                 <TextBlock x:Name="InjectionTestResults" TextWrapping="Wrap" FontSize="11"
-                                           Text="No tests run yet"/>
+                                           Text="No tests run yet"
+                                           AutomationProperties.Name="Injection Test Results"
+                                           AutomationProperties.HelpText="Results of application compatibility tests"/>
                             </Border>
                         </StackPanel>
                      </Border>
@@ -283,7 +301,9 @@
                                AutomationProperties.Name="Today's Recordings Label"/>
                     <TextBlock x:Name="TodayRecordings" Text="0" FontSize="16" FontWeight="Bold"
                               HorizontalAlignment="Center" Foreground="#FF007ACC"
-                              AutomationProperties.Name="Today's Recordings Count"/>
+                              AutomationProperties.Name="Today's Recordings Count"
+                              AutomationProperties.HelpText="Number of voice recordings made today"
+                              AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" HorizontalAlignment="Center">
@@ -291,7 +311,9 @@
                                AutomationProperties.Name="Usage Time Label"/>
                     <TextBlock x:Name="UsageTime" Text="0m" FontSize="16" FontWeight="Bold"
                               HorizontalAlignment="Center" Foreground="#FF28A745"
-                              AutomationProperties.Name="Usage Time Value"/>
+                              AutomationProperties.Name="Usage Time Value"
+                              AutomationProperties.HelpText="Total minutes of audio processed today"
+                              AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" HorizontalAlignment="Center">
@@ -299,7 +321,9 @@
                                AutomationProperties.Name="API Usage Label"/>
                     <TextBlock x:Name="ApiUsage" Text="$0.00" FontSize="16" FontWeight="Bold"
                               HorizontalAlignment="Center" Foreground="#FF6F42C1"
-                              AutomationProperties.Name="API Usage Cost"/>
+                              AutomationProperties.Name="API Usage Cost"
+                              AutomationProperties.HelpText="Estimated cost of cloud API usage today"
+                              AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
             </Grid>
         </Border>

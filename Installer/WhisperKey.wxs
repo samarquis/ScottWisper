@@ -32,14 +32,9 @@
     <!-- Features -->
     <Feature Id="ProductFeature" Title="WhisperKey" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
-      <ComponentRef Id="ApplicationShortcuts" />
-      <ComponentRef Id="RegistryEntries" />
     </Feature>
     
-    <!-- Standard Install Location -->
-    <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="WhisperKey" />
-    </StandardDirectory>
+
     
     <!-- Start Menu -->
     <StandardDirectory Id="ProgramMenuFolder">
@@ -49,50 +44,11 @@
     <!-- Desktop -->
     <StandardDirectory Id="DesktopFolder" />
     
-    <!-- Application Shortcuts -->
-    <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="ApplicationShortcuts" Guid="*">
-        <Shortcut Id="StartMenuShortcut"
-                  Directory="ApplicationProgramsFolder"
-                  Name="WhisperKey"
-                  Description="Voice-to-Text Dictation Software"
-                  Target="[INSTALLFOLDER]WhisperKey.exe"
-                  WorkingDirectory="INSTALLFOLDER"
-                   />
-        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
-        <RegistryValue Root="HKCU" 
-                      Key="Software\WhisperKey" 
-                      Name="Installed" 
-                      Type="integer" 
-                      Value="1" 
-                      KeyPath="yes" />
-      </Component>
-    </DirectoryRef>
+
     
-    <!-- Desktop Shortcut (optional, controlled by DESKTOPSHORTCUT property) -->
-    <StandardDirectory Id="DesktopFolder">
-      <Component Id="DesktopShortcutComp" Guid="*" Condition="DESKTOPSHORTCUT">
-        <Shortcut Id="DesktopShortcut"
-                  Directory="DesktopFolder"
-                  Name="WhisperKey"
-                  Target="[INSTALLFOLDER]WhisperKey.exe"
-                  WorkingDirectory="INSTALLFOLDER" />
-        <RegistryValue Root="HKCU" 
-                      Key="Software\WhisperKey" 
-                      Name="DesktopShortcut" 
-                      Type="integer" 
-                      Value="1" 
-                      KeyPath="yes" />
-      </Component>
-    </StandardDirectory>
+
     
-    <!-- Registry Entries -->
-    <Component Id="RegistryEntries" Guid="*" Directory="INSTALLFOLDER">
-      <RegistryKey Root="HKLM" Key="Software\WhisperKey">
-        <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLFOLDER]" />
-        <RegistryValue Type="string" Name="Version" Value="$(var.Version)" />
-      </RegistryKey>
-    </Component>
+
     
     <!-- Properties -->
     <Property Id="DESKTOPSHORTCUT" Value="0" />
