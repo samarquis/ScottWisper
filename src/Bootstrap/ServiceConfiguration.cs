@@ -10,6 +10,8 @@ using WhisperKey.Configuration;
 using WhisperKey.Services;
 using WhisperKey.Repositories;
 using WhisperKey;
+using Microsoft.Extensions.Logging.Console;
+using Serilog.Extensions.Logging;
 
 namespace WhisperKey.Bootstrap
 {
@@ -43,8 +45,7 @@ namespace WhisperKey.Bootstrap
             var serviceProvider = services.BuildServiceProvider();
             
             // Initialize Serilog logger
-            Log.Logger = serviceProvider.GetRequiredService<ILogger<Program>>() as Serilog.ILogger ?? 
-                        Serilog.Logger.Create(ConfigureSerilogLogger());
+            Log.Logger = ConfigureSerilogLogger().CreateLogger();
             
             return serviceProvider;
         }
@@ -57,15 +58,8 @@ namespace WhisperKey.Bootstrap
             services.AddLogging(builder =>
             {
                 builder.ClearProviders();
-                builder.AddSerilog(dispose: true);
-            });
-            
-            // Register Serilog logger configuration
-            services.AddSingleton<ILoggerFactory>(provider =>
-            {
-                var loggerFactory = new LoggerFactory();
-                loggerFactory.AddSerilog(ConfigureSerilogLogger());
-                return loggerFactory;
+                builder.AddConsole();
+                builder.AddSerilog(ConfigureSerilogLogger(), dispose: true);
             });
         }
         
@@ -86,10 +80,9 @@ namespace WhisperKey.Bootstrap
                 .MinimumLevel.Override("System", LogEventLevel.Warning)
                 .MinimumLevel.Override("WhisperKey", LogEventLevel.Information)
                 .Enrich.FromLogContext()
-                .Enrich.WithMachineName()
-                .Enrich.WithProcessId()
-                .Enrich.WithThreadId()
-                .Enrich.WithCorrelationIdHeader("X-Correlation-ID")
+                .Enrich.WithProperty("MachineName", Environment.MachineName)
+                .Enrich.WithProperty("ProcessId", Environment.ProcessId)
+                .Enrich.WithProperty("ThreadId", Environment.CurrentManagedThreadId)
                 .Enrich.WithProperty("Application", "WhisperKey")
                 .Enrich.WithProperty("Version", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown")
                 .WriteTo.Console(

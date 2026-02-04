@@ -929,10 +929,11 @@ namespace WhisperKey.Services
         /// <item><description>Names (simple pattern) → [NAME_REDACTED]</description></item>
         /// <item><description>Addresses → [ADDRESS_REDACTED]</description></item>
         /// </list>
+        /// <para>
         /// The method preserves medical terminology, technical terms, and domain-specific vocabulary
-        while removing common PII patterns. This is a basic implementation and may need customization
-        for specific use cases.
-        /// </remarks>
+        /// while removing common PII patterns. This is a basic implementation and may need customization
+        /// for specific use cases.
+        /// </para>
         private static string SanitizeTranscriptionText(string transcription)
         {
             if (string.IsNullOrEmpty(transcription))
@@ -968,7 +969,9 @@ namespace WhisperKey.Services
         /// <remarks>
         /// Words are defined as sequences of characters separated by whitespace.
         /// Punctuation attached to words is included in the count. Numbers and symbols
-        that form separate "words" are also counted.
+        /// <para>
+        /// that form separate "words" are also counted.
+        /// </para>
         /// </remarks>
         private static int CountWords(string text)
         {

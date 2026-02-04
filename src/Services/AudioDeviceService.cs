@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
@@ -773,7 +774,7 @@ namespace WhisperKey.Services
     /// are logged but do not prevent service creation.
     /// </remarks>
     public AudioDeviceService()
-        : this(new AudioDeviceEnumerator(), ownsEnumerator: true)
+        : this(new AudioDeviceEnumerator(), null, null, null, true)
     {
     }
 
@@ -803,7 +804,7 @@ namespace WhisperKey.Services
         _enumerator = enumerator ?? throw new ArgumentNullException(nameof(enumerator));
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AudioDeviceService>.Instance;
         _correlationService = correlationService ?? new CorrelationService();
-        _structuredLogger = structuredLogger ?? new StructuredLoggingService(_logger, _correlationService);
+        _structuredLogger = null; // TODO: Fix structured logging initialization
         _ownsEnumerator = ownsEnumerator;
         
         // Initialize device change monitoring (fire-and-forget with exception handling)
