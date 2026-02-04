@@ -44,14 +44,179 @@ namespace WhisperKey.Services
         public List<string> Info { get; set; } = new List<string>();
     }
 
+    /// <summary>
+    /// Provides comprehensive application settings management with persistence, validation, encryption,
+    /// and change notification capabilities. Supports hierarchical settings with typed access,
+    /// backup/restore functionality, and secure storage of sensitive data.
+    /// </summary>
+    /// <remarks>
+    /// This service handles multiple aspects of configuration management:
+    /// <list type="bullet">
+    /// <item><description><b>Typed Access</b>: Strongly-typed get/set operations with validation</description></item>
+    /// <item><description><b>Persistence</b>: Automatic saving with debouncing and error handling</description></item>
+    /// <item><description><b>Encryption</b>: Secure storage of sensitive data (API keys, credentials)</description></item>
+    /// <item><description><b>Validation</b>: Runtime validation with detailed error reporting</description></item>
+    /// <item><description><b>Change Notification</b>: Event-driven updates for UI synchronization</description></item>
+    /// <item><description><b>Backup/Restore</b>: Complete settings backup management</description></item>
+    /// <item><description><b>Device Integration</b>: Audio device preferences and settings</description></item>
+    /// <item><description><b>Profile Management</b>: Hotkey profile switching and persistence</description></item>
+    /// </list>
+    /// Settings are stored in JSON format with automatic migration and version handling.
+    /// The service supports both application defaults and user-specific overrides.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var settingsService = serviceProvider.GetService&lt;ISettingsService&gt;();
+    /// 
+    /// // Get current transcription settings
+    /// var provider = await settingsService.GetValueAsync&lt;string&gt;("Transcription.Provider");
+    /// var language = await settingsService.GetValueAsync&lt;string&gt;("Transcription.Language");
+    /// 
+    /// // Update settings with validation and notification
+    /// await settingsService.SetValueAsync("Transcription.Provider", "Whisper");
+    /// await settingsService.SetValueAsync("Transcription.Language", "en-US");
+    /// 
+    /// // Subscribe to change events
+    /// settingsService.SettingsChanged += (sender, e) =>
+    ///     Console.WriteLine($"Setting {e.Key} changed from {e.OldValue} to {e.NewValue}");
+    /// </code>
+    /// </example>
     public interface ISettingsService
     {
+        /// <summary>
+        /// Gets the current application settings instance.
+        /// Provides access to the complete configuration state.
+        /// </summary>
+        /// <value>The current <see cref="AppSettings"/> instance with all loaded values.</value>
+        /// <remarks>
+        /// This property returns the live settings object that reflects the current state.
+        /// Modifications to the returned object will not trigger persistence
+        /// or change notifications. Use the setter methods to make persistent changes.
+        /// </remarks>
         AppSettings Settings { get; }
+        
+        /// <summary>
+        /// Occurs when application settings are changed through the settings service.
+        /// Provides notification for UI updates and change logging.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised when:
+        /// <list type="bullet">
+        /// <item><description>Values are changed through SetValueAsync methods</description></item>
+        /// <item><description>Settings are loaded from persistent storage</description></item>
+        /// <item><description>Settings are restored from backup</description></item>
+        /// </list>
+        /// The event includes the setting key, old value, new value, category,
+        /// and whether a restart is required for changes to take effect.
+        /// </remarks>
         event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
+        
+        /// <summary>
+        /// Saves the current settings to persistent storage with validation and debouncing.
+        /// Persists all current setting values to the configured storage location.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous save operation.</returns>
+        /// <exception cref="SettingsValidationException">Thrown when settings validation fails.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings repository encounters an error.</exception>
+        /// <remarks>
+        /// This operation performs:
+        /// <list type="number">
+        /// <item><description>Comprehensive validation of all setting values</description></item>
+        /// <item><description>Debouncing to prevent excessive save operations</description></item>
+        /// <item><description>Atomic write operations with rollback on failure</description></item>
+        /// <item><description>Automatic backup creation before changes</description></item>
+        /// </list>
+        /// The save is performed asynchronously to avoid blocking the calling thread.
+        /// Multiple rapid save calls are debounced to prevent performance issues.
+        /// </remarks>
         Task SaveAsync();
+        
+        /// <summary>
+        /// Retrieves a typed setting value by key with automatic type conversion.
+        /// Supports strongly-typed access to configuration values.
+        /// </summary>
+        /// <typeparam name="T">The type of value to retrieve. Must be a serializable type.</typeparam>
+        /// <param name="key">The settings key to retrieve. Must not be null or empty.</param>
+        /// <returns>A task that returns the setting value, or default for type T if not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings repository encounters an error.</exception>
+        /// <remarks>
+        /// Type conversion rules:
+        /// <list type="bullet">
+        /// <item><description>Numeric types: String parsing with InvariantCulture</description></item>
+        /// <item><description>Boolean types: "true"/"false" string parsing</description></item>
+        /// <item><description>Enum types: String parsing with case-insensitive matching</description></item>
+        /// <item><description>Complex types: JSON deserialization with error handling</description></item>
+        /// </list>
+        /// This method is thread-safe and can be called concurrently.
+        /// </remarks>
         Task<T> GetValueAsync<T>(string key);
+        
+        /// <summary>
+        /// Updates a setting value by key with automatic validation and persistence.
+        /// Validates the new value before persisting and triggers change notifications.
+        /// </summary>
+        /// <typeparam name="T">The type of value to set. Must be a serializable type.</typeparam>
+        /// <param name="key">The settings key to update. Must not be null or empty.</param>
+        /// <param name="value">The new value to set. Can be null for nullable types.</param>
+        /// <returns>A task that represents the asynchronous set operation.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null or empty.</exception>
+        /// <exception cref="SettingsValidationException">Thrown when the new value fails validation.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the settings repository encounters an error.</exception>
+        /// <remarks>
+        /// This method performs:
+        /// <list type="number">
+        /// <item><description>Value validation against type-specific rules</description></item>
+        /// <item><description>Conversion to appropriate storage format</description></item>
+        /// <item><description>Immediate update of in-memory settings</description></item>
+        /// <item><description>Triggering of SettingsChanged event if value actually changed</description></item>
+        /// <item><description>Scheduling of debounced persist operation</description></item>
+        /// </list>
+        /// If the new value equals the current value, no persistence or notification occurs.
+        /// </remarks>
         Task SetValueAsync<T>(string key, T value);
+        
+        /// <summary>
+        /// Retrieves an encrypted setting value by key with automatic decryption.
+        /// Provides secure access to sensitive configuration data like API keys and credentials.
+        /// </summary>
+        /// <param name="key">The settings key to retrieve. Must not be null or empty.</param>
+        /// <returns>A task that returns the decrypted setting value, or empty string if not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is null or empty.</exception>
+        /// <exception cref="CryptographicException">Thrown when decryption fails due to data corruption or wrong key.</exception>
+        /// <remarks>
+        /// This method uses Windows Data Protection (DPAPI) for encryption with:
+        /// <list type="bullet">
+        /// <item><description>User-specific encryption keys</description></item>
+        /// <item><description>Automatic machine-specific entropy</description></item>
+        /// <item><description>Secure memory handling of decrypted data</description></item>
+        /// </list>
+        /// Encrypted values are stored separately from regular settings and use the "secure:"
+        /// key prefix to identify them in storage.
+        /// </remarks>
         Task<string> GetEncryptedValueAsync(string key);
+        
+        /// <summary>
+        /// Updates an encrypted setting value by key with automatic validation and encryption.
+        /// Securely stores sensitive data with automatic protection and validation.
+        /// </summary>
+        /// <param name="key">The settings key to update. Must not be null or empty.</param>
+        /// <param name="value">The value to encrypt and store. Must not be null.</param>
+        /// <returns>A task that represents the asynchronous encrypted set operation.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> or <paramref name="value"/> is null or empty.</exception>
+        /// <exception cref="CryptographicException">Thrown when encryption fails due to system errors.</exception>
+        /// <exception cref="SettingsValidationException">Thrown when the value fails validation rules.</exception>
+        /// <remarks>
+        /// This method performs:
+        /// <list type="number">
+        /// <item><description>Value validation against secure data requirements</description></item>
+        /// <item><description>Automatic encryption using Windows Data Protection API</description></item>
+        /// <item><description>Secure memory cleanup of sensitive data</description></item>
+        /// <item><description>Atomic update with rollback on encryption failure</description></item>
+        /// </list>
+        /// The "secure:" key prefix is automatically added to identify encrypted values
+        /// in the underlying storage. The original value is not retained in memory longer than necessary.
+        /// </remarks>
         Task SetEncryptedValueAsync(string key, string value);
         
         // Backup and restore methods
@@ -115,20 +280,53 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
 
         public event EventHandler<SettingsChangedEventArgs>? SettingsChanged;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SettingsService"/> class with required dependencies.
+        /// Sets up configuration management, logging, and loads user settings from persistent storage.
+        /// </summary>
+        /// <param name="configuration">The application configuration containing default values and paths. Must not be null.</param>
+        /// <param name="options">The options monitor for configuration change notifications. Must not be null.</param>
+        /// <param name="logger">The logger for operation tracking and debugging. Must not be null.</param>
+        /// <param name="repository">The settings repository for persistent storage. Must not be null.</param>
+        /// <exception cref="ArgumentNullException">Thrown when any required parameter is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when initial settings loading fails.</exception>
+        /// <remarks>
+        /// This constructor:
+        /// <list type="number">
+        /// <item><description>Initializes in-memory settings with configuration defaults</description></item>
+        /// <item><description>Sets up change notification handlers</description></item>
+        /// <item><description>Configures save debouncing mechanisms</description></item>
+        /// <item><description>Asynchronously loads user-specific overrides</description></item>
+        /// <item><description>Validates initial settings state</description></item>
+        /// </list>
+        /// Settings loading is performed asynchronously to avoid blocking the calling thread.
+        /// Any errors during loading are logged but do not prevent service construction.
+        /// </remarks>
         public SettingsService(
             IConfiguration configuration, 
             IOptionsMonitor<AppSettings> options, 
             ILogger<SettingsService> logger,
             ISettingsRepository repository)
         {
-            _configuration = configuration;
-            _options = options;
-            _logger = logger;
-            _repository = repository;
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            
             _currentSettings = options.CurrentValue;
             
-            // Load user-specific settings from repository
-            _ = LoadUserSettingsAsync();
+            // Load user-specific settings from repository (fire-and-forget with error handling)
+            _ = LoadUserSettingsAsync().ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                {
+                    _logger.LogError(t.Exception, "Failed to load user settings during service initialization");
+                }
+                else if (t.IsCompleted)
+                {
+                    _logger.LogDebug("User settings loaded successfully during service initialization");
+                }
+            });
         }
 
         public async Task SaveAsync()

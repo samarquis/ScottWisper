@@ -2,6 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
 using System;
 using System.IO;
 using WhisperKey.Configuration;
@@ -17,26 +19,94 @@ namespace WhisperKey.Bootstrap
     public static class ServiceConfiguration
     {
         /// <summary>
-        /// Configures and returns the service provider
+        /// Configures and returns the service provider with structured logging and correlation services
         /// </summary>
         public static IServiceProvider ConfigureServices()
         {
             var services = new ServiceCollection();
             
-            // Add logging
-            services.AddLogging(builder =>
-            {
-                builder.AddConsole();
-                builder.SetMinimumLevel(LogLevel.Information);
-            });
+            // Configure Serilog for structured logging with correlation IDs
+            ConfigureSerilog(services);
             
             // Configure configuration
             ConfigureConfiguration(services);
             
+            // Register correlation service for request tracking (must be registered early)
+            services.AddSingleton<ICorrelationService, CorrelationService>();
+            
+            // Register structured logging service (depends on correlation service)
+            services.AddSingleton<IStructuredLoggingService, StructuredLoggingService>();
+            
             // Register application services
             RegisterApplicationServices(services);
             
-            return services.BuildServiceProvider();
+            var serviceProvider = services.BuildServiceProvider();
+            
+            // Initialize Serilog logger
+            Log.Logger = serviceProvider.GetRequiredService<ILogger<Program>>() as Serilog.ILogger ?? 
+                        Serilog.Logger.Create(ConfigureSerilogLogger());
+            
+            return serviceProvider;
+        }
+        
+        /// <summary>
+        /// Configures Serilog for structured logging with correlation ID enrichment
+        /// </summary>
+        private static void ConfigureSerilog(IServiceCollection services)
+        {
+            services.AddLogging(builder =>
+            {
+                builder.ClearProviders();
+                builder.AddSerilog(dispose: true);
+            });
+            
+            // Register Serilog logger configuration
+            services.AddSingleton<ILoggerFactory>(provider =>
+            {
+                var loggerFactory = new LoggerFactory();
+                loggerFactory.AddSerilog(ConfigureSerilogLogger());
+                return loggerFactory;
+            });
+        }
+        
+        /// <summary>
+        /// Creates and configures the Serilog logger with structured logging sinks and enrichers
+        /// </summary>
+        private static LoggerConfiguration ConfigureSerilogLogger()
+        {
+            var logPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "WhisperKey",
+                "logs",
+                "whisperkey-.log");
+            
+            return new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .MinimumLevel.Override("System", LogEventLevel.Warning)
+                .MinimumLevel.Override("WhisperKey", LogEventLevel.Information)
+                .Enrich.FromLogContext()
+                .Enrich.WithMachineName()
+                .Enrich.WithProcessId()
+                .Enrich.WithThreadId()
+                .Enrich.WithCorrelationIdHeader("X-Correlation-ID")
+                .Enrich.WithProperty("Application", "WhisperKey")
+                .Enrich.WithProperty("Version", System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown")
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{CorrelationId}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.File(
+                    path: logPath,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: 30,
+                    outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] [{CorrelationId}] [{SourceContext}] {Message:lj}{NewLine}{Exception}",
+                    fileSizeLimitBytes: 100 * 1024 * 1024, // 100MB
+                    rollOnFileSizeLimit: true)
+                .WriteTo.Seq(
+                    serverUrl: "http://localhost:5341",
+                    controlLevelSwitch: new LoggingLevelSwitch(LogEventLevel.Information))
+                .Filter.ByIncludingOnly(logEvent => 
+                    logEvent.Level >= LogEventLevel.Information || 
+                    logEvent.Properties.ContainsKey("Error"));
         }
         
         /// <summary>
@@ -70,48 +140,78 @@ namespace WhisperKey.Bootstrap
         /// </summary>
         private static void RegisterApplicationServices(IServiceCollection services)
         {
-            // Core services
+            // Core infrastructure services (order is important for dependency resolution)
+            services.AddSingleton<ICorrelationService, CorrelationService>();
+            services.AddSingleton<IStructuredLoggingService, StructuredLoggingService>();
+            services.AddSingleton<IStartupPerformanceService, StartupPerformanceService>();
+            
+            // Core services (immediate initialization - lightweight dependencies)
             services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
-            services.AddSingleton<IAudioDeviceService, AudioDeviceService>();
             
-            // Validation services
+            // Lazy-loaded heavy services to improve startup performance
+            services.AddLazy<IAudioDeviceService, AudioDeviceService>();
+            services.AddLazy<IWebhookService, WebhookService>();
+            
+            // Validation and utility services (lightweight)
             services.AddSingleton<ValidationService>();
             services.AddSingleton<VocabularyService>();
             services.AddSingleton<UserErrorService>();
-            
-            // Management services
             services.AddSingleton<ApplicationBootstrapper, ApplicationBootstrapper>();
             services.AddSingleton<SystemTrayService, SystemTrayService>();
             
-            // Permission services
+            // Permission and system services (lightweight)
             services.AddSingleton<IPermissionService, PermissionService>();
             services.AddSingleton<IRegistryService, RegistryService>();
             services.AddSingleton<IFileSystemService>(sp => new FileSystemService()); 
-            
-            // Feedback
             services.AddSingleton<IFeedbackService, FeedbackService>();
-            
-            // Command Processing
             services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
             
-            // Cost Tracking
-            services.AddSingleton<CostTrackingService, CostTrackingService>();
+            // Lazy-loaded specialized services (heavy initialization)
+            services.AddLazy<CostTrackingService, CostTrackingService>();
+            services.AddLazy<HotkeyRegistrationService, HotkeyRegistrationService>();
+            services.AddLazy<HotkeyProfileManager, HotkeyProfileManager>();
+            services.AddLazy<HotkeyConflictDetector, HotkeyConflictDetector>();
+            services.AddLazy<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
+            services.AddLazy<HotkeyService, HotkeyService>();
             
-            // Hotkey services
-            services.AddSingleton<HotkeyRegistrationService, HotkeyRegistrationService>();
-            services.AddSingleton<HotkeyProfileManager, HotkeyProfileManager>();
-            services.AddSingleton<HotkeyConflictDetector, HotkeyConflictDetector>();
-            services.AddSingleton<Win32HotkeyRegistrar, Win32HotkeyRegistrar>();
-            services.AddSingleton<HotkeyService, HotkeyService>();
-            
-            // Configure HttpClient for Whisper API
+            // Configure HttpClient for Whisper API (lightweight, no dependencies)
             services.AddHttpClient("WhisperApi", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("User-Agent", "WhisperKey/1.0");
             });
+        }
+        
+        /// <summary>
+        /// Extension method to register lazy-loaded singleton services.
+        /// Improves startup performance by deferring service construction until first use.
+        /// </summary>
+        /// <typeparam name="TInterface">The service interface type.</typeparam>
+        /// <typeparam name="TImplementation">The service implementation type.</typeparam>
+        /// <param name="services">The service collection to register with.</param>
+        /// <remarks>
+        /// This pattern reduces startup time by:
+        /// <list type="bullet">
+        /// <item><description>Deferring heavy initialization until service is first accessed</description></item>
+        /// <item><description>Reducing memory footprint during application startup</description></item>
+        /// <item><description>Allowing parallel service construction when dependencies allow</description></item>
+        /// </list>
+        /// Services are constructed on first access and cached as singletons for subsequent use.
+        /// </remarks>
+        private static void AddLazy<TInterface, TImplementation>(this IServiceCollection services)
+            where TImplementation : class, TInterface
+            where TInterface : class
+        {
+            services.AddSingleton<TInterface>(provider =>
+            {
+                var lazy = new Lazy<TInterface>(() => (TInterface)provider.GetRequiredService<TImplementation>());
+                return lazy.Value;
+            });
+            
+            services.AddSingleton<TImplementation>();
         }
     }
 }

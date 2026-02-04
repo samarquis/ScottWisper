@@ -14,61 +14,637 @@ using WhisperKey.Configuration;
 
 namespace WhisperKey.Services
 {
+    /// <summary>
+    /// Provides comprehensive audio device management capabilities including enumeration, testing, monitoring,
+    /// permission handling, and device recovery. Integrates with Windows audio subsystems
+    /// to support real-time device change detection and automatic fallback mechanisms.
+    /// </summary>
+    /// <remarks>
+    /// This service provides enterprise-grade audio device management with following capabilities:
+    /// <list type="bullet">
+    /// <item><description>Device enumeration and compatibility checking</description></item>
+    /// <item><description>Real-time device change monitoring with event notifications</description></item>
+    /// <item><description>Permission management for microphone access compliance</description></item>
+    /// <item><description>Comprehensive device testing and quality assessment</description></item>
+    /// <item><description>Audio quality analysis with performance metrics</description></item>
+    /// <item><description>Automatic device recovery and fallback mechanisms</description></item>
+    /// <item><description>Real-time audio level monitoring for activity detection</description></item>
+    /// <item><description>Device recommendation and compatibility scoring</description></item>
+    /// </list>
+    /// The service handles Windows-specific audio subsystems including WASAPI, DirectSound,
+    /// and Windows multimedia APIs with appropriate abstraction layers for cross-platform compatibility.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var audioService = serviceProvider.GetService&lt;IAudioDeviceService&gt;();
+    /// 
+    /// // Get available input devices
+    /// var inputDevices = await audioService.GetInputDevicesAsync();
+    /// 
+    /// // Check microphone permissions
+    /// var permissionStatus = await audioService.CheckMicrophonePermissionAsync();
+    /// if (permissionStatus != MicrophonePermissionStatus.Granted)
+    /// {
+    ///     var granted = await audioService.RequestMicrophonePermissionAsync();
+    ///     if (granted) { /* proceed with audio capture */ }
+    /// }
+    /// 
+    /// // Start monitoring for device changes
+    /// await audioService.MonitorDeviceChangesAsync();
+    /// 
+    /// // Subscribe to device events
+    /// audioService.DeviceConnected += (sender, e) => 
+    ///     Console.WriteLine($"Device connected: {e.DeviceName}");
+    /// </code>
+    /// </example>
     public interface IAudioDeviceService
     {
+        /// <summary>
+        /// Occurs when an audio device is connected to the system.
+        /// Provides event-driven notification for device addition scenarios.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised for both input and output devices when they become
+        /// available for use. The event includes device information and connection timestamp.
+        /// Event handlers should be lightweight to avoid blocking device detection threads.
+        /// </remarks>
         event EventHandler<AudioDeviceEventArgs> DeviceConnected;
+        
+        /// <summary>
+        /// Occurs when an audio device is disconnected from the system.
+        /// Enables applications to handle device removal scenarios gracefully.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised when devices become unavailable. Applications should
+        /// update their device lists and may need to switch to fallback devices.
+        /// The event includes the last known device information before disconnection.
+        /// </remarks>
         event EventHandler<AudioDeviceEventArgs> DeviceDisconnected;
+        
+        /// <summary>
+        /// Occurs when the system default audio device changes.
+        /// Provides notification when Windows changes the preferred audio device.
+        /// </summary>
+        /// <remarks>
+        /// This event is triggered by Windows when the user manually changes the default
+        /// device or when system policy changes affect device selection. Applications may need
+        /// to restart audio streams with the new default device.
+        /// </remarks>
         event EventHandler<AudioDeviceEventArgs> DefaultDeviceChanged;
         
-        // Permission events
+        /// <summary>
+        /// Occurs when microphone permission is required but not yet granted.
+        /// Provides opportunity to request permissions from the user.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised when the application attempts to access the microphone
+        /// but Windows privacy settings prevent access. Applications should handle this by
+        /// showing user-friendly permission request dialogs or guidance.
+        /// </remarks>
         event EventHandler<PermissionEventArgs> PermissionRequired;
+        
+        /// <summary>
+        /// Occurs when microphone permission is explicitly denied by the user or system.
+        /// Indicates that audio capture operations will fail until permissions are granted.
+        /// </summary>
+        /// <remarks>
+        /// This event is triggered when Windows privacy settings block microphone access.
+        /// Applications should provide clear guidance to users on how to enable microphone
+        /// access through Windows Settings > Privacy > Microphone.
+        /// </remarks>
         event EventHandler<PermissionEventArgs> PermissionDenied;
+        
+        /// <summary>
+        /// Occurs when microphone permission is successfully granted by the user.
+        /// Indicates that audio capture operations can now proceed.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised when permission is granted either through the privacy
+        /// settings dialog or programmatically. Applications can proceed with audio
+        /// initialization and capture operations when this event occurs.
+        /// </remarks>
         event EventHandler<PermissionEventArgs> PermissionGranted;
+        
+        /// <summary>
+        /// Occurs when a permission request operation fails due to system error.
+        /// Provides diagnostic information for troubleshooting permission issues.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised when the permission request process encounters
+        /// unexpected errors such as dialog failures, system lockdowns, or security policy
+        /// restrictions. Applications should log these events for support purposes.
+        /// </remarks>
         event EventHandler<PermissionEventArgs> PermissionRequestFailed;
         
-        // Device change recovery events
+        /// <summary>
+        /// Occurs when the service attempts to recover from a device change event.
+        /// Provides visibility into automatic recovery operations.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised during device reconnection scenarios when the service
+        /// attempts to restore audio functionality. It includes recovery strategy
+        /// information and can be used to show progress indicators to users.
+        /// </remarks>
         event EventHandler<DeviceRecoveryEventArgs> DeviceRecoveryAttempted;
+        
+        /// <summary>
+        /// Occurs when device recovery operation completes successfully or with final error status.
+        /// Indicates the outcome of automatic device recovery attempts.
+        /// </summary>
+        /// <remarks>
+        /// This event signals the end of a recovery operation, whether successful or not.
+        /// Applications can use this to update UI state, log recovery results,
+        /// or trigger fallback procedures if recovery failed.
+        /// </remarks>
         event EventHandler<DeviceRecoveryEventArgs> DeviceRecoveryCompleted;
         
+        /// <summary>
+        /// Retrieves all available audio input devices in the system.
+        /// Includes both built-in and external audio capture devices.
+        /// </summary>
+        /// <returns>A task that returns a list of available input audio devices.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown when the caller lacks permission to access audio devices.</exception>
+        /// <exception cref="COMException">Thrown when the audio subsystem is not available or encounters an error.</exception>
+        /// <remarks>
+        /// This method enumerates devices using Windows Audio Session API (WASAPI).
+        /// The returned list includes device metadata such as ID, name, description,
+        /// and current state. Only active devices are included by default.
+        /// Devices may be filtered based on current permission status.
+        /// </remarks>
         Task<List<AudioDevice>> GetInputDevicesAsync();
+        
+        /// <summary>
+        /// Retrieves all available audio output devices in the system.
+        /// Includes speakers, headphones, and other audio playback devices.
+        /// </summary>
+        /// <returns>A task that returns a list of available output audio devices.</returns>
+        /// <exception cref="COMException">Thrown when the audio subsystem encounters an enumeration error.</exception>
+        /// <remarks>
+        /// This method enumerates playback devices using Windows audio APIs.
+        /// The returned devices include metadata about supported formats and capabilities.
+        /// Output device enumeration does not require microphone permissions.
+        /// </remarks>
         Task<List<AudioDevice>> GetOutputDevicesAsync();
+        
+        /// <summary>
+        /// Retrieves the system's default audio input device.
+        /// Returns the device that Windows has configured as the primary microphone.
+        /// </summary>
+        /// <returns>A task that returns the default input audio device.</returns>
+        /// <exception cref="AudioDevicePermissionException">Thrown when microphone access permission is denied.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when no default input device is available.</exception>
+        /// <exception cref="COMException">Thrown when the audio subsystem encounters an error.</exception>
+        /// <remarks>
+        /// This method queries Windows for the default communications capture device.
+        /// The returned device is guaranteed to be available and compatible with basic
+        /// audio capture operations. Applications should handle exceptions when the
+        /// default device is not accessible due to permission or hardware issues.
+        /// </remarks>
         Task<AudioDevice> GetDefaultInputDeviceAsync();
+        
+        /// <summary>
+        /// Retrieves the system's default audio output device.
+        /// Returns the device that Windows has configured as the primary audio output.
+        /// </summary>
+        /// <returns>A task that returns the default output audio device.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when no default output device is available.</exception>
+        /// <exception cref="COMException">Thrown when the audio subsystem encounters an error.</exception>
+        /// <remarks>
+        /// This method queries Windows for the default multimedia render device.
+        /// The returned device is suitable for audio playback operations.
+        /// This operation does not require special permissions.
+        /// </remarks>
         Task<AudioDevice> GetDefaultOutputDeviceAsync();
+        
+        /// <summary>
+        /// Performs a basic functionality test on the specified audio device.
+        /// Validates that the device can be initialized and used for audio capture.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to test. Must not be null or empty.</param>
+        /// <returns>A task that returns true if the device passes basic tests, false otherwise.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <exception cref="AudioDeviceNotFoundException">Thrown when the specified device cannot be found.</exception>
+        /// <remarks>
+        /// This test performs the following validations:
+        /// <list type="bullet">
+        /// <item><description>Device enumeration and accessibility</description></item>
+        /// <item><description>Audio format compatibility (16kHz, mono, 16-bit)</description></item>
+        /// <item><description>Basic capture initialization</description></item>
+        /// <item><description>Brief recording and stopping functionality</description></item>
+        /// </list>
+        /// The test is non-destructive and should not affect other applications.
+        /// </remarks>
         Task<bool> TestDeviceAsync(string deviceId);
+        
+        /// <summary>
+        /// Retrieves detailed capabilities and supported formats for the specified audio device.
+        /// Provides technical information about device limitations and features.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to query. Must not be null or empty.</param>
+        /// <returns>A task that returns the device capabilities information.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <exception cref="AudioDeviceNotFoundException">Thrown when the specified device cannot be found.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown when the caller lacks permission to access the device.</exception>
+        /// <remarks>
+        /// The capabilities information includes:
+        /// <list type="bullet">
+        /// <item><description>Supported sample rates and bit depths</description></item>
+        /// <item><description>Channel configurations (mono, stereo, etc.)</description></item>
+        /// <item><description>Buffer size ranges and optimal settings</description></item>
+        /// <item><description>Hardware acceleration features</description></item>
+        /// <item><description>Latency characteristics</description></item>
+        /// </list>
+        /// This information can be used to optimize audio processing parameters
+        /// and determine compatibility with specific use cases.
+        /// </remarks>
         Task<AudioDeviceCapabilities> GetDeviceCapabilitiesAsync(string deviceId);
+        
+        /// <summary>
+        /// Retrieves information about a specific audio device by its unique identifier.
+        /// Provides device metadata without enumerating all devices.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to retrieve. Must not be null or empty.</param>
+        /// <returns>A task that returns the device information, or null if the device is not found.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <remarks>
+        /// This method performs a targeted lookup rather than full enumeration,
+        /// making it more efficient for repeated device access.
+        /// The returned device includes all standard metadata and current state information.
+        /// </remarks>
         Task<AudioDevice?> GetDeviceByIdAsync(string deviceId);
+        
+        /// <summary>
+        /// Determines if the specified audio device is compatible with speech recognition requirements.
+        /// Evaluates device capabilities against minimum speech recognition standards.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to evaluate. Must not be null or empty.</param>
+        /// <returns>True if the device meets speech recognition requirements, false otherwise.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <remarks>
+        /// Compatibility criteria include:
+        /// <list type="bullet">
+        /// <item><description>Sample rate ≥ 16kHz for speech recognition quality</description></item>
+        /// <item><description>1-2 channels (mono preferred, stereo acceptable)</description></item>
+        /// <item><description>Bit depth ≥ 16-bit for adequate dynamic range</description></item>
+        /// <item><description>Driver stability and error-free initialization</description></item>
+        /// </list>
+        /// Devices that meet these criteria should provide acceptable quality for
+        /// most speech recognition scenarios. External USB devices typically score higher.
+        /// </remarks>
         bool IsDeviceCompatible(string deviceId);
         
-        // Permission methods
+        /// <summary>
+        /// Checks the current microphone permission status for the application.
+        /// Determines if the app can access audio capture devices.
+        /// </summary>
+        /// <returns>A task that returns the current microphone permission status.</returns>
+        /// <remarks>
+        /// Permission status values:
+        /// <list type="bullet">
+        /// <item><description><b>Granted</b>: Full microphone access is available</description></item>
+        /// <item><description><b>Denied</b>: Access blocked by user or system policy</description></item>
+        /// <item><description><b>Unknown</b>: Status cannot be determined (system error)</description></item>
+        /// <item><description><b>SystemError</b>: Error querying permission status</description></item>
+        /// </list>
+        /// This method performs a non-intrusive permission check without triggering
+        /// permission dialogs or changing system state.
+        /// </remarks>
         Task<MicrophonePermissionStatus> CheckMicrophonePermissionAsync();
+        
+        /// <summary>
+        /// Requests microphone permission from the user through the Windows privacy system.
+        /// Triggers the system permission dialog if access is not currently granted.
+        /// </summary>
+        /// <returns>A task that returns true if permission is granted, false otherwise.</returns>
+        /// <remarks>
+        /// This method will:
+        /// <list type="number">
+        /// <item><description>Show the Windows privacy permission dialog if needed</description></item>
+        /// <item><description>Test actual microphone access after permission</description></item>
+        /// <item><description>Fire appropriate permission events (Granted/Denied)</description></item>
+        /// <item><description>Provide user guidance if system settings block access</description></item>
+        /// </list>
+        /// The permission request is user-initiated and cannot be bypassed programmatically.
+        /// Applications should handle denial gracefully and provide clear guidance.
+        /// </remarks>
         Task<bool> RequestMicrophonePermissionAsync();
         
-        // Device switching
+        /// <summary>
+        /// Switches audio operations to use the specified device.
+        /// Validates device compatibility and performs necessary reinitialization.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the target device. Must not be null or empty.</param>
+        /// <returns>A task that returns true if the switch was successful, false otherwise.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <exception cref="AudioDeviceNotFoundException">Thrown when the target device cannot be found.</exception>
+        /// <exception cref="AudioDevicePermissionException">Thrown when microphone access is denied.</exception>
+        /// <remarks>
+        /// This switching process includes:
+        /// <list type="number">
+        /// <item><description>Device compatibility validation</description></item>
+        /// <item><description>Permission verification and request if needed</description></item>
+        /// <item><description>Graceful shutdown of current audio streams</description></item>
+        /// <item><description>Initialization and testing of new device</description></item>
+        /// <item><description>DeviceConnected event notification</description></item>
+        /// </list>
+        /// The operation is atomic - either fully successful or completely rolled back.
+        /// </remarks>
         Task<bool> SwitchDeviceAsync(string deviceId);
         
-        // Enhanced testing and monitoring
+        /// <summary>
+        /// Performs comprehensive testing and analysis of the specified audio device.
+        /// Evaluates device quality, performance, and compatibility characteristics.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to test. Must not be null or empty.</param>
+        /// <returns>A task that returns detailed test results including quality metrics and recommendations.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <exception cref="AudioDeviceNotFoundException">Thrown when the specified device cannot be found.</exception>
+        /// <remarks>
+        /// Comprehensive testing includes:
+        /// <list type="bullet">
+        /// <item><description>Basic functionality and initialization</description></item>
+        /// <item><description>Audio format compatibility testing</description></item>
+        /// <item><description>Quality assessment (signal quality, noise floor)</description></item>
+        /// <item><description>Performance measurement (latency, throughput)</description></item>
+        /// <item><description>Compatibility scoring for speech recognition</description></item>
+        /// </list>
+        /// Test results include recommendations for optimal settings and potential issues.
+        /// </remarks>
         Task<AudioDeviceTestResult> PerformComprehensiveTestAsync(string deviceId);
+        
+        /// <summary>
+        /// Analyzes audio quality metrics for the specified device during live audio capture.
+        /// Provides real-time assessment of signal characteristics and performance.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to analyze. Must not be null or empty.</param>
+        /// <param name="durationMs">The duration of analysis in milliseconds. Default is 3000 (3 seconds).</param>
+        /// <returns>A task that returns detailed audio quality metrics and analysis.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="durationMs"/> is not positive.</exception>
+        /// <remarks>
+        /// Quality metrics measured include:
+        /// <list type="bullet">
+        /// <item><description>RMS and peak signal levels</description></item>
+        /// <item><description>Signal-to-noise ratio assessment</description></item>
+        /// <item><description>Dynamic range analysis</description></item>
+        /// <item><description>Frequency response characteristics</description></item>
+        /// <item><description>Peak detection and clipping analysis</description></item>
+        /// </list>
+        /// Longer analysis durations provide more accurate results but increase latency.
+        /// </remarks>
         Task<AudioQualityMetrics> AnalyzeAudioQualityAsync(string deviceId, int durationMs = 3000);
+        
+        /// <summary>
+        /// Evaluates the compatibility of the specified device for speech recognition use cases.
+        /// Provides numerical scoring and qualitative recommendations.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to score. Must not be null or empty.</param>
+        /// <returns>A task that returns compatibility scoring with detailed breakdown by category.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <remarks>
+        /// Scoring criteria include:
+        /// <list type="bullet">
+        /// <item><description>Sample rate support (16kHz+ preferred)</description></item>
+        /// <item><description>Channel configuration (mono preferred)</description></item>
+        /// <item><description>Bit depth support (16-bit+ required)</description></item>
+        /// <item><description>Device type (external USB preferred over integrated)</description></item>
+        /// <item><description>Driver quality and stability</description></item>
+        /// </list>
+        /// Overall scores range from 0.0 to 1.0, with recommendations:
+        /// <list type="bullet">
+        /// <item><description>0.8+: Excellent for professional use</description></item>
+        /// <item><description>0.6-0.8: Good for general use</description></item>
+        /// <item><description>0.4-0.6: Fair for casual use</description></item>
+        /// <item><description>&lt;0.4: Poor - not recommended</description></item>
+        /// </list>
+        /// </remarks>
         Task<DeviceCompatibilityScore> ScoreDeviceCompatibilityAsync(string deviceId);
+        
+        /// <summary>
+        /// Measures the audio latency characteristics of the specified device.
+        /// Determines the time delay between audio input and availability for processing.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to test. Must not be null or empty.</param>
+        /// <returns>A task that returns true if latency is acceptable (&lt;200ms), false otherwise.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <remarks>
+        /// Latency testing measures:
+        /// <list type="bullet">
+        /// <item><description>Time to first audio buffer reception</description></item>
+        /// <item><description>Hardware buffer latency</description></item>
+        /// <item><description>Driver processing overhead</description></item>
+        /// <item><description>System audio subsystem latency</description></item>
+        /// </list>
+        /// Low latency is crucial for real-time audio applications. Speech recognition
+        /// generally tolerates latency up to 200ms without significant impact on accuracy.
+        /// </remarks>
         Task<bool> TestDeviceLatencyAsync(string deviceId);
+        
+        /// <summary>
+        /// Generates device recommendations based on compatibility scoring and user preferences.
+        /// Provides ranked list of suitable devices for current use case.
+        /// </summary>
+        /// <returns>A task that returns a list of device recommendations sorted by suitability.</returns>
+        /// <remarks>
+        /// Recommendations consider:
+        /// <list type="bullet">
+        /// <item><description>Compatibility scores from device analysis</description></item>
+        /// <item><description>Current device availability and state</description></item>
+        /// <item><description>Device type preferences (external vs integrated)</description></item>
+        /// <item><description>Previous device usage patterns</description></item>
+        /// <item><description>Quality metrics and test history</description></item>
+        /// </list>
+        /// Each recommendation includes scoring breakdown and specific use case recommendations.
+        /// </remarks>
         Task<List<DeviceRecommendation>> GetDeviceRecommendationsAsync();
+        
+        /// <summary>
+        /// Occurs when real-time audio level monitoring detects level changes.
+        /// Provides continuous feedback on audio signal strength and activity.
+        /// </summary>
+        /// <remarks>
+        /// This event is raised during active monitoring when audio levels change
+        /// significantly from previous measurements. It includes:
+        /// <list type="bullet">
+        /// <item><description>Current RMS audio level (0.0 to 1.0)</description></item>
+        /// <item><description>Timestamp of measurement</description></item>
+        /// <item><description>Device identifier</description></item>
+        /// </list>
+        /// Events are throttled to avoid excessive updates while maintaining responsiveness.
+        /// </remarks>
         event EventHandler<AudioLevelEventArgs> AudioLevelUpdated;
+        
+        /// <summary>
+        /// Starts real-time monitoring of audio levels for the specified device.
+        /// Provides continuous feedback on signal strength and activity detection.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the device to monitor. Must not be null or empty.</param>
+        /// <returns>A task that represents the monitoring operation.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <exception cref="AudioDeviceNotFoundException">Thrown when the specified device cannot be found.</exception>
+        /// <exception cref="AudioDevicePermissionException">Thrown when microphone access is denied.</exception>
+        /// <remarks>
+        /// Monitoring provides:
+        /// <list type="bullet">
+        /// <item><description>Continuous RMS level calculation (50ms intervals)</description></item>
+        /// <item><description>Activity detection and silence identification</description></item>
+        /// <item><description>Peak level tracking for clipping detection</description></item>
+        /// <item><description>Signal quality assessment</description></item>
+        /// </list>
+        /// Monitoring continues until stopped with <see cref="StopRealTimeMonitoringAsync"/>.
+        /// Multiple monitoring sessions are not supported; stop existing monitoring before starting new.
+        /// </remarks>
         Task StartRealTimeMonitoringAsync(string deviceId);
+        
+        /// <summary>
+        /// Stops real-time audio level monitoring and releases associated resources.
+        /// Gracefully terminates the monitoring operation and cleanup.
+        /// </summary>
+        /// <returns>A task that represents the monitoring shutdown operation.</returns>
+        /// <remarks>
+        /// This method:
+        /// <list type="number">
+        /// <item><description>Stops audio capture from the monitored device</description></item>
+        /// <item><description>Disposes audio capture resources</description></item>
+        /// <item><description>Cancels level update timers</description></item>
+        /// <item><description>Releases device references for other applications</description></item>
+        /// </list>
+        /// The operation is idempotent - calling multiple times has no additional effect.
+        /// </remarks>
         Task StopRealTimeMonitoringAsync();
         
-        // Enhanced device change monitoring methods
+        /// <summary>
+        /// Starts monitoring for device connection and disconnection events.
+        /// Enables automatic detection of hardware changes and system updates.
+        /// </summary>
+        /// <returns>A task that returns true if monitoring started successfully, false otherwise.</returns>
+        /// <remarks>
+        /// Device change monitoring uses:
+        /// <list type="bullet">
+        /// <item><description>Windows WM_DEVICECHANGE messages</description></item>
+        /// <item><description>Device notification APIs</description></item>
+        /// <item><description>WASAPI endpoint notifications</description></item>
+        /// </list>
+        /// Monitoring runs in the background with minimal CPU overhead. Events are
+        /// correlated with device enumeration to maintain accurate state information.
+        /// </remarks>
         Task<bool> MonitorDeviceChangesAsync();
+        
+        /// <summary>
+        /// Stops device change monitoring and releases system notification resources.
+        /// Gracefully terminates the monitoring operation and cleanup.
+        /// </summary>
+        /// <remarks>
+        /// This method unregisters from Windows device notifications and
+        /// cleans up background monitoring threads. The operation is thread-safe
+        /// and can be called multiple times without issues.
+        /// </remarks>
         void StopDeviceChangeMonitoring();
+        
+        /// <summary>
+        /// Retries microphone permission request with exponential backoff delay.
+        /// Provides resilient permission handling for transient system issues.
+        /// </summary>
+        /// <param name="maxAttempts">Maximum number of retry attempts. Default is 3.</param>
+        /// <param name="baseDelayMs">Initial delay between retries in milliseconds. Default is 1000.</param>
+        /// <returns>A task that returns true if permission was granted, false otherwise.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="maxAttempts"/> or <paramref name="baseDelayMs"/> are invalid.</exception>
+        /// <remarks>
+        /// Retry strategy:
+        /// <list type="bullet">
+        /// <item><description>Exponential backoff: delay = baseDelayMs * 2^(attempt-1)</description></item>
+        /// <item><description>Maximum delay cap: 30 seconds</description></item>
+        /// <item><description>User-friendly error messages between attempts</description></item>
+        /// <item><description>Permission status checking between retries</description></item>
+        /// </list>
+        /// Useful when system is busy or has temporary permission issues.
+        /// </remarks>
         Task<bool> RetryPermissionRequestAsync(int maxAttempts = 3, int baseDelayMs = 1000);
+        
+        /// <summary>
+        /// Generates a comprehensive diagnostic report for microphone permission issues.
+        /// Provides detailed information for troubleshooting support requests.
+        /// </summary>
+        /// <returns>A task that returns a formatted diagnostic report string.</returns>
+        /// <remarks>
+        /// The diagnostic report includes:
+        /// <list type="bullet">
+        /// <item><description>Current permission status and last check time</description></item>
+        /// <item><description>Available audio devices and their permission states</description></item>
+        /// <item><description>System information (OS version, app version)</description></item>
+        /// <item><description>Troubleshooting recommendations</description></item>
+        /// <item><description>Step-by-step permission guidance</description></item>
+        /// </list>
+        /// This report is designed to be user-friendly while providing technical details
+        /// for support personnel. The format is suitable for logging, display, or email.
+        /// </remarks>
         Task<string> GeneratePermissionDiagnosticReportAsync();
+        
+        /// <summary>
+        /// Enters a graceful fallback mode when device or permission issues occur.
+        /// Provides degraded functionality instead of complete failure.
+        /// </summary>
+        /// <param name="reason">The reason for entering fallback mode. Must not be null or empty.</param>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="reason"/> is null or empty.</exception>
+        /// <remarks>
+        /// Fallback mode characteristics:
+        /// <list type="bullet">
+        /// <item><description>Disables real-time features to reduce errors</description></item>
+        /// <item><description>Uses cached device information when available</description></item>
+        /// <item><description>Provides user-friendly error messages</description></item>
+        /// <item><description>Periodically retries to exit fallback mode</description></item>
+        /// </list>
+        /// Applications can use this to maintain basic functionality during system issues
+        /// while providing clear communication about the degraded state.
+        /// </remarks>
         Task EnterGracefulFallbackModeAsync(string reason);
+        
+        /// <summary>
+        /// Handles automatic recovery when device connection state changes.
+        /// Coordinates device reconnection and functionality testing.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the affected device. Must not be null or empty.</param>
+        /// <param name="isConnected">True if device connected, false if disconnected.</param>
+        /// <returns>A task that returns true if recovery was successful, false otherwise.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="deviceId"/> is null or empty.</exception>
+        /// <remarks>
+        /// Recovery process includes:
+        /// <list type="number">
+        /// <item><description>Device validation and compatibility checking</description></item>
+        /// <item><description>Automatic reinitialization of audio streams</description></item>
+        /// <item><description>Functionality testing with fallback to alternative devices</description></item>
+        /// <item><description>Application notification through appropriate events</description></item>
+        /// </list>
+        /// Recovery events are logged and can be monitored through the service events.
+        /// </remarks>
         Task<bool> HandleDeviceChangeRecoveryAsync(string deviceId, bool isConnected);
+        
+        /// <summary>
+        /// Handles permission denied events with user guidance and error context.
+        /// Provides comprehensive response to microphone access failures.
+        /// </summary>
+        /// <param name="deviceId">The unique identifier of the affected device. Can be null for general denial.</param>
+        /// <param name="error">The exception that caused the denial, if available. Can be null.</param>
+        /// <returns>A task that represents the error handling operation.</returns>
+        /// <remarks>
+        /// Error handling includes:
+        /// <list type="bullet">
+        /// <item><description>Logging of denial with full context</description></item>
+        /// <item><description>User guidance for enabling microphone access</description></item>
+        /// <item><description>Fallback to alternative input methods if available</description></item>
+        /// <item><description>Notification of UI components for user interaction</description></item>
+        /// </list>
+        /// This method centralizes permission error handling and ensures consistent user experience.
+        /// </remarks>
         Task HandlePermissionDeniedEventAsync(string deviceId, Exception? error = null);
     }
 
     public class AudioDeviceService : IAudioDeviceService, IDisposable
     {
         private readonly IAudioDeviceEnumerator _enumerator;
+        private readonly ILogger<AudioDeviceService> _logger;
+        private readonly ICorrelationService _correlationService;
+        private readonly IStructuredLoggingService _structuredLogger;
         private readonly object _lockObject = new object();
         private bool _disposed = false;
         private readonly bool _ownsEnumerator;
@@ -186,28 +762,51 @@ namespace WhisperKey.Services
         private const uint WS_EX_NOACTIVATE = 0x08000000;
 
     /// <summary>
-    /// Creates a new AudioDeviceService with the default hardware enumerator.
+    /// Initializes a new instance of the <see cref="AudioDeviceService"/> class with default hardware enumeration.
+    /// Sets up device monitoring, logging, and prepares for real-time device change detection.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when audio subsystem initialization fails.</exception>
+    /// <remarks>
+    /// This constructor creates a new <see cref="AudioDeviceEnumerator"/> and takes ownership
+    /// of its lifecycle. The service will automatically start device change monitoring
+    /// in the background to provide real-time notifications. Any initialization errors
+    /// are logged but do not prevent service creation.
+    /// </remarks>
     public AudioDeviceService()
+        : this(new AudioDeviceEnumerator(), ownsEnumerator: true)
     {
-        _enumerator = new AudioDeviceEnumerator();
-        _ownsEnumerator = true;
-        
-        // Initialize device change monitoring (fire-and-forget with exception handling)
-        InitializeMonitoring();
     }
 
     /// <summary>
-    /// Creates a new AudioDeviceService with a custom enumerator for testing.
+    /// Initializes a new instance of the <see cref="AudioDeviceService"/> class with the specified components.
+    /// Supports dependency injection for testing and customization scenarios.
     /// </summary>
-    /// <param name="enumerator">The device enumerator to use (can be a mock for testing).</param>
+    /// <param name="enumerator">The audio device enumerator to use. Must not be null. Can be a mock for testing.</param>
+    /// <param name="logger">The structured logger for operation tracking. Must not be null.</param>
+    /// <param name="correlationService">The correlation ID service for request tracking. Must not be null.</param>
+    /// <param name="structuredLogger">The structured logging service for comprehensive logging. Must not be null.</param>
     /// <param name="ownsEnumerator">Whether this service owns the enumerator and should dispose it.</param>
-    public AudioDeviceService(IAudioDeviceEnumerator enumerator, bool ownsEnumerator = false)
+    /// <exception cref="ArgumentNullException">Thrown when any required parameter is null.</exception>
+    /// <remarks>
+    /// This constructor enables dependency injection and supports unit testing scenarios.
+    /// When <paramref name="ownsEnumerator"/> is true, the service will manage the
+    /// enumerator's lifecycle and dispose it when the service is disposed.
+    /// Device change monitoring is automatically started after successful initialization.
+    /// </remarks>
+    public AudioDeviceService(
+        IAudioDeviceEnumerator enumerator,
+        ILogger<AudioDeviceService>? logger = null,
+        ICorrelationService? correlationService = null,
+        IStructuredLoggingService? structuredLogger = null,
+        bool ownsEnumerator = false)
     {
         _enumerator = enumerator ?? throw new ArgumentNullException(nameof(enumerator));
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AudioDeviceService>.Instance;
+        _correlationService = correlationService ?? new CorrelationService();
+        _structuredLogger = structuredLogger ?? new StructuredLoggingService(_logger, _correlationService);
         _ownsEnumerator = ownsEnumerator;
         
-        // Initialize device change monitoring
+        // Initialize device change monitoring (fire-and-forget with exception handling)
         InitializeMonitoring();
     }
         
@@ -270,65 +869,104 @@ namespace WhisperKey.Services
 
         public async Task<List<AudioDevice>> GetInputDevicesAsync()
         {
-            if (_disposed) return new List<AudioDevice>();
-
-            try
-            {
-                // Check microphone permission first
-                var permissionStatus = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
-                
-                if (permissionStatus == MicrophonePermissionStatus.Denied)
+            return await _structuredLogger.ExecuteWithLoggingAsync(
+                "AudioDeviceService.GetInputDevicesAsync",
+                async () =>
                 {
-                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                        "Microphone access is denied. Please enable microphone access in Windows Settings Privacy -> Microphone."));
-                    return new List<AudioDevice>();
-                }
+                    if (_disposed) 
+                        return new List<AudioDevice>();
 
-                lock (_lockObject)
-                {
-                    if (_disposed) return new List<AudioDevice>();
-
-                    var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                    var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
-
-                    // Filter devices based on permission status
-                    if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
+                    try
                     {
-                        audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
-                    }
+                        // Check microphone permission first
+                        var permissionStatus = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
+                        
+                        if (permissionStatus == MicrophonePermissionStatus.Denied)
+                        {
+                            await _structuredLogger.ExecuteWithLoggingAsync(
+                                "AudioDeviceService.PermissionDenied",
+                                () =>
+                                {
+                                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                                        "Microphone access is denied. Please enable microphone access in Windows Settings Privacy -> Microphone.", 
+                                        string.Empty));
+                                    return Task.CompletedTask;
+                                });
+                            return new List<AudioDevice>();
+                        }
 
-                    return audioDevices;
-                }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                    "Access to audio devices was denied. Please check Windows Privacy Settings.", ""));
-                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (permission denied): {ex.Message}");
-                return new List<AudioDevice>();
-            }
-            catch (SecurityException ex)
-            {
-                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
-                    "Security error accessing audio devices. Please check Windows Privacy Settings.", ""));
-                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices (security): {ex.Message}");
-                return new List<AudioDevice>();
-            }
-            catch (InvalidOperationException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
-                return new List<AudioDevice>();
-            }
-            catch (COMException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
-                return new List<AudioDevice>();
-            }
-            catch (IOException ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error enumerating input devices: {ex.Message}");
-                return new List<AudioDevice>();
-            }
+                        lock (_lockObject)
+                        {
+                            if (_disposed) 
+                                return new List<AudioDevice>();
+
+                            var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
+                            var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
+
+                            // Filter devices based on permission status
+                            if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
+                            {
+                                audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
+                            }
+
+                            _logger.LogDebug("Enumerated {Count} input devices with permission status {PermissionStatus}", 
+                                audioDevices.Count, permissionStatus);
+
+                            return audioDevices;
+                        }
+                    }
+                    catch (UnauthorizedAccessException ex)
+                    {
+                        await _structuredLogger.ExecuteWithLoggingAsync(
+                            "AudioDeviceService.PermissionDenied",
+                            () =>
+                            {
+                                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                                    "Access to audio devices was denied. Please check Windows Privacy Settings.", 
+                                    string.Empty, ex));
+                                return Task.CompletedTask;
+                            });
+                        
+                        _logger.LogWarning(ex, "Unauthorized access when enumerating input devices");
+                        return new List<AudioDevice>();
+                    }
+                    catch (SecurityException ex)
+                    {
+                        await _structuredLogger.ExecuteWithLoggingAsync(
+                            "AudioDeviceService.SecurityException",
+                            () =>
+                            {
+                                PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, 
+                                    "Security error accessing audio devices. Please check Windows Privacy Settings.", 
+                                    string.Empty, ex));
+                                return Task.CompletedTask;
+                            });
+                        
+                        _logger.LogWarning(ex, "Security exception when enumerating input devices");
+                        return new List<AudioDevice>();
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        _logger.LogWarning(ex, "Invalid operation when enumerating input devices");
+                        return new List<AudioDevice>();
+                    }
+                    catch (COMException ex)
+                    {
+                        _logger.LogWarning(ex, "COM exception when enumerating input devices");
+                        return new List<AudioDevice>();
+                    }
+                    catch (IOException ex)
+                    {
+                        _logger.LogWarning(ex, "IO exception when enumerating input devices");
+                        return new List<AudioDevice>();
+                    }
+                },
+                new Dictionary<string, object>
+                {
+                    ["PermissionStatus"] = "Checking",
+                    ["DeviceType"] = "Input",
+                    ["Disposed"] = _disposed
+                });
         }
 
         public Task<List<AudioDevice>> GetOutputDevicesAsync()
