@@ -804,7 +804,9 @@ namespace WhisperKey.Services
         _enumerator = enumerator ?? throw new ArgumentNullException(nameof(enumerator));
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AudioDeviceService>.Instance;
         _correlationService = correlationService ?? new CorrelationService();
-        _structuredLogger = null; // TODO: Fix structured logging initialization
+        
+        // Use provided structured logger or create a fallback
+        _structuredLogger = structuredLogger ?? new NullStructuredLoggingService(); 
         _ownsEnumerator = ownsEnumerator;
         
         // Initialize device change monitoring (fire-and-forget with exception handling)

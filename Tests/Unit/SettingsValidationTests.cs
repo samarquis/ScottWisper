@@ -8,8 +8,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Moq;
 using WhisperKey.Services;
 using WhisperKey.Configuration;
+using WhisperKey.Repositories;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -28,6 +30,7 @@ namespace WhisperKey.Tests.Unit
     {
         private SettingsService _settingsService;
         private string _testAppDataPath;
+        private Mock<ISettingsRepository> _mockRepository;
 
         [TestInitialize]
         public void Setup()
@@ -48,8 +51,9 @@ namespace WhisperKey.Tests.Unit
                 })
                 .Build();
 
+            _mockRepository = new Mock<ISettingsRepository>();
             var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            _settingsService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance);
+            _settingsService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, _mockRepository.Object);
         }
 
         [TestCleanup]
@@ -280,7 +284,7 @@ namespace WhisperKey.Tests.Unit
                     .Build();
                 
                 var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-                var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance);
+                var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, _mockRepository.Object);
                 
                 // Should not crash, should fall back to defaults
                 var recoveredSettings = recoveryService.Settings;

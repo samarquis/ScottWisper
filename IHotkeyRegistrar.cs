@@ -32,31 +32,4 @@ namespace WhisperKey
         /// <returns>The last Win32 error code</returns>
         int GetLastWin32Error();
     }
-
-    /// <summary>
-    /// Default implementation of IHotkeyRegistrar that uses actual Windows P/Invoke calls.
-    /// </summary>
-    public class Win32HotkeyRegistrar : IHotkeyRegistrar
-    {
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, EntryPoint = "RegisterHotKey")]
-        private static extern bool RegisterHotKeyNative(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, EntryPoint = "UnregisterHotKey")]
-        private static extern bool UnregisterHotKeyNative(IntPtr hWnd, int id);
-
-        public bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk)
-        {
-            return RegisterHotKeyNative(hWnd, id, fsModifiers, vk);
-        }
-
-        public bool UnregisterHotKey(IntPtr hWnd, int id)
-        {
-            return UnregisterHotKeyNative(hWnd, id);
-        }
-
-        public int GetLastWin32Error()
-        {
-            return System.Runtime.InteropServices.Marshal.GetLastWin32Error();
-        }
-    }
 }

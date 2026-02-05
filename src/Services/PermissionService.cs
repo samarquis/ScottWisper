@@ -1,9 +1,11 @@
 using WhisperKey.Configuration;
+using WhisperKey.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using System.Runtime.InteropServices;
@@ -54,6 +56,7 @@ namespace WhisperKey.Services
     public class PermissionService : IPermissionService
     {
         private readonly IRegistryService _registryService;
+        private readonly IAuditLoggingService _auditService;
         private readonly List<PermissionRequestRecord> _requestHistory = new List<PermissionRequestRecord>();
         private bool _isMonitoring = false;
 
@@ -78,9 +81,10 @@ namespace WhisperKey.Services
         private const string MICROPHONE_SETTINGS_PATH = "ms-settings:privacy-microphone";
         private const string PRIVACY_SETTINGS_PATH = "ms-settings:privacy";
 
-        public PermissionService(IRegistryService registryService)
+        public PermissionService(IRegistryService registryService, IAuditLoggingService auditService)
         {
             _registryService = registryService ?? throw new ArgumentNullException(nameof(registryService));
+            _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
 
             // Initialize permission monitoring
             _ = Task.Run(async () =>
@@ -111,14 +115,45 @@ namespace WhisperKey.Services
                     
                     if (systemPermission == MicrophonePermissionStatus.Denied)
                     {
+                        await _auditService.LogEventAsync(
+                            AuditEventType.SecurityEvent,
+                            "Microphone permission check failed - system denied",
+                            JsonSerializer.Serialize(new { 
+                                SystemPermission = systemPermission.ToString(),
+                                UserId = Environment.UserName,
+                                MachineName = Environment.MachineName
+                            }),
+                            DataSensitivity.Medium);
+                        
                         return MicrophonePermissionStatus.Denied;
                     }
 
                     // Test actual access to microphone
-                    return await TestMicrophoneAccessAsync();
+                    var testResult = await TestMicrophoneAccessAsync();
+                    
+                    await _auditService.LogEventAsync(
+                        AuditEventType.SecurityEvent,
+                        $"Microphone permission check completed: {testResult}",
+                        JsonSerializer.Serialize(new { 
+                            Result = testResult.ToString(),
+                            SystemPermission = systemPermission.ToString(),
+                            UserId = Environment.UserName
+                        }),
+                        DataSensitivity.Low);
+                    
+                    return testResult;
                 }
                 catch (Exception ex)
                 {
+                    await _auditService.LogEventAsync(
+                        AuditEventType.Error,
+                        "Microphone permission check error",
+                        JsonSerializer.Serialize(new { 
+                            Error = ex.Message,
+                            StackTrace = ex.StackTrace
+                        }),
+                        DataSensitivity.Medium);
+                    
                     System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
                     return MicrophonePermissionStatus.SystemError;
                 }
@@ -138,6 +173,15 @@ namespace WhisperKey.Services
                     
                     if (currentStatus == MicrophonePermissionStatus.Granted)
                     {
+                        await _auditService.LogEventAsync(
+                            AuditEventType.SecurityEvent,
+                            "Microphone permission requested - already granted",
+                            JsonSerializer.Serialize(new { 
+                                PreviousStatus = currentStatus.ToString(),
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.Low);
+                        
                         return true; // Already granted
                     }
 
@@ -151,6 +195,18 @@ namespace WhisperKey.Services
                         if (newStatus == MicrophonePermissionStatus.Granted)
                         {
                             RecordPermissionRequest(true, "Windows permission dialog");
+                            
+                            await _auditService.LogEventAsync(
+                                AuditEventType.SecurityEvent,
+                                "Microphone permission granted via dialog",
+                                JsonSerializer.Serialize(new { 
+                                    PreviousStatus = currentStatus.ToString(),
+                                    NewStatus = newStatus.ToString(),
+                                    Method = "Windows permission dialog",
+                                    UserId = Environment.UserName
+                                }),
+                                DataSensitivity.Medium);
+                            
                             return true;
                         }
                     }
@@ -158,10 +214,31 @@ namespace WhisperKey.Services
                     // Fallback: open privacy settings
                     await OpenWindowsPrivacySettingsAsync();
                     RecordPermissionRequest(false, "Windows permission dialog failed - opened settings");
+                    
+                    await _auditService.LogEventAsync(
+                        AuditEventType.SecurityEvent,
+                        "Microphone permission request failed - opened settings",
+                        JsonSerializer.Serialize(new { 
+                            PreviousStatus = currentStatus.ToString(),
+                            Method = "Opened privacy settings",
+                            UserId = Environment.UserName
+                        }),
+                        DataSensitivity.Medium);
+                    
                     return false;
                 }
                 catch (Exception ex)
                 {
+                    await _auditService.LogEventAsync(
+                        AuditEventType.Error,
+                        "Microphone permission request error",
+                        JsonSerializer.Serialize(new { 
+                            Error = ex.Message,
+                            StackTrace = ex.StackTrace,
+                            UserId = Environment.UserName
+                        }),
+                        DataSensitivity.Medium);
+                    
                     System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
                     RecordPermissionRequest(false, $"Exception: {ex.Message}");
                     return false;

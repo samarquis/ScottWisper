@@ -358,4 +358,224 @@ namespace WhisperKey.Models
         /// </summary>
         public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
     }
+    
+    /// <summary>
+    /// Security alert rule configuration
+    /// </summary>
+    public class SecurityAlertRule
+    {
+        /// <summary>
+        /// Unique identifier
+        /// </summary>
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        
+        /// <summary>
+        /// Rule name
+        /// </summary>
+        public string Name { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Rule description
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Event type this rule applies to (null = any)
+        /// </summary>
+        public AuditEventType? EventType { get; set; }
+        
+        /// <summary>
+        /// Alert severity
+        /// </summary>
+        public SecurityAlertSeverity Severity { get; set; }
+        
+        /// <summary>
+        /// Alert condition type
+        /// </summary>
+        public SecurityAlertCondition Condition { get; set; }
+        
+        /// <summary>
+        /// Condition parameters
+        /// </summary>
+        public Dictionary<string, object> Parameters { get; set; } = new();
+        
+        /// <summary>
+        /// Cooldown period in minutes before same rule can trigger again
+        /// </summary>
+        public int CooldownMinutes { get; set; } = 30;
+        
+        /// <summary>
+        /// Whether this rule is active
+        /// </summary>
+        public bool IsActive { get; set; } = true;
+        
+        /// <summary>
+        /// When rule was created
+        /// </summary>
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        /// <summary>
+        /// When rule was last modified
+        /// </summary>
+        public DateTime ModifiedAt { get; set; } = DateTime.UtcNow;
+        
+        /// <summary>
+        /// When rule was last triggered
+        /// </summary>
+        public DateTime? LastTriggered { get; set; }
+    }
+    
+    /// <summary>
+    /// Security alert
+    /// </summary>
+    public class SecurityAlert
+    {
+        /// <summary>
+        /// Unique identifier
+        /// </summary>
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        
+        /// <summary>
+        /// Rule ID that triggered this alert
+        /// </summary>
+        public string RuleId { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Rule name that triggered this alert
+        /// </summary>
+        public string RuleName { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Alert type (event type)
+        /// </summary>
+        public AuditEventType Type { get; set; }
+        
+        /// <summary>
+        /// Alert severity
+        /// </summary>
+        public SecurityAlertSeverity Severity { get; set; }
+        
+        /// <summary>
+        /// Alert timestamp
+        /// </summary>
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        
+        /// <summary>
+        /// Alert description
+        /// </summary>
+        public string Description { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Associated audit event ID
+        /// </summary>
+        public string AuditEventId { get; set; } = string.Empty;
+        
+        /// <summary>
+        /// Additional metadata
+        /// </summary>
+        public string? Metadata { get; set; }
+    }
+    
+    /// <summary>
+    /// Security alert severity levels
+    /// </summary>
+    public enum SecurityAlertSeverity
+    {
+        /// <summary>
+        /// Low severity - informational
+        /// </summary>
+        Low,
+        
+        /// <summary>
+        /// Medium severity - requires attention
+        /// </summary>
+        Medium,
+        
+        /// <summary>
+        /// High severity - urgent attention required
+        /// </summary>
+        High,
+        
+        /// <summary>
+        /// Critical severity - immediate action required
+        /// </summary>
+        Critical
+    }
+    
+    /// <summary>
+    /// Security alert condition types
+    /// </summary>
+    public enum SecurityAlertCondition
+    {
+        /// <summary>
+        /// Count of events in time window
+        /// </summary>
+        CountInTimeWindow,
+        
+        /// <summary>
+        /// Event occurs outside allowed hours
+        /// </summary>
+        OutOfHours,
+        
+        /// <summary>
+        /// Event has specific data sensitivity
+        /// </summary>
+        DataSensitivity,
+        
+        /// <summary>
+        /// Event description contains specific text
+        /// </summary>
+        DescriptionContains,
+        
+        /// <summary>
+        /// Event occurs from unusual location
+        /// </summary>
+        UnusualLocation,
+        
+        /// <summary>
+        /// Custom condition script
+        /// </summary>
+        CustomCondition
+    }
+    
+    /// <summary>
+    /// Security alert statistics
+    /// </summary>
+    public class SecurityAlertStatistics
+    {
+        /// <summary>
+        /// Total number of alerts
+        /// </summary>
+        public int TotalAlerts { get; set; }
+        
+        /// <summary>
+        /// Number of alerts in last 24 hours
+        /// </summary>
+        public int AlertsLast24Hours { get; set; }
+        
+        /// <summary>
+        /// Alerts grouped by severity
+        /// </summary>
+        public Dictionary<SecurityAlertSeverity, int> AlertsBySeverity { get; set; } = new();
+        
+        /// <summary>
+        /// Alerts grouped by type
+        /// </summary>
+        public Dictionary<AuditEventType, int> AlertsByType { get; set; } = new();
+        
+        /// <summary>
+        /// Most recent alert timestamp
+        /// </summary>
+        public DateTime? MostRecentAlert { get; set; }
+        
+        /// <summary>
+        /// Oldest alert timestamp
+        /// </summary>
+        public DateTime? OldestAlert { get; set; }
+        
+        /// <summary>
+        /// When statistics were generated
+        /// </summary>
+        public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    }
 }

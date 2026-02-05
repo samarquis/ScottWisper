@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
+using WhisperKey.Models;
 
 namespace WhisperKey.Configuration
 {
@@ -290,6 +291,7 @@ namespace WhisperKey.Configuration
         public HotkeySettings Hotkeys { get; set; } = new();
         public UISettings UI { get; set; } = new();
         public TextInjectionSettings TextInjection { get; set; } = new();
+        public AuditSettings Audit { get; set; } = new();
         public List<DeviceTestingResult> DeviceTestHistory { get; set; } = new List<DeviceTestingResult>();
         public DateTime LastDeviceRefresh { get; set; } = DateTime.MinValue;
         public int MaxTestHistory { get; set; } = 50;
@@ -307,4 +309,41 @@ namespace WhisperKey.Configuration
         public int MaxQualityHistory { get; set; } = 100;
         public int MaxCompatibilityHistory { get; set; } = 20;
     }
-}
+
+    public class AuditSettings
+    {
+        public bool Enabled { get; set; } = true;
+        public bool RealTimeAlertingEnabled { get; set; } = true;
+        public bool LogToWindowsEventLog { get; set; } = true;
+        public int AlertCooldownMinutes { get; set; } = 30;
+        public int MaxAlertsPerHour { get; set; } = 100;
+        public bool EnableSecurityAlerting { get; set; } = true;
+        public bool RequireSecurityEventReview { get; set; } = false;
+        public int SecurityAlertRetentionDays { get; set; } = 30;
+        public bool EnableTamperDetection { get; set; } = true;
+        public bool GenerateDailyReports { get; set; } = false;
+        public string ComplianceFramework { get; set; } = "SOC2";
+        public List<string> MonitoredEventTypes { get; set; } = new List<string>
+        {
+            "SecurityEvent",
+            "ApiKeyAccessed", 
+            "UserLogin",
+            "UserLogout",
+            "Error"
+        };
+        public Dictionary<string, AlertThreshold> AlertThresholds { get; set; } = new Dictionary<string, AlertThreshold>
+        {
+            ["FailedLogins"] = new AlertThreshold { Count = 3, TimeWindowMinutes = 5 },
+            ["ApiKeyAccess"] = new AlertThreshold { Count = 10, TimeWindowMinutes = 60 },
+            ["SecurityEvents"] = new AlertThreshold { Count = 20, TimeWindowMinutes = 60 }
+        };
+    }
+
+    public class AlertThreshold
+    {
+        public int Count { get; set; } = 3;
+        public int TimeWindowMinutes { get; set; } = 5;
+                public SecurityAlertSeverity Severity { get; set; } = SecurityAlertSeverity.Medium;
+            }
+        }
+        

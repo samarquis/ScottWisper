@@ -4,6 +4,7 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using WhisperKey.Models;
 
 namespace WhisperKey.Services
 {
@@ -14,17 +15,19 @@ namespace WhisperKey.Services
     public class WindowsCredentialService : ICredentialService
     {
         private readonly ILogger<WindowsCredentialService> _logger;
+        private readonly IAuditLoggingService _auditService;
         private const string TargetPrefix = "WhisperKey_";
         
-        public WindowsCredentialService(ILogger<WindowsCredentialService>? logger = null)
+        public WindowsCredentialService(ILogger<WindowsCredentialService>? logger = null, IAuditLoggingService? auditService = null)
         {
             _logger = logger ?? new LoggerFactory().CreateLogger<WindowsCredentialService>();
+            _auditService = auditService ?? new NullAuditLoggingService();
         }
         
         /// <summary>
         /// Store a credential securely in Windows Credential Manager
         /// </summary>
-        public Task<bool> StoreCredentialAsync(string key, string value)
+        public async Task<bool> StoreCredentialAsync(string key, string value)
         {
             try
             {
@@ -55,14 +58,38 @@ namespace WhisperKey.Services
                     
                     if (result)
                     {
+                        await _auditService.LogEventAsync(
+                            AuditEventType.ApiKeyAccessed,
+                            $"API key stored successfully for key: {key}",
+                            System.Text.Json.JsonSerializer.Serialize(new { 
+                                Key = key,
+                                Action = "Stored",
+                                Success = true,
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.High);
+                        
                         _logger.LogInformation("Credential stored successfully for key: {Key}", key);
-                        return Task.FromResult(true);
+                        return true;
                     }
                     else
                     {
                         int error = Marshal.GetLastWin32Error();
+                        
+                        await _auditService.LogEventAsync(
+                            AuditEventType.SecurityEvent,
+                            $"Failed to store API key for key: {key}",
+                            System.Text.Json.JsonSerializer.Serialize(new { 
+                                Key = key,
+                                Action = "StoreFailed",
+                                ErrorCode = error,
+                                Success = false,
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.Medium);
+                        
                         _logger.LogError("Failed to store credential. Error code: {ErrorCode}", error);
-                        return Task.FromResult(false);
+                        return false;
                     }
                 }
                 finally
@@ -84,14 +111,14 @@ namespace WhisperKey.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error storing credential for key: {Key}", key);
-                return Task.FromResult(false);
+                return false;
             }
         }
         
         /// <summary>
         /// Retrieve a stored credential from Windows Credential Manager
         /// </summary>
-        public Task<string?> RetrieveCredentialAsync(string key)
+        public async Task<string?> RetrieveCredentialAsync(string key)
         {
             try
             {
@@ -110,7 +137,7 @@ namespace WhisperKey.Services
                         {
                             _logger.LogWarning("Credential not found for key: {Key}. Error code: {ErrorCode}", key, error);
                         }
-                        return Task.FromResult<string?>(null);
+                        return null;
                     }
                     
                     // Marshal the credential structure
@@ -125,8 +152,20 @@ namespace WhisperKey.Services
                         try
                         {
                             var password = Encoding.Unicode.GetString(passwordBytes);
-                            _logger.LogDebug("Credential retrieved successfully for key: {Key}", key);
-                            return Task.FromResult<string?>(password);
+                        
+                        await _auditService.LogEventAsync(
+                            AuditEventType.ApiKeyAccessed,
+                            $"API key retrieved for key: {key}",
+                            System.Text.Json.JsonSerializer.Serialize(new { 
+                                Key = key,
+                                Action = "Retrieved",
+                                Success = true,
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.High);
+                        
+                        _logger.LogDebug("Credential retrieved successfully for key: {Key}", key);
+                        return password;
                         }
                         finally
                         {
@@ -135,7 +174,7 @@ namespace WhisperKey.Services
                         }
                     }
                     
-                    return Task.FromResult<string?>(null);
+                    return null;
                 }
                 finally
                 {
@@ -149,14 +188,14 @@ namespace WhisperKey.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving credential for key: {Key}", key);
-                return Task.FromResult<string?>(null);
+                return null;
             }
         }
         
         /// <summary>
         /// Delete a stored credential from Windows Credential Manager
         /// </summary>
-        public Task<bool> DeleteCredentialAsync(string key)
+        public async Task<bool> DeleteCredentialAsync(string key)
         {
             try
             {
@@ -166,27 +205,52 @@ namespace WhisperKey.Services
                 bool result = CredDelete(targetName, CRED_TYPE.GENERIC, 0);
                 
                 if (result)
-                {
-                    _logger.LogInformation("Credential deleted successfully for key: {Key}", key);
-                    return Task.FromResult(true);
-                }
-                else
-                {
-                    int error = Marshal.GetLastWin32Error();
-                    if (error == 1168) // ERROR_NOT_FOUND
                     {
-                        _logger.LogInformation("Credential already deleted or not found for key: {Key}", key);
-                        return Task.FromResult(true);
+                        await _auditService.LogEventAsync(
+                            AuditEventType.ApiKeyAccessed,
+                            $"API key deleted for key: {key}",
+                            System.Text.Json.JsonSerializer.Serialize(new { 
+                                Key = key,
+                                Action = "Deleted",
+                                Success = true,
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.High);
+                        
+                        _logger.LogInformation("Credential deleted successfully for key: {Key}", key);
+                        return true;
                     }
-                    
-                    _logger.LogError("Failed to delete credential. Error code: {ErrorCode}", error);
-                    return Task.FromResult(false);
-                }
+                    else
+                    {
+                        int error = Marshal.GetLastWin32Error();
+                        
+                        await _auditService.LogEventAsync(
+                            AuditEventType.SecurityEvent,
+                            $"Failed to delete API key for key: {key}",
+                            System.Text.Json.JsonSerializer.Serialize(new { 
+                                Key = key,
+                                Action = "DeleteFailed",
+                                ErrorCode = error,
+                                ErrorName = error == 1168 ? "NOT_FOUND" : "UNKNOWN",
+                                Success = false,
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.Medium);
+                        
+                        if (error == 1168) // ERROR_NOT_FOUND
+                        {
+                            _logger.LogInformation("Credential already deleted or not found for key: {Key}", key);
+                            return true;
+                        }
+                        
+                        _logger.LogError("Failed to delete credential. Error code: {ErrorCode}", error);
+                        return false;
+                    }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting credential for key: {Key}", key);
-                return Task.FromResult(false);
+                return false;
             }
         }
         

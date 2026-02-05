@@ -16,7 +16,7 @@ namespace WhisperKey.Tests.Unit
         public void Setup()
         {
             _mockRegistryService = new Mock<IRegistryService>();
-            _permissionService = new PermissionService(_mockRegistryService.Object);
+            _permissionService = new PermissionService(_mockRegistryService.Object, new NullAuditLoggingService());
         }
         
         [TestCleanup]

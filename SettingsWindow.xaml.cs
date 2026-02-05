@@ -1408,13 +1408,4 @@ namespace WhisperKey
         public AudioDeviceCapabilities? Capabilities { get; set; }
         public DeviceTestResultDialog() { }
     }
-
-    public class HotkeyConflictDetector
-    {
-        public async Task<List<HotkeyConflict>> CheckForConflictsAsync(List<HotkeyDefinition> hotkeys)
-        {
-            await Task.Delay(10);
-            return new List<HotkeyConflict>();
-        }
-    }
 }

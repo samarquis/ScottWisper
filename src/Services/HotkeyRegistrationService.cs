@@ -12,7 +12,7 @@ namespace WhisperKey.Services
     /// </summary>
     public class HotkeyRegistrationService : IDisposable
     {
-        private readonly Win32HotkeyRegistrar _win32Registrar;
+        private readonly IHotkeyRegistrar _win32Registrar;
         private readonly ILogger<HotkeyRegistrationService>? _logger;
         private readonly IntPtr _windowHandle;
         private readonly Dictionary<string, int> _registeredHotkeys = new Dictionary<string, int>();
@@ -20,7 +20,7 @@ namespace WhisperKey.Services
         private int _nextHotkeyId = 9000;
         private bool _disposed = false;
 
-        public HotkeyRegistrationService(Win32HotkeyRegistrar win32Registrar, ILogger<HotkeyRegistrationService>? logger, IntPtr windowHandle)
+        public HotkeyRegistrationService(IHotkeyRegistrar win32Registrar, ILogger<HotkeyRegistrationService>? logger, IntPtr windowHandle)
         {
             _win32Registrar = win32Registrar ?? throw new ArgumentNullException(nameof(win32Registrar));
             _logger = logger;

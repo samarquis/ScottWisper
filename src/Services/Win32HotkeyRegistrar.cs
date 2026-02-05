@@ -1,9 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
-using WhisperKey.Services;
 
-namespace WhisperKey.Services
+namespace WhisperKey
 {
     /// <summary>
     /// Windows-specific hotkey registrar using P/Invoke
@@ -83,15 +82,5 @@ namespace WhisperKey.Services
         private static extern bool Unregisterhotkey(IntPtr hWnd, int id);
 
         #endregion
-    }
-
-    /// <summary>
-    /// Interface for hotkey registration services
-    /// </summary>
-    public interface IHotkeyRegistrar
-    {
-        bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
-        bool UnregisterHotKey(IntPtr hWnd, int id);
-        int GetLastWin32Error();
     }
 }

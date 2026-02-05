@@ -92,6 +92,16 @@ namespace WhisperKey.Services
         /// <returns>The result of the operation.</returns>
         Task<T> ExecuteWithLoggingAsync<T>(string operationName, Func<Task<T>> operation, 
             IDictionary<string, object>? parameters = null, string? correlationId = null);
+
+        /// <summary>
+        /// Executes an operation with comprehensive logging including timing and exception handling.
+        /// </summary>
+        /// <param name="operationName">Name of the operation.</param>
+        /// <param name="operation">The operation to execute.</param>
+        /// <param name="parameters">Optional parameters to log.</param>
+        /// <param name="correlationId">Optional correlation ID.</param>
+        Task ExecuteWithLoggingAsync(string operationName, Func<Task> operation, 
+            IDictionary<string, object>? parameters = null, string? correlationId = null);
     }
 
     /// <summary>
@@ -300,7 +310,7 @@ namespace WhisperKey.Services
         {
             var currentCorrelationId = correlationId ?? _correlationService.GetCurrentCorrelationId();
             
-            using var scope = _logger.BeginScope(new Dictionary<string, object>
+            var scopeData = new Dictionary<string, object>
             {
                 ["ServiceName"] = serviceName,
                 ["OperationName"] = operationName,
@@ -312,15 +322,17 @@ namespace WhisperKey.Services
                 ["CpuTime"] = metrics.CpuTime,
                 ["DatabaseOperations"] = metrics.DatabaseOperations,
                 ["ExternalApiCalls"] = metrics.ExternalApiCalls
-            });
+            };
 
             if (metrics.CustomMetrics != null)
             {
                 foreach (var metric in metrics.CustomMetrics)
                 {
-                    scope.Add(metric.Key, metric.Value);
+                    scopeData[metric.Key] = metric.Value;
                 }
             }
+
+            using var scope = _logger.BeginScope(scopeData);
 
             _logger.LogInformation("Performance metrics for {ServiceName}.{OperationName}: {Duration}ms, Memory: {MemoryDelta} bytes", 
                 serviceName, operationName, metrics.Duration.TotalMilliseconds, metrics.MemoryAfter - metrics.MemoryBefore);
@@ -367,26 +379,226 @@ namespace WhisperKey.Services
             _logger.LogInformation("Business event: {EventType} - {Description}", eventType, description);
         }
 
-        /// <summary>
-        /// Executes an operation with comprehensive logging.
-        /// </summary>
-        public async Task<T> ExecuteWithLoggingAsync<T>(string operationName, Func<Task<T>> operation, 
-            IDictionary<string, object>? parameters = null, string? correlationId = null)
-        {
-            using var operationTimer = LogOperationStart(operationName, parameters, correlationId);
-            var currentCorrelationId = correlationId ?? _correlationService.GetCurrentCorrelationId();
-            
-            try
-            {
-                var result = await operation().ConfigureAwait(false);
-                LogOperationSuccess(operationName, operationTimer._stopwatch.Elapsed, result, currentCorrelationId);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                LogOperationError(operationName, ex, operationTimer._stopwatch.Elapsed, currentCorrelationId);
-                throw;
-            }
-        }
-    }
-}
+                        /// <summary>
+
+                        /// Executes an operation with comprehensive logging.
+
+                        /// </summary>
+
+                        public async Task<T> ExecuteWithLoggingAsync<T>(string operationName, Func<Task<T>> operation, 
+
+                            IDictionary<string, object>? parameters = null, string? correlationId = null)
+
+                        {
+
+                            var stopwatch = Stopwatch.StartNew();
+
+                            using var operationScope = LogOperationStart(operationName, parameters, correlationId);
+
+                            var currentCorrelationId = correlationId ?? _correlationService.GetCurrentCorrelationId();
+
+                            
+
+                            try
+
+                            {
+
+                                var result = await operation().ConfigureAwait(false);
+
+                                stopwatch.Stop();
+
+                                LogOperationSuccess(operationName, stopwatch.Elapsed, result, currentCorrelationId);
+
+                                return result;
+
+                            }
+
+                            catch (Exception ex)
+
+                            {
+
+                                stopwatch.Stop();
+
+                                LogOperationError(operationName, ex, stopwatch.Elapsed, currentCorrelationId);
+
+                                throw;
+
+                            }
+
+                        }
+
+                
+
+                                /// <summary>
+
+                
+
+                                /// Executes an operation with comprehensive logging.
+
+                
+
+                                /// </summary>
+
+                
+
+                                public async Task ExecuteWithLoggingAsync(string operationName, Func<Task> operation, 
+
+                
+
+                                    IDictionary<string, object>? parameters = null, string? correlationId = null)
+
+                
+
+                                {
+
+                
+
+                                    var stopwatch = Stopwatch.StartNew();
+
+                
+
+                                    using var operationScope = LogOperationStart(operationName, parameters, correlationId);
+
+                
+
+                                    var currentCorrelationId = correlationId ?? _correlationService.GetCurrentCorrelationId();
+
+                
+
+                                    
+
+                
+
+                                    try
+
+                
+
+                                    {
+
+                
+
+                                        await operation().ConfigureAwait(false);
+
+                
+
+                                        stopwatch.Stop();
+
+                
+
+                                        LogOperationSuccess(operationName, stopwatch.Elapsed, "void", currentCorrelationId);
+
+                
+
+                                    }
+
+                
+
+                                    catch (Exception ex)
+
+                
+
+                                    {
+
+                
+
+                                        stopwatch.Stop();
+
+                
+
+                                        LogOperationError(operationName, ex, stopwatch.Elapsed, currentCorrelationId);
+
+                
+
+                                        throw;
+
+                
+
+                                    }
+
+                
+
+                                }
+
+                
+
+                            }
+
+                
+
+                        
+
+                
+
+                            /// <summary>
+
+                
+
+                            /// Null implementation of structured logging service that does nothing.
+
+                
+
+                            /// </summary>
+
+                
+
+                            public class NullStructuredLoggingService : IStructuredLoggingService
+
+                
+
+                            {
+
+                
+
+                                private class NullDisposable : IDisposable { public void Dispose() { } }
+
+                
+
+                                public IDisposable LogOperationStart(string operationName, IDictionary<string, object>? parameters = null, string? correlationId = null) => new NullDisposable();
+
+                
+
+                                public void LogOperationSuccess(string operationName, TimeSpan duration, object? result = null, string? correlationId = null) { }
+
+                
+
+                                public void LogOperationError(string operationName, Exception exception, TimeSpan? duration = null, string? correlationId = null) { }
+
+                
+
+                                public void LogServiceBoundary(string serviceName, string methodName, IDictionary<string, object>? parameters = null, ServiceBoundaryType boundaryType = ServiceBoundaryType.Entry, string? correlationId = null) { }
+
+                
+
+                                public void LogPerformanceMetrics(string serviceName, string operationName, PerformanceMetrics metrics, string? correlationId = null) { }
+
+                
+
+                                public void LogSecurityEvent(SecurityEventType eventType, string description, string? userId = null, string? resource = null, bool success = true, string? correlationId = null) { }
+
+                
+
+                                public void LogBusinessEvent(string eventType, string description, IDictionary<string, object>? data = null, string? correlationId = null) { }
+
+                
+
+                                public async Task<T> ExecuteWithLoggingAsync<T>(string operationName, Func<Task<T>> operation, IDictionary<string, object>? parameters = null, string? correlationId = null) => await operation();
+
+                
+
+                                public async Task ExecuteWithLoggingAsync(string operationName, Func<Task> operation, IDictionary<string, object>? parameters = null, string? correlationId = null) => await operation();
+
+                
+
+                            }
+
+                
+
+                        }
+
+                
+
+                        
+
+                
+
+        

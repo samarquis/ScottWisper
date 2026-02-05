@@ -30,7 +30,7 @@ namespace WhisperKey.Tests.Unit
         {
             _mockEnumerator = new MockAudioDeviceEnumerator();
             // Don't use monitoring constructor in tests to avoid Windows API calls
-            _service = new AudioDeviceService(_mockEnumerator, false);
+            _service = new AudioDeviceService(_mockEnumerator, null, null, null, false);
         }
 
         [TestCleanup]
@@ -45,13 +45,13 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public void Constructor_WithNullEnumerator_ThrowsArgumentNullException()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => new AudioDeviceService(null!, false));
+            Assert.ThrowsException<ArgumentNullException>(() => new AudioDeviceService(null!, null, null, null, false));
         }
 
         [TestMethod]
         public void Constructor_WithValidEnumerator_SetsEnumerator()
         {
-            var service = new AudioDeviceService(_mockEnumerator, false);
+            var service = new AudioDeviceService(_mockEnumerator, null, null, null, false);
             Assert.IsNotNull(service);
             service.Dispose();
         }

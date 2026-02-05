@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using WhisperKey.Repositories;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -734,7 +735,7 @@ namespace WhisperKey.Tests.Unit
                 _userSettingsPath);
             
             // Act & Assert - should not throw when setting null value
-            await Service.SetValueAsync("Test:Key", null!);
+            await Service.SetValueAsync<string>("Test:Key", null!);
             
             // Verify no exception thrown and value is set to null
             var finalValue = await Service.GetValueAsync<string>("Test:Key");
@@ -844,7 +845,7 @@ namespace WhisperKey.Tests.Unit
                 IConfiguration configuration,
                 IOptionsMonitor<AppSettings> options,
                 ILogger<SettingsService> logger,
-                string settingsPath) : base(configuration, options, logger)
+                string settingsPath) : base(configuration, options, logger, new Mock<ISettingsRepository>().Object)
             {
                 // Use reflection to set the private field for testing
                 var field = typeof(SettingsService).GetField("_userSettingsPath", 

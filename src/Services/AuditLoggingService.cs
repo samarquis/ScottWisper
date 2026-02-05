@@ -18,6 +18,11 @@ namespace WhisperKey.Services
     public interface IAuditLoggingService
     {
         /// <summary>
+        /// Event triggered when an audit event is logged
+        /// </summary>
+        event EventHandler<AuditLogEntry>? EventLogged;
+
+        /// <summary>
         /// Log an audit event
         /// </summary>
         Task<AuditLogEntry> LogEventAsync(AuditEventType eventType, string description, 
@@ -107,6 +112,11 @@ namespace WhisperKey.Services
         private readonly List<RetentionPolicy> _retentionPolicies;
         private bool _isEnabled;
         private readonly SemaphoreSlim _fileLock = new SemaphoreSlim(1, 1);
+
+        /// <summary>
+        /// Event triggered when an audit event is logged
+        /// </summary>
+        public event EventHandler<AuditLogEntry>? EventLogged;
         
         public bool IsEnabled => _isEnabled;
         
@@ -182,6 +192,17 @@ namespace WhisperKey.Services
                 ArchiveBeforeDeletion = true,
                 ArchiveRetentionDays = 730
             });
+            
+            // SOC 2 compliance logs - 7 years (2555 days)
+            _retentionPolicies.Add(new RetentionPolicy
+            {
+                Name = "SOC 2 Compliance Logs",
+                Description = "SOC 2 compliant retention for security audit trails",
+                RetentionDays = 2555, // 7 years for SOC 2 compliance
+                ApplicableComplianceTypes = new List<ComplianceType> { ComplianceType.SOC2 },
+                ArchiveBeforeDeletion = true,
+                ArchiveRetentionDays = 3650 // 10 years for archived SOC 2 logs
+            });
         }
         
         /// <summary>
@@ -213,6 +234,9 @@ namespace WhisperKey.Services
             
             // Save to file
             await SaveLogEntryAsync(entry);
+            
+            // Raise event for real-time alerting
+            EventLogged?.Invoke(this, entry);
             
             _logger.LogInformation("Audit event logged: {EventType} - {Description}", eventType, description);
             
@@ -557,13 +581,85 @@ namespace WhisperKey.Services
         }
         
         /// <summary>
-        /// Verify the integrity of a log entry
+        /// Verify integrity of a log entry
         /// </summary>
-        public Task<bool> VerifyLogIntegrityAsync(string logId)
+        public async Task<bool> VerifyLogIntegrityAsync(string logId)
         {
-            // Implementation would verify the hash
-            // For now, return true
-            return Task.FromResult(true);
+            try
+            {
+                var logs = await GetLogsAsync();
+                var targetEntry = logs.FirstOrDefault(l => l.Id == logId);
+                
+                if (targetEntry == null)
+                    return false;
+                
+                // Verify individual entry hash
+                var calculatedHash = CalculateHash(targetEntry);
+                if (targetEntry.IntegrityHash != calculatedHash)
+                {
+                    _logger.LogWarning("Log integrity check failed for {LogId}: hash mismatch", logId);
+                    return false;
+                }
+                
+                // Verify hash chain if there are multiple entries
+                return await VerifyHashChainAsync(logs, targetEntry);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying log integrity for {LogId}", logId);
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Verify hash chain integrity
+        /// </summary>
+        private async Task<bool> VerifyHashChainAsync(List<AuditLogEntry> logs, AuditLogEntry targetEntry)
+        {
+            try
+            {
+                var sortedLogs = logs.OrderBy(l => l.Timestamp).ToList();
+                var targetIndex = sortedLogs.IndexOf(targetEntry);
+                
+                if (targetIndex <= 0)
+                    return true; // First entry has no previous hash to verify
+                
+                // Verify that this entry's hash matches the one in the next entry
+                for (int i = 0; i < sortedLogs.Count - 1; i++)
+                {
+                    var currentEntry = sortedLogs[i];
+                    var nextEntry = sortedLogs[i + 1];
+                    
+                    // Check if next entry contains hash of current entry
+                    if (!string.IsNullOrEmpty(nextEntry.Metadata))
+                    {
+                        try
+                        {
+                            var metadata = JsonDocument.Parse(nextEntry.Metadata);
+                            if (metadata.RootElement.TryGetProperty("previousHash", out var previousHashElement))
+                            {
+                                var expectedPreviousHash = previousHashElement.GetString();
+                                if (expectedPreviousHash != currentEntry.IntegrityHash)
+                                {
+                                    _logger.LogWarning("Hash chain broken at index {Index}", i);
+                                    return false;
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            // Metadata parsing failed, skip chain verification for this entry
+                        }
+                    }
+                }
+                
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying hash chain");
+                return false;
+            }
         }
         
         /// <summary>
@@ -598,10 +694,40 @@ namespace WhisperKey.Services
                     entries = new List<AuditLogEntry>();
                 }
                 
+                // Add previous hash to metadata for chain verification
+                var lastEntry = entries.LastOrDefault();
+                if (lastEntry != null && !string.IsNullOrEmpty(lastEntry.IntegrityHash))
+                {
+                    var metadata = entry.Metadata ?? "{}";
+                    var metadataDoc = JsonDocument.Parse(metadata);
+                    var metadataDict = JsonSerializer.Deserialize<Dictionary<string, object>>(metadata) ?? new Dictionary<string, object>();
+                    
+                    metadataDict["previousHash"] = lastEntry.IntegrityHash;
+                    entry.Metadata = JsonSerializer.Serialize(metadataDict);
+                    
+                    // Recalculate hash with previous hash included
+                    entry.IntegrityHash = CalculateHashWithChain(entry, lastEntry.IntegrityHash);
+                }
+                
                 entries.Add(entry);
                 
                 var newJson = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
-                await File.WriteAllTextAsync(filePath, newJson);
+                
+                // Use retry logic for file writing to handle transient locks
+                int retryCount = 0;
+                while (retryCount < 3)
+                {
+                    try
+                    {
+                        await File.WriteAllTextAsync(filePath, newJson).ConfigureAwait(false);
+                        break;
+                    }
+                    catch (IOException) when (retryCount < 2)
+                    {
+                        retryCount++;
+                        await Task.Delay(100);
+                    }
+                }
             }
             finally
             {
@@ -681,18 +807,20 @@ namespace WhisperKey.Services
         /// </summary>
         private ComplianceType DetermineComplianceType(DataSensitivity sensitivity, AuditEventType eventType)
         {
+            // Security events get highest priority for SOC 2
+            if (eventType == AuditEventType.SecurityEvent || 
+                eventType == AuditEventType.ApiKeyAccessed ||
+                eventType == AuditEventType.UserLogin ||
+                eventType == AuditEventType.UserLogout)
+            {
+                return ComplianceType.SOC2;
+            }
+            
             // High sensitivity data might be HIPAA
             if (sensitivity == DataSensitivity.High || sensitivity == DataSensitivity.Critical)
             {
                 // In a real implementation, this would be configurable
                 return ComplianceType.HIPAA;
-            }
-            
-            // Security events
-            if (eventType == AuditEventType.SecurityEvent || 
-                eventType == AuditEventType.ApiKeyAccessed)
-            {
-                return ComplianceType.SOC2;
             }
             
             return ComplianceType.General;
@@ -715,6 +843,18 @@ namespace WhisperKey.Services
         private string CalculateHash(AuditLogEntry entry)
         {
             var data = $"{entry.Timestamp:O}|{entry.EventType}|{entry.UserId}|{entry.Description}";
+            using var sha256 = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(data);
+            var hash = sha256.ComputeHash(bytes);
+            return Convert.ToHexString(hash);
+        }
+        
+        /// <summary>
+        /// Enhanced hash calculation for SOC 2 compliance with chaining
+        /// </summary>
+        private string CalculateHashWithChain(AuditLogEntry entry, string? previousHash = null)
+        {
+            var data = $"{entry.Timestamp:O}|{entry.EventType}|{entry.UserId}|{entry.Description}|{previousHash ?? ""}";
             using var sha256 = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(data);
             var hash = sha256.ComputeHash(bytes);

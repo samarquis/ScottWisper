@@ -92,7 +92,7 @@ namespace WhisperKey.Tests.Unit
             Assert.IsFalse(result.IsValid);
             Assert.IsTrue(result.Conflicts.Count > 0);
             Assert.AreEqual("profile", result.Conflicts[0].ConflictType);
-            Assert.AreEqual("toggle_recording", result.Conflicts[0].ConflictingHotkeyId);
+            Assert.AreEqual("toggle_recording", result.Conflicts[0].Hotkey);
         }
 
         [TestMethod]

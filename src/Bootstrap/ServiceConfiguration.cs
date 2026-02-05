@@ -12,6 +12,7 @@ using WhisperKey.Repositories;
 using WhisperKey;
 using Microsoft.Extensions.Logging.Console;
 using Serilog.Extensions.Logging;
+using Serilog.Core;
 
 namespace WhisperKey.Bootstrap
 {
@@ -55,12 +56,13 @@ namespace WhisperKey.Bootstrap
         /// </summary>
         private static void ConfigureSerilog(IServiceCollection services)
         {
+            var logger = ConfigureSerilogLogger().CreateLogger();
             services.AddLogging(builder =>
             {
                 builder.ClearProviders();
                 builder.AddConsole();
-                builder.AddSerilog(ConfigureSerilogLogger(), dispose: true);
             });
+            services.AddSerilog(logger, dispose: true);
         }
         
         /// <summary>
@@ -155,6 +157,8 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<SystemTrayService, SystemTrayService>();
             
             // Permission and system services (lightweight)
+            services.AddSingleton<IAuditLoggingService, AuditLoggingService>();
+            services.AddSingleton<ISecurityAlertService, SecurityAlertService>();
             services.AddSingleton<IPermissionService, PermissionService>();
             services.AddSingleton<IRegistryService, RegistryService>();
             services.AddSingleton<IFileSystemService>(sp => new FileSystemService()); 

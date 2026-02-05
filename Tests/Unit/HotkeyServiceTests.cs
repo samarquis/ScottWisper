@@ -16,6 +16,10 @@ namespace WhisperKey.Tests.Unit
     {
         private Mock<ISettingsService> _settingsServiceMock = null!;
         private Mock<IHotkeyRegistrar> _hotkeyRegistrarMock = null!;
+        private Mock<Microsoft.Extensions.Logging.ILogger<HotkeyService>> _loggerMock = null!;
+        private HotkeyRegistrationService _registrationService = null!;
+        private HotkeyProfileManager _profileManager = null!;
+        private HotkeyConflictDetector _conflictDetector = null!;
         private HotkeyService _hotkeyService = null!;
         private AppSettings _testSettings = null!;
         private IntPtr _testWindowHandle = new IntPtr(12345);
@@ -25,6 +29,11 @@ namespace WhisperKey.Tests.Unit
         {
             _settingsServiceMock = new Mock<ISettingsService>();
             _hotkeyRegistrarMock = new Mock<IHotkeyRegistrar>();
+            _loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<HotkeyService>>();
+            
+            _conflictDetector = new HotkeyConflictDetector();
+            _registrationService = new HotkeyRegistrationService(_hotkeyRegistrarMock.Object as Win32HotkeyRegistrar ?? new Win32HotkeyRegistrar(), new Mock<Microsoft.Extensions.Logging.ILogger<HotkeyRegistrationService>>().Object, _testWindowHandle);
+            _profileManager = new HotkeyProfileManager(_settingsServiceMock.Object, new Mock<Microsoft.Extensions.Logging.ILogger<HotkeyProfileManager>>().Object);
 
             _testSettings = new AppSettings
             {
@@ -67,8 +76,12 @@ namespace WhisperKey.Tests.Unit
 
             _hotkeyService = new HotkeyService(
                 _settingsServiceMock.Object,
+                _registrationService,
+                _profileManager,
+                _conflictDetector,
                 _hotkeyRegistrarMock.Object,
-                _testWindowHandle
+                _testWindowHandle,
+                _loggerMock.Object
             );
         }
 
@@ -96,8 +109,12 @@ namespace WhisperKey.Tests.Unit
 
             var service = new HotkeyService(
                 _settingsServiceMock.Object,
+                _registrationService,
+                _profileManager,
+                _conflictDetector,
                 _hotkeyRegistrarMock.Object,
-                _testWindowHandle
+                _testWindowHandle,
+                _loggerMock.Object
             );
 
             // Wait for async initialization to complete
@@ -147,8 +164,12 @@ namespace WhisperKey.Tests.Unit
         {
             var service = new HotkeyService(
                 _settingsServiceMock.Object,
+                _registrationService,
+                _profileManager,
+                _conflictDetector,
                 _hotkeyRegistrarMock.Object,
-                IntPtr.Zero
+                IntPtr.Zero,
+                _loggerMock.Object
             );
 
             var hotkey = new HotkeyDefinition
