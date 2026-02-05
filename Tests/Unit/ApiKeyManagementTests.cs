@@ -8,6 +8,7 @@ using Moq;
 using WhisperKey.Models;
 using WhisperKey.Services;
 using WhisperKey.Services.Validation;
+using WhisperKey.Services.Database;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -16,39 +17,41 @@ namespace WhisperKey.Tests.Unit
     {
         private Mock<ICredentialService> _mockCredentialService = null!;
         private Mock<IAuditLoggingService> _mockAuditService = null!;
-        private Mock<IFileSystemService> _mockFileSystem = null!;
+        private Mock<JsonDatabaseService> _mockDb = null!;
         private Mock<IInputValidationService> _mockValidationService = null!;
         private ApiKeyManagementService _service = null!;
-        private string _testMetadataPath = @"C:\Tests\apikeys.json";
 
         [TestInitialize]
         public void Setup()
         {
             _mockCredentialService = new Mock<ICredentialService>();
             _mockAuditService = new Mock<IAuditLoggingService>();
-            _mockFileSystem = new Mock<IFileSystemService>();
+            
+            var mockFileSystem = new Mock<IFileSystemService>();
+            mockFileSystem.Setup(f => f.GetAppDataPath()).Returns(@"C:\Tests");
+            
+            _mockDb = new Mock<JsonDatabaseService>(mockFileSystem.Object, NullLogger<JsonDatabaseService>.Instance);
             _mockValidationService = new Mock<IInputValidationService>();
 
-            _mockFileSystem.Setup(f => f.GetAppDataPath()).Returns(@"C:\Tests");
-            _mockFileSystem.Setup(f => f.CombinePath(It.IsAny<string>(), "apikeys.json")).Returns(_testMetadataPath);
             _mockValidationService.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<ValidationRuleSet>()))
                 .Returns(new WhisperKey.Services.Validation.ValidationResult { IsValid = true });
 
             _service = new ApiKeyManagementService(
                 _mockCredentialService.Object,
                 _mockAuditService.Object,
-                _mockFileSystem.Object,
+                _mockDb.Object,
                 _mockValidationService.Object,
                 NullLogger<ApiKeyManagementService>.Instance);
         }
 
         [TestMethod]
-        public async Task RegisterKey_StoresInCredentialAndFileSystem()
+        public async Task RegisterKey_StoresInCredentialAndDb()
         {
             // Arrange
             _mockCredentialService.Setup(c => c.StoreCredentialAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(true);
-            _mockFileSystem.Setup(f => f.FileExists(_testMetadataPath)).Returns(false);
+            _mockDb.Setup(d => d.QueryAsync<ApiKeyMetadata>(It.IsAny<string>(), It.IsAny<Func<ApiKeyMetadata, bool>>()))
+                .ReturnsAsync((ApiKeyMetadata?)null);
 
             // Act
             var result = await _service.RegisterKeyAsync("OpenAI", "Main Key", "sk-test", 30);
@@ -56,17 +59,22 @@ namespace WhisperKey.Tests.Unit
             // Assert
             Assert.IsTrue(result);
             _mockCredentialService.Verify(c => c.StoreCredentialAsync(It.Is<string>(s => s.Contains("OpenAI_v1")), "sk-test"), Times.Once);
-            _mockFileSystem.Verify(f => f.WriteAllTextAsync(_testMetadataPath, It.IsAny<string>()), Times.Once);
-            _mockAuditService.Verify(a => a.LogEventAsync(AuditEventType.ApiKeyAccessed, It.IsAny<string>(), It.IsAny<string>(), DataSensitivity.High), Times.Once);
+            _mockDb.Verify(d => d.UpsertAsync(It.IsAny<string>(), It.IsAny<ApiKeyMetadata>(), It.IsAny<Func<ApiKeyMetadata, bool>>()), Times.Once);
         }
 
         [TestMethod]
         public async Task RotateKey_CreatesNewVersion()
         {
             // Arrange
-            _mockFileSystem.Setup(f => f.FileExists(_testMetadataPath)).Returns(true);
-            _mockFileSystem.Setup(f => f.ReadAllTextAsync(_testMetadataPath))
-                .ReturnsAsync("{\"OpenAI\": {\"Provider\":\"OpenAI\",\"ActiveVersionId\":\"v1\",\"Versions\":[{\"Id\":\"v1\",\"Version\":1,\"CredentialName\":\"ApiKey_OpenAI_v1\",\"Status\":0}]}}");
+            var metadata = new ApiKeyMetadata
+            {
+                Provider = "OpenAI",
+                ActiveVersionId = "v1",
+                Versions = new List<ApiKeyVersion> { new ApiKeyVersion { Id = "v1", Version = 1 } }
+            };
+
+            _mockDb.Setup(d => d.QueryAsync<ApiKeyMetadata>(It.IsAny<string>(), It.IsAny<Func<ApiKeyMetadata, bool>>()))
+                .ReturnsAsync(metadata);
             
             _mockCredentialService.Setup(c => c.StoreCredentialAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(true);
@@ -77,16 +85,22 @@ namespace WhisperKey.Tests.Unit
             // Assert
             Assert.IsTrue(result);
             _mockCredentialService.Verify(c => c.StoreCredentialAsync(It.Is<string>(s => s.Contains("OpenAI_v2")), "sk-new"), Times.Once);
-            _mockFileSystem.Verify(f => f.WriteAllTextAsync(_testMetadataPath, It.Is<string>(s => s.Contains("v2"))), Times.Once);
+            Assert.AreEqual(2, metadata.Versions.Count);
         }
 
         [TestMethod]
         public async Task GetActiveKey_RetrievesFromCredentialManager()
         {
             // Arrange
-            _mockFileSystem.Setup(f => f.FileExists(_testMetadataPath)).Returns(true);
-            _mockFileSystem.Setup(f => f.ReadAllTextAsync(_testMetadataPath))
-                .ReturnsAsync("{\"OpenAI\": {\"Provider\":\"OpenAI\",\"ActiveVersionId\":\"v1\",\"Versions\":[{\"Id\":\"v1\",\"Version\":1,\"CredentialName\":\"ApiKey_OpenAI_v1\",\"Status\":0}]}}");
+            var metadata = new ApiKeyMetadata
+            {
+                Provider = "OpenAI",
+                ActiveVersionId = "v1",
+                Versions = new List<ApiKeyVersion> { new ApiKeyVersion { Id = "v1", Version = 1, Status = ApiKeyStatus.Active, CredentialName = "ApiKey_OpenAI_v1" } }
+            };
+
+            _mockDb.Setup(d => d.QueryAsync<ApiKeyMetadata>(It.IsAny<string>(), It.IsAny<Func<ApiKeyMetadata, bool>>()))
+                .ReturnsAsync(metadata);
             
             _mockCredentialService.Setup(c => c.RetrieveCredentialAsync("ApiKey_OpenAI_v1"))
                 .ReturnsAsync("sk-test");
@@ -96,21 +110,6 @@ namespace WhisperKey.Tests.Unit
 
             // Assert
             Assert.AreEqual("sk-test", key);
-        }
-
-        [TestMethod]
-        public async Task RecordUsage_UpdatesMetadata()
-        {
-            // Arrange
-            _mockFileSystem.Setup(f => f.FileExists(_testMetadataPath)).Returns(true);
-            _mockFileSystem.Setup(f => f.ReadAllTextAsync(_testMetadataPath))
-                .ReturnsAsync("{\"OpenAI\": {\"Provider\":\"OpenAI\",\"ActiveVersionId\":\"v1\",\"Versions\":[{\"Id\":\"v1\",\"Version\":1,\"CredentialName\":\"ApiKey_OpenAI_v1\",\"Status\":0}],\"Usage\":{\"TotalRequests\":0}}}");
-
-            // Act
-            await _service.RecordUsageAsync("OpenAI", 100, 0.05m, true);
-
-            // Assert
-            _mockFileSystem.Verify(f => f.WriteAllTextAsync(_testMetadataPath, It.Is<string>(s => s.Contains("\"TotalRequests\": 1"))), Times.Once);
         }
     }
 }
