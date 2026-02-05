@@ -12,11 +12,13 @@
   <ItemGroup>
     <Content Include="Resources\**" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="Tests\**" />
+    <Compile Remove="Benchmarks\**" />
     <Compile Remove="Phase04ValidatorRunner.cs" />
     <Compile Remove="Phase05ValidatorRunner.cs" />
     <Compile Remove="SystemTrayVerification.cs" />
     <Compile Remove="VerificationRunner.cs" />
     <None Remove="Tests\**" />
+    <None Remove="Benchmarks\**" />
   </ItemGroup>
   
   <ItemGroup>

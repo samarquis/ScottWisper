@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WhisperKey.csproj" />
+    <ProjectReference Include="..\Benchmarks\WhisperKey.Benchmarks.csproj" />
   </ItemGroup>
 
   <!-- Re-enable working unit tests, keep Integration tests disabled temporarily -->
