@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WhisperKey.Services;
 using WhisperKey.Services.Memory;
+using WhisperKey.Services.Recovery;
 
 namespace WhisperKey.Bootstrap
 {
@@ -68,7 +69,8 @@ namespace WhisperKey.Bootstrap
                 var settings = SettingsService.Settings;
                 var apiKeyManagement = _serviceProvider.GetRequiredService<IApiKeyManagementService>();
                 var memoryPool = _serviceProvider.GetRequiredService<IByteArrayPool>();
-                WhisperService = new WhisperService(SettingsService, null, null, apiKeyManagement);
+                var recoveryPolicy = _serviceProvider.GetRequiredService<IRecoveryPolicyService>();
+                WhisperService = new WhisperService(SettingsService, null, null, apiKeyManagement, recoveryPolicy);
                 CostTrackingService = new CostTrackingService(SettingsService);
                 AudioCaptureService = new AudioCaptureService(SettingsService, AudioDeviceService!, memoryPool);
                 

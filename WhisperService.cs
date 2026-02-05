@@ -15,6 +15,7 @@ using Polly.CircuitBreaker;
 using Polly.Retry;
 using WhisperKey.Services;
 using WhisperKey.Configuration;
+using WhisperKey.Services.Recovery;
 
 namespace WhisperKey
 {
@@ -26,6 +27,7 @@ namespace WhisperKey
         private readonly ISettingsService? _settingsService;
         private readonly ICredentialService? _credentialService;
         private readonly IApiKeyManagementService? _apiKeyManagement;
+        private readonly IRecoveryPolicyService? _recoveryPolicyService;
         private readonly LocalInferenceService? _localInference;
         private readonly IConfiguration? _configuration;
         private readonly ILogger<WhisperService>? _logger;
@@ -68,36 +70,42 @@ namespace WhisperKey
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             _ownsHttpClient = true;
             
-            // Initialize policies
+            // Fallback initialization if no service provider
             _retryPolicy = CreateRetryPolicy();
             _circuitBreakerPolicy = CreateCircuitBreakerPolicy();
         }
         
         public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
-            : this(settingsService, null, null, null, localInference)
+            : this(settingsService, null, null, null, null, localInference)
         {
         }
         
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, LocalInferenceService? localInference = null)
-            : this(settingsService, httpClientFactory, null, null, localInference)
+            : this(settingsService, httpClientFactory, null, null, null, localInference)
         {
         }
         
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, LocalInferenceService? localInference = null)
-            : this(settingsService, httpClientFactory, credentialService, null, localInference, null)
+            : this(settingsService, httpClientFactory, credentialService, null, null, localInference, null)
         {
         }
 
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, LocalInferenceService? localInference = null)
-            : this(settingsService, httpClientFactory, credentialService, apiKeyManagement, localInference, null)
+            : this(settingsService, httpClientFactory, credentialService, apiKeyManagement, null, localInference, null)
+        {
+        }
+
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, IRecoveryPolicyService? recoveryPolicy, LocalInferenceService? localInference = null)
+            : this(settingsService, httpClientFactory, credentialService, apiKeyManagement, recoveryPolicy, localInference, null)
         {
         }
         
-        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, LocalInferenceService? localInference, IConfiguration? configuration)
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, IRecoveryPolicyService? recoveryPolicy, LocalInferenceService? localInference, IConfiguration? configuration)
         {
             _settingsService = settingsService;
             _credentialService = credentialService;
             _apiKeyManagement = apiKeyManagement;
+            _recoveryPolicyService = recoveryPolicy;
             _localInference = localInference;
             _configuration = configuration;
             _apiKey = GetApiKey(); // Sync version for constructor (env var only)
@@ -137,8 +145,19 @@ namespace WhisperKey
             _ = InitializeAsync();
             
             // Initialize policies for API calls
-            _retryPolicy = CreateRetryPolicy();
-            _circuitBreakerPolicy = CreateCircuitBreakerPolicy();
+            if (_recoveryPolicyService != null)
+            {
+                // Note: recovery service provides non-generic retry, but WhisperService uses AsyncRetryPolicy<HttpResponseMessage>
+                // For now, we'll keep the specialized retry but use the recovery service for circuit breaking
+                // and use its GetApiRetryPolicy logic for non-HTTP specific tasks.
+                _retryPolicy = CreateRetryPolicy();
+                _circuitBreakerPolicy = _recoveryPolicyService.GetCircuitBreakerPolicy(CircuitBreakerThreshold, CircuitBreakerDurationSeconds);
+            }
+            else
+            {
+                _retryPolicy = CreateRetryPolicy();
+                _circuitBreakerPolicy = CreateCircuitBreakerPolicy();
+            }
         }
         
         private async Task InitializeAsync()

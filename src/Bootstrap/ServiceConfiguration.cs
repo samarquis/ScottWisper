@@ -12,6 +12,7 @@ using WhisperKey.Repositories;
 using WhisperKey.Services.Validation;
 using WhisperKey.Services.Memory;
 using WhisperKey.Services.Database;
+using WhisperKey.Services.Recovery;
 using WhisperKey;
 using Microsoft.Extensions.Logging.Console;
 using Serilog.Extensions.Logging;
@@ -165,6 +166,7 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<IApiKeyManagementService, ApiKeyManagementService>();
             services.AddSingleton<ApiKeyRotationService>();
             services.AddSingleton<JsonDatabaseService>();
+            services.AddSingleton<IRecoveryPolicyService, RecoveryPolicyService>();
             services.AddSingleton<IInputValidationService, InputValidationService>();
             services.AddSingleton<ISanitizationService, SanitizationService>();
             services.AddSingleton<IByteArrayPool, ByteArrayPool>();

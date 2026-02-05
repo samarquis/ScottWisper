@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using WhisperKey.Models;
+using WhisperKey.Services.Recovery;
 
 namespace WhisperKey.Services.Database
 {
@@ -18,14 +19,21 @@ namespace WhisperKey.Services.Database
     public class JsonDatabaseService : IDisposable
     {
         private readonly IFileSystemService _fileSystem;
+        private readonly IRecoveryPolicyService? _recoveryPolicy;
         private readonly ILogger<JsonDatabaseService> _logger;
         private readonly ConcurrentDictionary<string, object> _cache = new();
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
         private readonly Stopwatch _queryStopwatch = new();
 
         public JsonDatabaseService(IFileSystemService fileSystem, ILogger<JsonDatabaseService> logger)
+            : this(fileSystem, null, logger)
+        {
+        }
+
+        public JsonDatabaseService(IFileSystemService fileSystem, IRecoveryPolicyService? recoveryPolicy, ILogger<JsonDatabaseService> logger)
         {
             _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+            _recoveryPolicy = recoveryPolicy;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -122,7 +130,16 @@ namespace WhisperKey.Services.Database
                 return newList;
             }
 
-            var json = await _fileSystem.ReadAllTextAsync(path);
+            string json;
+            if (_recoveryPolicy != null)
+            {
+                json = await _recoveryPolicy.GetIoRetryPolicy().ExecuteAsync(async () => await _fileSystem.ReadAllTextAsync(path));
+            }
+            else
+            {
+                json = await _fileSystem.ReadAllTextAsync(path);
+            }
+            
             var result = JsonSerializer.Deserialize<List<T>>(json) ?? new List<T>();
             _cache[collectionName] = result;
             return result;
@@ -132,7 +149,16 @@ namespace WhisperKey.Services.Database
         {
             var path = GetCollectionPath(collectionName);
             var json = JsonSerializer.Serialize(collection, new JsonSerializerOptions { WriteIndented = true });
-            await _fileSystem.WriteAllTextAsync(path, json);
+            
+            if (_recoveryPolicy != null)
+            {
+                await _recoveryPolicy.GetIoRetryPolicy().ExecuteAsync(async () => await _fileSystem.WriteAllTextAsync(path, json));
+            }
+            else
+            {
+                await _fileSystem.WriteAllTextAsync(path, json);
+            }
+            
             _cache[collectionName] = collection;
         }
 
