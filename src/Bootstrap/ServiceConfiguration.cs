@@ -9,6 +9,7 @@ using System.IO;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
 using WhisperKey.Repositories;
+using WhisperKey.Services.Validation;
 using WhisperKey;
 using Microsoft.Extensions.Logging.Console;
 using Serilog.Extensions.Logging;
@@ -161,6 +162,8 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<ISecurityAlertService, SecurityAlertService>();
             services.AddSingleton<IApiKeyManagementService, ApiKeyManagementService>();
             services.AddSingleton<ApiKeyRotationService>();
+            services.AddSingleton<IInputValidationService, InputValidationService>();
+            services.AddSingleton<ISanitizationService, SanitizationService>();
             services.AddSingleton<IPermissionService, PermissionService>();
             services.AddSingleton<IRegistryService, RegistryService>();
             services.AddSingleton<IFileSystemService>(sp => new FileSystemService()); 

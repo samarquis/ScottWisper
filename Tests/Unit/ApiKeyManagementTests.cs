@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using WhisperKey.Models;
 using WhisperKey.Services;
+using WhisperKey.Services.Validation;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -16,6 +17,7 @@ namespace WhisperKey.Tests.Unit
         private Mock<ICredentialService> _mockCredentialService = null!;
         private Mock<IAuditLoggingService> _mockAuditService = null!;
         private Mock<IFileSystemService> _mockFileSystem = null!;
+        private Mock<IInputValidationService> _mockValidationService = null!;
         private ApiKeyManagementService _service = null!;
         private string _testMetadataPath = @"C:\Tests\apikeys.json";
 
@@ -25,14 +27,18 @@ namespace WhisperKey.Tests.Unit
             _mockCredentialService = new Mock<ICredentialService>();
             _mockAuditService = new Mock<IAuditLoggingService>();
             _mockFileSystem = new Mock<IFileSystemService>();
+            _mockValidationService = new Mock<IInputValidationService>();
 
             _mockFileSystem.Setup(f => f.GetAppDataPath()).Returns(@"C:\Tests");
             _mockFileSystem.Setup(f => f.CombinePath(It.IsAny<string>(), "apikeys.json")).Returns(_testMetadataPath);
+            _mockValidationService.Setup(v => v.Validate(It.IsAny<string>(), It.IsAny<ValidationRuleSet>()))
+                .Returns(new WhisperKey.Services.Validation.ValidationResult { IsValid = true });
 
             _service = new ApiKeyManagementService(
                 _mockCredentialService.Object,
                 _mockAuditService.Object,
                 _mockFileSystem.Object,
+                _mockValidationService.Object,
                 NullLogger<ApiKeyManagementService>.Instance);
         }
 

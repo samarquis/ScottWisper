@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using WhisperKey.Models;
+using WhisperKey.Services.Validation;
 
 namespace WhisperKey.Services
 {
@@ -18,6 +19,7 @@ namespace WhisperKey.Services
         private readonly ICredentialService _credentialService;
         private readonly IAuditLoggingService _auditService;
         private readonly IFileSystemService _fileSystem;
+        private readonly IInputValidationService _validationService;
         private readonly ILogger<ApiKeyManagementService> _logger;
         private readonly string _metadataPath;
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
@@ -30,11 +32,13 @@ namespace WhisperKey.Services
             ICredentialService credentialService,
             IAuditLoggingService auditService,
             IFileSystemService fileSystem,
+            IInputValidationService validationService,
             ILogger<ApiKeyManagementService> logger)
         {
             _credentialService = credentialService ?? throw new ArgumentNullException(nameof(credentialService));
             _auditService = auditService ?? throw new ArgumentNullException(nameof(auditService));
             _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+            _validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _metadataPath = _fileSystem.CombinePath(_fileSystem.GetAppDataPath(), MetadataFileName);
@@ -42,6 +46,18 @@ namespace WhisperKey.Services
 
         public async Task<bool> RegisterKeyAsync(string provider, string name, string keyValue, int rotationDays = 0, ApiKeyScope scopes = ApiKeyScope.Transcription)
         {
+            // Validate inputs
+            var providerResult = _validationService.Validate(provider, new ValidationRuleSet { Required = true, MaxLength = 50 });
+            var nameResult = _validationService.Validate(name, new ValidationRuleSet { Required = true, MaxLength = 100 });
+            var keyResult = _validationService.Validate(keyValue, new ValidationRuleSet { Required = true, MinLength = 10 });
+
+            if (!providerResult.IsValid || !nameResult.IsValid || !keyResult.IsValid)
+            {
+                _logger.LogWarning("Invalid input for API key registration: {Errors}", 
+                    string.Join(", ", providerResult.Errors.Concat(nameResult.Errors).Concat(keyResult.Errors)));
+                return false;
+            }
+
             await _lock.WaitAsync();
             try
             {
@@ -99,6 +115,14 @@ namespace WhisperKey.Services
 
         public async Task<bool> RotateKeyAsync(string provider, string newKeyValue)
         {
+            // Validate inputs
+            var keyResult = _validationService.Validate(newKeyValue, new ValidationRuleSet { Required = true, MinLength = 10 });
+            if (!keyResult.IsValid)
+            {
+                _logger.LogWarning("Invalid input for API key rotation: {Errors}", string.Join(", ", keyResult.Errors));
+                return false;
+            }
+
             await _lock.WaitAsync();
             try
             {
