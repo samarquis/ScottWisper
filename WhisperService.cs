@@ -25,6 +25,7 @@ namespace WhisperKey
         private string _baseUrl;
         private readonly ISettingsService? _settingsService;
         private readonly ICredentialService? _credentialService;
+        private readonly IApiKeyManagementService? _apiKeyManagement;
         private readonly LocalInferenceService? _localInference;
         private readonly IConfiguration? _configuration;
         private readonly ILogger<WhisperService>? _logger;
@@ -73,24 +74,30 @@ namespace WhisperKey
         }
         
         public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
-            : this(settingsService, null, localInference)
+            : this(settingsService, null, null, null, localInference)
         {
         }
         
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, LocalInferenceService? localInference = null)
-            : this(settingsService, httpClientFactory, null, localInference)
+            : this(settingsService, httpClientFactory, null, null, localInference)
         {
         }
         
         public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, LocalInferenceService? localInference = null)
-            : this(settingsService, httpClientFactory, credentialService, localInference, null)
+            : this(settingsService, httpClientFactory, credentialService, null, localInference, null)
+        {
+        }
+
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, LocalInferenceService? localInference = null)
+            : this(settingsService, httpClientFactory, credentialService, apiKeyManagement, localInference, null)
         {
         }
         
-        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, LocalInferenceService? localInference, IConfiguration? configuration)
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, LocalInferenceService? localInference, IConfiguration? configuration)
         {
             _settingsService = settingsService;
             _credentialService = credentialService;
+            _apiKeyManagement = apiKeyManagement;
             _localInference = localInference;
             _configuration = configuration;
             _apiKey = GetApiKey(); // Sync version for constructor (env var only)
@@ -316,31 +323,45 @@ namespace WhisperKey
                 // Update usage statistics
                 UpdateUsageStats(audioData.Length);
                 
+                // Record usage in management service
+                if (_apiKeyManagement != null)
+                {
+                    _ = _apiKeyManagement.RecordUsageAsync("OpenAI", success: true);
+                }
+
                 // Notify subscribers
-                TranscriptionCompleted?.Invoke(this, transcriptionResponse.Text);
+                                TranscriptionCompleted?.Invoke(this, transcriptionResponse.Text);
+                                
+                                return transcriptionResponse.Text;
+                            }
+                            catch (BrokenCircuitException ex)
+                            {
+                                // Circuit breaker is open - API is unavailable
+                                var circuitBreakerMessage = "Whisper API is temporarily unavailable due to repeated failures. " +
+                                    $"Circuit breaker will reset in {CircuitBreakerDurationSeconds} seconds. " +
+                                    "Consider using local transcription mode.";
+                                System.Diagnostics.Debug.WriteLine(circuitBreakerMessage);
+                                
+                                if (_apiKeyManagement != null)
+                                {
+                                    _ = _apiKeyManagement.RecordUsageAsync("OpenAI", success: false, errorMessage: circuitBreakerMessage);
+                                }
                 
-                return transcriptionResponse.Text;
-            }
-            catch (BrokenCircuitException ex)
-            {
-                // Circuit breaker is open - API is unavailable
-                var circuitBreakerMessage = "Whisper API is temporarily unavailable due to repeated failures. " +
-                    $"Circuit breaker will reset in {CircuitBreakerDurationSeconds} seconds. " +
-                    "Consider using local transcription mode.";
-                System.Diagnostics.Debug.WriteLine(circuitBreakerMessage);
-                
-                var wrappedException = new HttpRequestException(circuitBreakerMessage, ex);
-                TranscriptionError?.Invoke(this, wrappedException);
-                throw wrappedException;
-            }
-            catch (Exception ex) when (!IsFatalException(ex))
-            {
-                TranscriptionError?.Invoke(this, ex);
-                throw;
-            }
-        }
-        
-        public async Task<string> TranscribeAudioFileAsync(string filePath, string? language = null)
+                                var wrappedException = new HttpRequestException(circuitBreakerMessage, ex);
+                                TranscriptionError?.Invoke(this, wrappedException);
+                                throw wrappedException;
+                            }
+                            catch (Exception ex) when (!IsFatalException(ex))
+                            {
+                                if (_apiKeyManagement != null)
+                                {
+                                    _ = _apiKeyManagement.RecordUsageAsync("OpenAI", success: false, errorMessage: ex.Message);
+                                }
+                                TranscriptionError?.Invoke(this, ex);
+                                throw;
+                            }
+                        }
+                        public async Task<string> TranscribeAudioFileAsync(string filePath, string? language = null)
         {
             try
             {
@@ -414,24 +435,24 @@ namespace WhisperKey
 
         private async Task<string> GetApiKeyFromSettingsAsync()
         {
-            // Try credential service first (Windows Credential Manager)
-            if (_credentialService != null)
+            // Try management service first
+            if (_apiKeyManagement != null)
             {
                 try
                 {
-                    var credentialKey = await _credentialService.RetrieveCredentialAsync("OpenAI_ApiKey").ConfigureAwait(false);
-                    if (!string.IsNullOrEmpty(credentialKey))
+                    var managedKey = await _apiKeyManagement.GetActiveKeyAsync("OpenAI").ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(managedKey))
                     {
-                        return credentialKey;
+                        return managedKey;
                     }
                 }
                 catch (Exception ex) when (!IsFatalException(ex))
                 {
-                    // Fall back to settings service
+                    // Fall back
                 }
             }
-            
-            // Fall back to settings service encrypted storage
+
+            // Try credential service next (Windows Credential Manager)
             if (_settingsService != null)
             {
                 try

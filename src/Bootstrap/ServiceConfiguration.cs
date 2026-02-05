@@ -159,6 +159,8 @@ namespace WhisperKey.Bootstrap
             // Permission and system services (lightweight)
             services.AddSingleton<IAuditLoggingService, AuditLoggingService>();
             services.AddSingleton<ISecurityAlertService, SecurityAlertService>();
+            services.AddSingleton<IApiKeyManagementService, ApiKeyManagementService>();
+            services.AddSingleton<ApiKeyRotationService>();
             services.AddSingleton<IPermissionService, PermissionService>();
             services.AddSingleton<IRegistryService, RegistryService>();
             services.AddSingleton<IFileSystemService>(sp => new FileSystemService()); 

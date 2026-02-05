@@ -31,6 +31,7 @@ namespace WhisperKey.Bootstrap
         // Enhanced services for gap closure
         public IAudioDeviceService? AudioDeviceService { get; private set; }
         public ValidationService? ValidationService { get; private set; }
+        public ApiKeyRotationService? ApiKeyRotationService { get; private set; }
         
         // State
         public bool GracefulFallbackMode { get; private set; }
@@ -64,7 +65,8 @@ namespace WhisperKey.Bootstrap
                 
                 // Initialize core services using settings
                 var settings = SettingsService.Settings;
-                WhisperService = new WhisperService(SettingsService);
+                var apiKeyManagement = _serviceProvider.GetRequiredService<IApiKeyManagementService>();
+                WhisperService = new WhisperService(SettingsService, null, null, apiKeyManagement);
                 CostTrackingService = new CostTrackingService(SettingsService);
                 AudioCaptureService = new AudioCaptureService(SettingsService);
                 
@@ -80,6 +82,10 @@ namespace WhisperKey.Bootstrap
                 
                 // Initialize enhanced services for gap closure
                 await InitializeEnhancedServicesAsync().ConfigureAwait(false);
+                
+                // Start API key rotation service
+                ApiKeyRotationService = _serviceProvider.GetRequiredService<ApiKeyRotationService>();
+                ApiKeyRotationService.Start();
                 
                 return true;
             }
@@ -176,6 +182,8 @@ namespace WhisperKey.Bootstrap
         /// </summary>
         public void Shutdown()
         {
+            ApiKeyRotationService?.Stop();
+            ApiKeyRotationService?.Dispose();
             HotkeyService?.Dispose();
             SystemTrayService?.Dispose();
             AudioCaptureService?.Dispose();
