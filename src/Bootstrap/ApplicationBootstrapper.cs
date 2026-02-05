@@ -6,6 +6,7 @@ using System.Windows.Interop;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using WhisperKey.Services;
+using WhisperKey.Services.Memory;
 
 namespace WhisperKey.Bootstrap
 {
@@ -66,9 +67,10 @@ namespace WhisperKey.Bootstrap
                 // Initialize core services using settings
                 var settings = SettingsService.Settings;
                 var apiKeyManagement = _serviceProvider.GetRequiredService<IApiKeyManagementService>();
+                var memoryPool = _serviceProvider.GetRequiredService<IByteArrayPool>();
                 WhisperService = new WhisperService(SettingsService, null, null, apiKeyManagement);
                 CostTrackingService = new CostTrackingService(SettingsService);
-                AudioCaptureService = new AudioCaptureService(SettingsService);
+                AudioCaptureService = new AudioCaptureService(SettingsService, AudioDeviceService!, memoryPool);
                 
                 // Initialize transcription window
                 TranscriptionWindow = new TranscriptionWindow();

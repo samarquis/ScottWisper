@@ -11,15 +11,18 @@ using NAudio.CoreAudioApi;
 using WhisperKey.Services;
 using WhisperKey.Exceptions;
 
+using WhisperKey.Services.Memory;
+
 namespace WhisperKey
 {
     public class AudioCaptureService : IAudioCaptureService
     {
         private IWaveIn? _waveIn;
-        private ConcurrentQueue<byte[]>? _audioBuffer;
+        private ConcurrentQueue<(byte[] buffer, int length)>? _audioBuffer;
         private bool _isCapturing;
         private readonly ISettingsService? _settingsService;
         private readonly IAudioDeviceService? _audioDeviceService;
+        private readonly IByteArrayPool? _memoryPool;
         private readonly IWaveIn? _waveInInstance;
         private readonly Func<IWaveIn>? _waveInFactory;
         
@@ -59,10 +62,11 @@ namespace WhisperKey
             LoadAudioSettingsFromSettings();
         }
         
-        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService)
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IByteArrayPool? memoryPool = null)
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
+            _memoryPool = memoryPool;
             LoadAudioSettingsFromSettings();
             
             // Subscribe to permission events from AudioDeviceService
@@ -77,11 +81,12 @@ namespace WhisperKey
         /// <summary>
         /// Constructor that accepts an IWaveIn instance for dependency injection and testing.
         /// </summary>
-        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IWaveIn waveIn)
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IWaveIn waveIn, IByteArrayPool? memoryPool = null)
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
             _waveInInstance = waveIn;
+            _memoryPool = memoryPool;
             LoadAudioSettingsFromSettings();
             
             // Subscribe to permission events from AudioDeviceService
@@ -97,11 +102,12 @@ namespace WhisperKey
         /// Constructor that accepts a factory function for creating IWaveIn instances.
         /// Useful for scenarios where multiple instances might be needed.
         /// </summary>
-        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, Func<IWaveIn> waveInFactory)
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, Func<IWaveIn> waveInFactory, IByteArrayPool? memoryPool = null)
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
             _waveInFactory = waveInFactory;
+            _memoryPool = memoryPool;
             LoadAudioSettingsFromSettings();
             
             // Subscribe to permission events from AudioDeviceService
@@ -193,7 +199,7 @@ namespace WhisperKey
                 _waveIn.RecordingStopped += OnRecordingStopped;
                 
                 // Initialize lock-free audio buffer
-                _audioBuffer = new ConcurrentQueue<byte[]>();
+                _audioBuffer = new ConcurrentQueue<(byte[] buffer, int length)>();
                 
                 // Start recording
                 _waveIn.StartRecording();
@@ -268,13 +274,29 @@ namespace WhisperKey
             {
                 if (_audioBuffer != null)
                 {
-                    // Copy buffer to avoid NAudio reusing the buffer
-                    var audioChunk = new byte[e.BytesRecorded];
-                    Buffer.BlockCopy(e.Buffer, 0, audioChunk, 0, e.BytesRecorded);
-                    _audioBuffer.Enqueue(audioChunk);
+                    byte[] audioChunk;
+                    if (_memoryPool != null)
+                    {
+                        // Rent from pool
+                        audioChunk = _memoryPool.Rent(e.BytesRecorded);
+                        Buffer.BlockCopy(e.Buffer, 0, audioChunk, 0, e.BytesRecorded);
+                        _audioBuffer.Enqueue((audioChunk, e.BytesRecorded));
+                    }
+                    else
+                    {
+                        // Fallback to allocation
+                        audioChunk = new byte[e.BytesRecorded];
+                        Buffer.BlockCopy(e.Buffer, 0, audioChunk, 0, e.BytesRecorded);
+                        _audioBuffer.Enqueue((audioChunk, e.BytesRecorded));
+                    }
                     
                     // Notify subscribers of new audio data
-                    AudioDataCaptured?.Invoke(this, audioChunk);
+                    // Note: subscribers must NOT store this reference long-term if pooling is enabled,
+                    // or we need to pass a copy. For now, we'll pass a copy to AudioDataCaptured 
+                    // to be safe, but the queue uses the pooled array.
+                    var eventData = new byte[e.BytesRecorded];
+                    Buffer.BlockCopy(e.Buffer, 0, eventData, 0, e.BytesRecorded);
+                    AudioDataCaptured?.Invoke(this, eventData);
                 }
             }
             catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException)
@@ -312,7 +334,7 @@ namespace WhisperKey
             }
             
             // Drain queue into a list and concatenate
-            var chunks = new System.Collections.Generic.List<byte[]>();
+            var chunks = new System.Collections.Generic.List<(byte[] buffer, int length)>();
             while (_audioBuffer.TryDequeue(out var chunk))
             {
                 chunks.Add(chunk);
@@ -323,22 +345,36 @@ namespace WhisperKey
                 return null;
             }
             
-            // Calculate total size and concatenate
-            var totalSize = chunks.Sum(c => c.Length);
-            var audioData = new byte[totalSize];
-            var position = 0;
-            foreach (var chunk in chunks)
+            try
             {
-                Buffer.BlockCopy(chunk, 0, audioData, position, chunk.Length);
-                position += chunk.Length;
+                // Calculate total size and concatenate
+                var totalSize = chunks.Sum(c => c.length);
+                var audioData = new byte[totalSize];
+                var position = 0;
+                foreach (var (buffer, length) in chunks)
+                {
+                    Buffer.BlockCopy(buffer, 0, audioData, position, length);
+                    position += length;
+                }
+                
+                // Convert to WAV format
+                using var rawStream = new MemoryStream(audioData);
+                using var waveStream = new RawSourceWaveStream(rawStream, _waveIn?.WaveFormat ?? new WaveFormat(_sampleRate, _bitDepth, _channels));
+                using var wavStream = new MemoryStream();
+                WaveFileWriter.WriteWavFileToStream(wavStream, waveStream);
+                return wavStream.ToArray();
             }
-            
-            // Convert to WAV format
-            using var rawStream = new MemoryStream(audioData);
-            using var waveStream = new RawSourceWaveStream(rawStream, _waveIn?.WaveFormat ?? new WaveFormat(_sampleRate, _bitDepth, _channels));
-            using var wavStream = new MemoryStream();
-            WaveFileWriter.WriteWavFileToStream(wavStream, waveStream);
-            return wavStream.ToArray();
+            finally
+            {
+                // Return all buffers to pool
+                if (_memoryPool != null)
+                {
+                    foreach (var (buffer, length) in chunks)
+                    {
+                        _memoryPool.Return(buffer);
+                    }
+                }
+            }
         }
         
         public void ClearCapturedAudio()
@@ -346,9 +382,12 @@ namespace WhisperKey
             // Drain the queue to clear it (lock-free)
             if (_audioBuffer != null)
             {
-                while (_audioBuffer.TryDequeue(out _))
+                while (_audioBuffer.TryDequeue(out var chunk))
                 {
-                    // Just drain the queue
+                    if (_memoryPool != null)
+                    {
+                        _memoryPool.Return(chunk.buffer);
+                    }
                 }
             }
         }
@@ -400,9 +439,12 @@ namespace WhisperKey
                 // Clear the queue on dispose
                 if (_audioBuffer != null)
                 {
-                    while (_audioBuffer.TryDequeue(out _))
+                    while (_audioBuffer.TryDequeue(out var chunk))
                     {
-                        // Drain any remaining items
+                        if (_memoryPool != null)
+                        {
+                            _memoryPool.Return(chunk.buffer);
+                        }
                     }
                     _audioBuffer = null;
                 }
