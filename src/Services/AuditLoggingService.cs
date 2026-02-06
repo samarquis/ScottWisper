@@ -103,13 +103,14 @@ namespace WhisperKey.Services
     }
     
     /// <summary>
-    /// Implementation of audit logging service for HIPAA/GDPR compliance
+    /// Implementation of audit logging service for HIPAA/GDPR/SOC 2 compliance
     /// </summary>
     public class AuditLoggingService : IAuditLoggingService, IDisposable
     {
         private readonly ILogger<AuditLoggingService> _logger;
         private readonly string _logDirectory;
         private readonly List<RetentionPolicy> _retentionPolicies;
+        private readonly ISecurityContextService _securityContextService;
         private bool _isEnabled;
         private readonly SemaphoreSlim _fileLock = new SemaphoreSlim(1, 1);
 
@@ -120,11 +121,14 @@ namespace WhisperKey.Services
         
         public bool IsEnabled => _isEnabled;
         
-        public AuditLoggingService(ILogger<AuditLoggingService> logger, string? logDirectory = null)
+        public AuditLoggingService(ILogger<AuditLoggingService> logger, string? logDirectory = null, 
+            ISecurityContextService? securityContextService = null)
         {
             _logger = logger;
             _isEnabled = true;
             _retentionPolicies = new List<RetentionPolicy>();
+            _securityContextService = securityContextService ?? new SecurityContextService(
+                new LoggerFactory().CreateLogger<SecurityContextService>());
             
             // Default log directory in AppData
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -217,30 +221,64 @@ namespace WhisperKey.Services
                 return null!;
             }
             
-            var entry = new AuditLogEntry
+            try
             {
-                EventType = eventType,
-                UserId = HashValue(Environment.UserName),
-                SessionId = Guid.NewGuid().ToString("N")[..8],
-                Description = description,
-                Metadata = metadata,
-                Sensitivity = sensitivity,
-                ComplianceType = DetermineComplianceType(sensitivity, eventType),
-                RetentionExpiry = CalculateRetentionExpiry(eventType, sensitivity)
-            };
-            
-            // Calculate integrity hash
-            entry.IntegrityHash = CalculateHash(entry);
-            
-            // Save to file
-            await SaveLogEntryAsync(entry);
-            
-            // Raise event for real-time alerting
-            EventLogged?.Invoke(this, entry);
-            
-            _logger.LogInformation("Audit event logged: {EventType} - {Description}", eventType, description);
-            
-            return entry;
+                // Get comprehensive security context for SOC 2 compliance
+                var securityContext = await _securityContextService.GetSecurityContextAsync();
+                
+                // Enhance metadata with security context
+                var enhancedMetadata = EnhanceMetadataWithSecurityContext(metadata, securityContext, eventType);
+                
+                var entry = new AuditLogEntry
+                {
+                    EventType = eventType,
+                    UserId = HashValue(Environment.UserName),
+                    SessionId = securityContext.SessionId,
+                    IpAddress = securityContext.HashedIpAddress,
+                    Description = description,
+                    Metadata = enhancedMetadata,
+                    Sensitivity = sensitivity,
+                    ComplianceType = DetermineComplianceType(sensitivity, eventType),
+                    RetentionExpiry = CalculateRetentionExpiry(eventType, sensitivity)
+                };
+                
+                // Calculate integrity hash
+                entry.IntegrityHash = CalculateHash(entry);
+                
+                // Save to file
+                await SaveLogEntryAsync(entry);
+                
+                // Raise event for real-time alerting
+                EventLogged?.Invoke(this, entry);
+                
+                _logger.LogInformation("Audit event logged: {EventType} - {Description} [Device: {DeviceFingerprint}]", 
+                    eventType, description, securityContext.DeviceFingerprint.Substring(0, 8) + "...");
+                
+                return entry;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error logging audit event: {EventType} - {Description}", eventType, description);
+                
+                // Fallback logging without security context
+                var fallbackEntry = new AuditLogEntry
+                {
+                    EventType = eventType,
+                    UserId = HashValue(Environment.UserName),
+                    SessionId = Guid.NewGuid().ToString("N")[..8],
+                    Description = description,
+                    Metadata = metadata,
+                    Sensitivity = sensitivity,
+                    ComplianceType = DetermineComplianceType(sensitivity, eventType),
+                    RetentionExpiry = CalculateRetentionExpiry(eventType, sensitivity),
+                    ErrorMessage = ex.Message
+                };
+                
+                fallbackEntry.IntegrityHash = CalculateHash(fallbackEntry);
+                await SaveLogEntryAsync(fallbackEntry);
+                
+                return fallbackEntry;
+            }
         }
         
         /// <summary>
@@ -859,6 +897,163 @@ namespace WhisperKey.Services
             var bytes = Encoding.UTF8.GetBytes(data);
             var hash = sha256.ComputeHash(bytes);
             return Convert.ToHexString(hash);
+        }
+
+        /// <summary>
+        /// Enhance metadata with comprehensive security context for SOC 2 compliance
+        /// </summary>
+        private string EnhanceMetadataWithSecurityContext(string? existingMetadata, SecurityContext context, AuditEventType eventType)
+        {
+            try
+            {
+                var metadataDict = new Dictionary<string, object>();
+                
+                // Parse existing metadata if provided
+                if (!string.IsNullOrEmpty(existingMetadata))
+                {
+                    try
+                    {
+                        var existingDict = JsonSerializer.Deserialize<Dictionary<string, object>>(existingMetadata);
+                        if (existingDict != null)
+                        {
+                            metadataDict.AddRange(existingDict);
+                        }
+                    }
+                    catch
+                    {
+                        // If parsing fails, add as raw string
+                        metadataDict["OriginalMetadata"] = existingMetadata;
+                    }
+                }
+                
+                // Add security context for security-related events
+                if (IsSecurityEvent(eventType))
+                {
+                    metadataDict["SecurityContext"] = new
+                    {
+                        DeviceFingerprint = context.DeviceFingerprint,
+                        HashedIpAddress = context.HashedIpAddress,
+                        Location = context.Location,
+                        UserAgent = context.UserAgent,
+                        ProcessId = context.ProcessId,
+                        ThreadId = context.ThreadId,
+                        HashedMachineName = context.HashedMachineName,
+                        CapturedAt = context.CapturedAt
+                    };
+                    
+                    // Add additional security details
+                    metadataDict["SecurityDetails"] = new
+                    {
+                        EventType = eventType.ToString(),
+                        IsSecurityCritical = IsSecurityCriticalEvent(eventType),
+                        RequiresImmediateAttention = RequiresImmediateAttention(eventType),
+                        ComplianceLevel = GetRequiredComplianceLevel(eventType)
+                    };
+                }
+                
+                // Add base metadata for all events
+                metadataDict["BaseContext"] = new
+                {
+                    SessionId = context.SessionId,
+                    ProcessId = context.ProcessId,
+                    CapturedAt = context.CapturedAt
+                };
+                
+                return JsonSerializer.Serialize(metadataDict, new JsonSerializerOptions { WriteIndented = false });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error enhancing metadata with security context");
+                return existingMetadata ?? "{}";
+            }
+        }
+
+        /// <summary>
+        /// Check if event type is security-related
+        /// </summary>
+        private bool IsSecurityEvent(AuditEventType eventType)
+        {
+            return eventType switch
+            {
+                AuditEventType.UserLogin => true,
+                AuditEventType.UserLogout => true,
+                AuditEventType.AuthenticationSucceeded => true,
+                AuditEventType.AuthenticationFailed => true,
+                AuditEventType.AuthorizationFailed => true,
+                AuditEventType.RoleChanged => true,
+                AuditEventType.PermissionEscalation => true,
+                AuditEventType.PasswordChanged => true,
+                AuditEventType.TokenGenerated => true,
+                AuditEventType.TokenExpired => true,
+                AuditEventType.AccountLocked => true,
+                AuditEventType.AccountUnlocked => true,
+                AuditEventType.SecurityConfigurationChanged => true,
+                AuditEventType.ApiKeyAccessed => true,
+                AuditEventType.SecurityEvent => true,
+                AuditEventType.DataExported => true,
+                AuditEventType.DataDeleted => true,
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Check if event is security critical for SOC 2
+        /// </summary>
+        private bool IsSecurityCriticalEvent(AuditEventType eventType)
+        {
+            return eventType switch
+            {
+                AuditEventType.AuthenticationFailed => true,
+                AuditEventType.AuthorizationFailed => true,
+                AuditEventType.PermissionEscalation => true,
+                AuditEventType.AccountLocked => true,
+                AuditEventType.AccountUnlocked => true,
+                AuditEventType.SecurityConfigurationChanged => true,
+                AuditEventType.ApiKeyAccessed => true,
+                AuditEventType.SecurityEvent => true,
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Check if event requires immediate attention
+        /// </summary>
+        private bool RequiresImmediateAttention(AuditEventType eventType)
+        {
+            return eventType switch
+            {
+                AuditEventType.AuthenticationFailed => true,
+                AuditEventType.AuthorizationFailed => true,
+                AuditEventType.PermissionEscalation => true,
+                AuditEventType.SecurityEvent => true,
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Get required compliance level for event type
+        /// </summary>
+        private string GetRequiredComplianceLevel(AuditEventType eventType)
+        {
+            return eventType switch
+            {
+                AuditEventType.AuthenticationFailed => "SOC2-Critical",
+                AuditEventType.AuthorizationFailed => "SOC2-Critical",
+                AuditEventType.PermissionEscalation => "SOC2-Critical",
+                AuditEventType.ApiKeyAccessed => "SOC2-High",
+                AuditEventType.PasswordChanged => "SOC2-High",
+                AuditEventType.AccountLocked => "SOC2-High",
+                AuditEventType.AccountUnlocked => "SOC2-High",
+                AuditEventType.SecurityConfigurationChanged => "SOC2-High",
+                AuditEventType.UserLogin => "SOC2-Medium",
+                AuditEventType.UserLogout => "SOC2-Medium",
+                AuditEventType.AuthenticationSucceeded => "SOC2-Medium",
+                AuditEventType.TokenGenerated => "SOC2-Medium",
+                AuditEventType.TokenExpired => "SOC2-Medium",
+                AuditEventType.DataExported => "SOC2-Medium",
+                AuditEventType.DataDeleted => "SOC2-Medium",
+                _ => "SOC2-Low"
+            };
         }
 
         /// <summary>

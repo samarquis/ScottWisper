@@ -16,12 +16,16 @@ namespace WhisperKey.Services
     {
         private readonly ILogger<WindowsCredentialService> _logger;
         private readonly IAuditLoggingService _auditService;
+        private readonly ISecurityContextService _securityContextService;
         private const string TargetPrefix = "WhisperKey_";
         
-        public WindowsCredentialService(ILogger<WindowsCredentialService>? logger = null, IAuditLoggingService? auditService = null)
+        public WindowsCredentialService(ILogger<WindowsCredentialService>? logger = null, 
+            IAuditLoggingService? auditService = null, ISecurityContextService? securityContextService = null)
         {
             _logger = logger ?? new LoggerFactory().CreateLogger<WindowsCredentialService>();
             _auditService = auditService ?? new NullAuditLoggingService();
+            _securityContextService = securityContextService ?? new SecurityContextService(
+                new LoggerFactory().CreateLogger<SecurityContextService>());
         }
         
         /// <summary>
@@ -58,6 +62,8 @@ namespace WhisperKey.Services
                     
                     if (result)
                     {
+                        var securityContext = await _securityContextService.GetSecurityContextAsync();
+                        
                         await _auditService.LogEventAsync(
                             AuditEventType.ApiKeyAccessed,
                             $"API key stored successfully for key: {key}",
@@ -65,30 +71,58 @@ namespace WhisperKey.Services
                                 Key = key,
                                 Action = "Stored",
                                 Success = true,
-                                UserId = Environment.UserName
+                                UserId = Environment.UserName,
+                                SecurityContext = new {
+                                    DeviceFingerprint = securityContext.DeviceFingerprint,
+                                    HashedIpAddress = securityContext.HashedIpAddress,
+                                    Location = securityContext.Location,
+                                    ProcessId = securityContext.ProcessId,
+                                    SessionId = securityContext.SessionId
+                                },
+                                CredentialMetadata = new {
+                                    CredentialType = "API_KEY",
+                                    StorageLocation = "Windows_Credential_Manager",
+                                    EncryptionUsed = "Windows_DPAPI",
+                                    Timestamp = DateTime.UtcNow
+                                }
                             }),
-                            DataSensitivity.High);
+                            DataSensitivity.Critical);
                         
-                        _logger.LogInformation("Credential stored successfully for key: {Key}", key);
+                        _logger.LogInformation("Credential stored successfully for key: {Key} [Device: {DeviceFingerprint}]", 
+                            key, securityContext.DeviceFingerprint.Substring(0, 8) + "...");
                         return true;
                     }
                     else
                     {
                         int error = Marshal.GetLastWin32Error();
+                        var securityContext = await _securityContextService.GetSecurityContextAsync();
                         
                         await _auditService.LogEventAsync(
-                            AuditEventType.SecurityEvent,
+                            AuditEventType.AuthorizationFailed,
                             $"Failed to store API key for key: {key}",
                             System.Text.Json.JsonSerializer.Serialize(new { 
                                 Key = key,
                                 Action = "StoreFailed",
                                 ErrorCode = error,
+                                ErrorName = GetErrorName(error),
                                 Success = false,
-                                UserId = Environment.UserName
+                                UserId = Environment.UserName,
+                                SecurityContext = new {
+                                    DeviceFingerprint = securityContext.DeviceFingerprint,
+                                    HashedIpAddress = securityContext.HashedIpAddress,
+                                    ProcessId = securityContext.ProcessId,
+                                    SessionId = securityContext.SessionId
+                                },
+                                SecurityRisk = new {
+                                    RiskLevel = "High",
+                                    Category = "Credential_Access_Failure",
+                                    RequiresInvestigation = error != 5, // Not access denied
+                                    PotentialAttack = error == 5 || error == 1314 // Access denied or permission issues
+                                }
                             }),
                             DataSensitivity.Medium);
                         
-                        _logger.LogError("Failed to store credential. Error code: {ErrorCode}", error);
+                        _logger.LogError("Failed to store credential. Error code: {ErrorCode} [{ErrorName}]", error, GetErrorName(error));
                         return false;
                     }
                 }
@@ -152,6 +186,7 @@ namespace WhisperKey.Services
                         try
                         {
                             var password = Encoding.Unicode.GetString(passwordBytes);
+                            var securityContext = await _securityContextService.GetSecurityContextAsync();
                         
                         await _auditService.LogEventAsync(
                             AuditEventType.ApiKeyAccessed,
@@ -160,11 +195,26 @@ namespace WhisperKey.Services
                                 Key = key,
                                 Action = "Retrieved",
                                 Success = true,
-                                UserId = Environment.UserName
+                                UserId = Environment.UserName,
+                                SecurityContext = new {
+                                    DeviceFingerprint = securityContext.DeviceFingerprint,
+                                    HashedIpAddress = securityContext.HashedIpAddress,
+                                    Location = securityContext.Location,
+                                    ProcessId = securityContext.ProcessId,
+                                    SessionId = securityContext.SessionId
+                                },
+                                AccessMetadata = new {
+                                    CredentialType = "API_KEY",
+                                    StorageLocation = "Windows_Credential_Manager",
+                                    AccessMethod = "CredRead_API",
+                                    Timestamp = DateTime.UtcNow,
+                                    AccessDuration = "Immediate"
+                                }
                             }),
-                            DataSensitivity.High);
+                            DataSensitivity.Critical);
                         
-                        _logger.LogDebug("Credential retrieved successfully for key: {Key}", key);
+                        _logger.LogDebug("Credential retrieved successfully for key: {Key} [Device: {DeviceFingerprint}]", 
+                            key, securityContext.DeviceFingerprint.Substring(0, 8) + "...");
                         return password;
                         }
                         finally
@@ -357,6 +407,36 @@ namespace WhisperKey.Services
             ENTERPRISE = 3
         }
         
+        /// <summary>
+        /// Get human-readable error name from Windows error code
+        /// </summary>
+        private string GetErrorName(int errorCode)
+        {
+            return errorCode switch
+            {
+                0 => "SUCCESS",
+                5 => "ERROR_ACCESS_DENIED",
+                1314 => "ERROR_PRIVILEGE_NOT_HELD",
+                1168 => "ERROR_NOT_FOUND",
+                2 => "ERROR_FILE_NOT_FOUND",
+                32 => "ERROR_SHARING_VIOLATION",
+                33 => "ERROR_LOCK_VIOLATION",
+                110 => "ERROR_OPEN_FAILED",
+                112 => "ERROR_DISK_FULL",
+                123 => "ERROR_INVALID_NAME",
+                183 => "ERROR_ALREADY_EXISTS",
+                1008 => "ERROR_NO_TOKEN",
+                1312 => "ERROR_NO_SUCH_PRIVILEGE",
+                1346 => "ERROR_IMPERSONATION_LEVEL",
+                1347 => "ERROR_CANNOT_IMPERSONATE",
+                1348 => "ERROR_LOGON_FAILURE",
+                1349 => "ERROR_UNKNOWN_USERNAME_OR_BAD_PASSWORD",
+                1350 => "ERROR_BAD_USERNAME_OR_PASSWORD",
+                1351 => "ERROR_LOGON_NOT_GRANTED",
+                _ => $"UNKNOWN_ERROR_{errorCode}"
+            };
+        }
+
         #endregion
     }
 }

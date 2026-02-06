@@ -120,6 +120,61 @@ namespace WhisperKey.Models
         UserLogout,
         
         /// <summary>
+        /// Authentication succeeded
+        /// </summary>
+        AuthenticationSucceeded,
+        
+        /// <summary>
+        /// Authentication failed
+        /// </summary>
+        AuthenticationFailed,
+        
+        /// <summary>
+        /// Authorization failed
+        /// </summary>
+        AuthorizationFailed,
+        
+        /// <summary>
+        /// User role changed
+        /// </summary>
+        RoleChanged,
+        
+        /// <summary>
+        /// Permission escalation attempted or granted
+        /// </summary>
+        PermissionEscalation,
+        
+        /// <summary>
+        /// Password changed
+        /// </summary>
+        PasswordChanged,
+        
+        /// <summary>
+        /// Authentication token generated
+        /// </summary>
+        TokenGenerated,
+        
+        /// <summary>
+        /// Authentication token expired
+        /// </summary>
+        TokenExpired,
+        
+        /// <summary>
+        /// User account locked
+        /// </summary>
+        AccountLocked,
+        
+        /// <summary>
+        /// User account unlocked
+        /// </summary>
+        AccountUnlocked,
+        
+        /// <summary>
+        /// Security configuration changed
+        /// </summary>
+        SecurityConfigurationChanged,
+        
+        /// <summary>
         /// Settings changed
         /// </summary>
         SettingsChanged,
