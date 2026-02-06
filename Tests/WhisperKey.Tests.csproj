@@ -5,9 +5,11 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
-  <ItemGroup>
+<ItemGroup>
     <PackageReference Include="MSTest.TestFramework" Version="3.1.1" PrivateAssets="all" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" PrivateAssets="all" />
@@ -16,6 +18,18 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,10 +37,23 @@
     <ProjectReference Include="..\Benchmarks\WhisperKey.Benchmarks.csproj" />
   </ItemGroup>
 
-  <!-- Re-enable working unit tests, keep Integration tests disabled temporarily -->
+<!-- Re-enable working unit tests, keep Integration tests disabled temporarily -->
   <ItemGroup>
     <Compile Remove="Integration\**" />
     <Compile Remove="Unit\QuickTest.cs" />
     <None Remove="Integration\**" />
   </ItemGroup>
+
+  <!-- Include Smoke Tests -->
+  <ItemGroup>
+    <Folder Include="Smoke\" />
+    <Folder Include="Smoke\Reporting\" />
+    <Folder Include="Smoke\HealthChecks\" />
+    <Folder Include="Smoke\Workflows\" />
+    <Folder Include="Smoke\Performance\" />
+    <Folder Include="Smoke\Security\" />
+    <Folder Include="Smoke\Deployment\" />
+  </ItemGroup>
+
+  
 </Project>
