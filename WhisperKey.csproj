@@ -11,6 +11,7 @@
   
   <ItemGroup>
     <Content Include="Resources\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="Tests\**" />
     <Compile Remove="Benchmarks\**" />
     <Compile Remove="Phase04ValidatorRunner.cs" />
