@@ -323,6 +323,11 @@ namespace WhisperKey.Models
         TextInjected,
         
         /// <summary>
+        /// Security event triggered
+        /// </summary>
+        SecurityEvent,
+        
+        /// <summary>
         /// Settings changed
         /// </summary>
         SettingsChanged,

@@ -424,9 +424,17 @@ namespace WhisperKey.Models
         public TimeSpan TotalProcessingTime { get; set; }
         
         /// <summary>
-        /// Average real-time factor
+        /// Average real-time factor (Audio Duration / Processing Time)
         /// </summary>
-        public double AverageRealTimeFactor { get; set; }
+        public double AverageRealTimeFactor 
+        { 
+            get
+            {
+                if (TotalProcessingTime.TotalMilliseconds == 0) return 0;
+                return TotalAudioDuration.TotalMilliseconds / TotalProcessingTime.TotalMilliseconds;
+            }
+            set { } // Keep setter for serialization compatibility
+        }
         
         /// <summary>
         /// Number of failures

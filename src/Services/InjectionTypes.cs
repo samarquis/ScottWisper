@@ -45,7 +45,7 @@ namespace WhisperKey
     public class InjectionIssuesReport
     {
         public int IssueCount { get; set; }
-        public string OverallHealth { get; set; }
+        public string OverallHealth { get; set; } = string.Empty;
         public List<string> Recommendations { get; set; } = new List<string>();
         public List<string> Issues { get; set; } = new List<string>();
     }

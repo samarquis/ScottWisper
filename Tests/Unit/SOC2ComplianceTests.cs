@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Win32;
 using WhisperKey.Models;
 using WhisperKey.Services;
+using WhisperKey.Services.Database;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -26,6 +27,7 @@ namespace WhisperKey.Tests.Unit
 
             _auditService = new AuditLoggingService(
                 NullLogger<AuditLoggingService>.Instance,
+                new NullAuditRepository(),
                 _testLogDirectory);
                 
             _alertService = new SecurityAlertService(

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using WhisperKey.Models;
 using WhisperKey.Services;
 
@@ -12,15 +14,36 @@ namespace WhisperKey.Tests.Unit
     public class SecurityAlertServiceTests
     {
         private SecurityAlertService _service = null!;
-        private IAuditLoggingService _auditService = null!;
+        private Mock<IAuditLoggingService> _mockAuditService = null!;
+        private List<AuditLogEntry> _auditLogs = new();
 
         [TestInitialize]
         public void Setup()
         {
-            _auditService = new NullAuditLoggingService();
+            _mockAuditService = new Mock<IAuditLoggingService>();
+            _auditLogs = new List<AuditLogEntry>();
+
+            _mockAuditService.Setup(a => a.GetLogsAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<AuditEventType?>(), It.IsAny<ComplianceType?>()))
+                .ReturnsAsync((DateTime? start, DateTime? end, AuditEventType? type, ComplianceType? compliance) =>
+                {
+                    var query = _auditLogs.AsQueryable();
+                    if (start.HasValue) query = query.Where(l => l.Timestamp >= start.Value);
+                    if (end.HasValue) query = query.Where(l => l.Timestamp <= end.Value);
+                    if (type.HasValue) query = query.Where(l => l.EventType == type.Value);
+                    return query.ToList();
+                });
+
+            _mockAuditService.Setup(a => a.LogEventAsync(It.IsAny<AuditEventType>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DataSensitivity>()))
+                .ReturnsAsync((AuditEventType type, string desc, string? meta, DataSensitivity sens) =>
+                {
+                    var entry = new AuditLogEntry { EventType = type, Description = desc, Metadata = meta, Sensitivity = sens, Timestamp = DateTime.UtcNow };
+                    _auditLogs.Add(entry);
+                    return entry;
+                });
+
             _service = new SecurityAlertService(
                 NullLogger<SecurityAlertService>.Instance,
-                _auditService);
+                _mockAuditService.Object);
         }
 
         [TestCleanup]
@@ -43,7 +66,7 @@ namespace WhisperKey.Tests.Unit
             Assert.IsTrue(rules.Any(r => r.Name.Contains("Failed Permission")));
             Assert.IsTrue(rules.Any(r => r.Name.Contains("API Key")));
             Assert.IsTrue(rules.Any(r => r.Name.Contains("Event Burst")));
-            Assert.IsTrue(rules.Any(r => r.Name.Contains("Critical Data")));
+            Assert.IsTrue(rules.Any(r => r.Name.Contains("Critical Sensitivity")));
         }
 
         [TestMethod]
@@ -91,6 +114,7 @@ namespace WhisperKey.Tests.Unit
             // Process events
             foreach (var auditEvent in events)
             {
+                _auditLogs.Add(auditEvent);
                 await _service.CheckEventAsync(auditEvent);
             }
 
@@ -157,6 +181,7 @@ namespace WhisperKey.Tests.Unit
             // Process events
             foreach (var auditEvent in events)
             {
+                _auditLogs.Add(auditEvent);
                 await _service.CheckEventAsync(auditEvent);
             }
 
@@ -296,6 +321,7 @@ namespace WhisperKey.Tests.Unit
                     Description = $"Event {i}",
                     Timestamp = baseTime.AddMinutes(i)
                 };
+                _auditLogs.Add(evt);
                 await _service.CheckEventAsync(evt);
             }
 

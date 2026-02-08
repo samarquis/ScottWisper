@@ -134,9 +134,9 @@ namespace WhisperKey.Services
                 try
                 {
                     var fileVersionInfo = FileVersionInfo.GetVersionInfo(process.MainModule?.FileName ?? "");
-                    signature.FileVersion = fileVersionInfo.FileVersion;
-                    signature.ProductName = fileVersionInfo.ProductName;
-                    signature.CompanyName = fileVersionInfo.CompanyName;
+                    signature.FileVersion = fileVersionInfo.FileVersion ?? string.Empty;
+                    signature.ProductName = fileVersionInfo.ProductName ?? string.Empty;
+                    signature.CompanyName = fileVersionInfo.CompanyName ?? string.Empty;
                 }
                 catch
                 {

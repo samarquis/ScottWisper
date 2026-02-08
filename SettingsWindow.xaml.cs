@@ -17,6 +17,7 @@ namespace WhisperKey
     {
         private readonly ISettingsService _settingsService;
         private readonly IAudioDeviceService _audioDeviceService;
+        private readonly IApiKeyManagementService _apiKeyManagement;
         private SettingsViewModel _viewModel;
         private readonly List<Services.AudioDevice> _inputDevices = new List<Services.AudioDevice>();
         private readonly List<Services.AudioDevice> _outputDevices = new List<Services.AudioDevice>();
@@ -26,8 +27,6 @@ namespace WhisperKey
         // Hotkey management fields
         private bool _isRecordingHotkey = false;
         private List<Key> _pressedKeys = new List<Key>();
-        private HotkeyProfile? _currentHotkeyProfile;
-        private HotkeyDefinition? _editingHotkey;
         private string _recordingHotkeyId = string.Empty;
 
         public bool IsLoading
@@ -48,12 +47,17 @@ namespace WhisperKey
             // Property changed implementation
         }
 
-        public SettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService)
+        public SettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IApiKeyManagementService apiKeyManagement)
         {
             InitializeComponent();
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
+            _apiKeyManagement = apiKeyManagement;
             _originalSettings = CloneSettings(_settingsService.Settings);
+
+            // Get responsive service
+            var responsiveService = (Application.Current as App)?.Properties["ResponsiveService"] as IResponsiveUIService;
+            responsiveService?.RegisterWindow(this);
             
             // Initialize ViewModel and set as DataContext
             _viewModel = new SettingsViewModel(settingsService, audioDeviceService);
@@ -262,7 +266,7 @@ namespace WhisperKey
             }
         }
 
-        private void PopulateTranscriptionControls()
+        private async Task PopulateTranscriptionControls()
         {
             // Populate transcription mode combo box
             TranscriptionModeComboBox.Items.Clear();
@@ -368,8 +372,9 @@ namespace WhisperKey
                 LanguageComboBox.SelectedItem = selectedLanguage;
             }
             
-            // Set API key (masked)
-            ApiKeyPasswordBox.Password = _settingsService.Settings.Transcription.ApiKey;
+            // Set API key (masked) - retrieve from secure storage
+            var apiKey = await _apiKeyManagement.GetActiveKeyAsync(currentProvider);
+            ApiKeyPasswordBox.Password = apiKey ?? string.Empty;
             
             // Set API endpoint
             ApiEndpointTextBox.Text = _settingsService.Settings.Transcription.ApiEndpoint ?? string.Empty;
@@ -461,11 +466,11 @@ namespace WhisperKey
             if (comboBox.SelectedItem == null) return;
             
             var selectedItem = (ComboBoxItem)comboBox.SelectedItem;
-            var deviceId = selectedItem.Tag.ToString();
+            var deviceId = selectedItem.Tag?.ToString() ?? string.Empty;
             
-            if (deviceId == "default")
+            if (string.IsNullOrEmpty(deviceId) || deviceId == "default")
             {
-                MessageBox.Show("Cannot test default device selection. Please select a specific device.", 
+                MessageBox.Show("Cannot test device selection. Please select a specific device.", 
                     "Test Device", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -706,8 +711,17 @@ namespace WhisperKey
         private async void ApiKey_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (IsLoading) return;
-            _settingsService.Settings.Transcription.ApiKey = ApiKeyPasswordBox.Password;
-            await _settingsService.SaveAsync();
+            if (ApiKeyPasswordBox != null)
+            {
+                var provider = _settingsService.Settings.Transcription.Provider;
+                var apiKey = ApiKeyPasswordBox.Password;
+                
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    // Securely store the API key (IA-5 compliance)
+                    await _apiKeyManagement.RegisterKeyAsync(provider, "User Key", apiKey);
+                }
+            }
         }
 
         private async void TestApiKey_Click(object sender, RoutedEventArgs e)
@@ -831,13 +845,11 @@ namespace WhisperKey
 
         private void StartHotkeyCapture(string target)
         {
-            _isCapturingHotkey = true;
             _currentHotkeyTarget = target;
             HotkeyStatusText.Text = "Press desired key combination...";
         }
 
         private string _currentHotkeyTarget = string.Empty;
-        private bool _isCapturingHotkey = false;
 
         #endregion
 
@@ -1027,11 +1039,20 @@ namespace WhisperKey
             }
         }
 
-        private void ApiPassword_PasswordChanged(object sender, RoutedEventArgs e)
+        private async void ApiPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (IsLoading) return;
-            if (ApiKeyPasswordBox != null) _settingsService.Settings.Transcription.ApiKey = ApiKeyPasswordBox.Password;
-            _ = _settingsService.SaveAsync();
+            if (ApiKeyPasswordBox != null)
+            {
+                var provider = _settingsService.Settings.Transcription.Provider;
+                var apiKey = ApiKeyPasswordBox.Password;
+                
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    // Securely store the API key (IA-5 compliance)
+                    await _apiKeyManagement.RegisterKeyAsync(provider, "User Key", apiKey);
+                }
+            }
         }
 
         private void ApiEndpoint_TextChanged(object sender, TextChangedEventArgs e)
@@ -1118,131 +1139,95 @@ namespace WhisperKey
         private void AdvancedResetAPISettings_Click(object sender, RoutedEventArgs e) { }
         private void AdvancedResetAllSettings_Click(object sender, RoutedEventArgs e) { }
 
-        private void TestInjection_Click(object sender, RoutedEventArgs e)
+        private async void TestInjection_Click(object sender, RoutedEventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                // Get the text injection service from application properties
+                if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
                 {
-                    // Get the text injection service from application properties
-                    if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
-                    {
-                        var result = await textInjection.TestInjectionAsync();
-                        Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show($"Test injection result: {result.Success}", "Text Injection Test", 
-                                MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
-                        });
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
-                        });
-                    }
+                    var result = await textInjection.TestInjectionAsync();
+                    MessageBox.Show($"Test injection result: {result.Success}", "Text Injection Test", 
+                        MessageBoxButton.OK, result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Dispatcher.Invoke(() =>
-                    {
-                        MessageBox.Show($"Error during test: {ex.Message}", "Test Error", 
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    });
+                    MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during test: {ex.Message}", "Test Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void CompatibilityCheck_Click(object sender, RoutedEventArgs e)
+        private async void CompatibilityCheck_Click(object sender, RoutedEventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
                 {
-                    if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
-                    {
-                        var windowInfo = textInjection.GetCurrentWindowInfo();
-                        var activeApp = textInjection.DetectActiveApplication();
-                        var compatibility = textInjection.GetApplicationCompatibility(activeApp.ToString());
-                        
-                        Dispatcher.Invoke(() =>
-                        {
-                            var message = $"Active Application: {activeApp}\n" +
-                                         $"Window Title: {windowInfo}\n" +
-                                         $"Compatibility: {compatibility}";
-                            MessageBox.Show(message, "Application Compatibility Check", 
-                                MessageBoxButton.OK, MessageBoxImage.Information);
-                        });
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
-                        });
-                    }
+                    var windowInfo = textInjection.GetCurrentWindowInfo();
+                    var activeApp = textInjection.DetectActiveApplication();
+                    var compatibility = textInjection.GetApplicationCompatibility(activeApp.ToString());
+                    
+                    var message = $"Active Application: {activeApp}\n" +
+                                 $"Window Title: {windowInfo}\n" +
+                                 $"Compatibility: {compatibility}";
+                    MessageBox.Show(message, "Application Compatibility Check", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Dispatcher.Invoke(() =>
-                    {
-                        MessageBox.Show($"Error checking compatibility: {ex.Message}", "Check Error", 
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    });
+                    MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                    MessageBox.Show($"Error checking compatibility: {ex.Message}", "Check Error", 
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void DebugModeToggle_Click(object sender, RoutedEventArgs e)
+        private async void DebugModeToggle_Click(object sender, RoutedEventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
                 {
-                    if (Application.Current?.Properties["TextInjectionService"] is ITextInjection textInjection)
+                    var currentDebugMode = _settingsService?.Settings?.TextInjection?.EnableDebugMode ?? false;
+                    var newDebugMode = !currentDebugMode;
+                    
+                    textInjection.SetDebugMode(newDebugMode);
+                    
+                    if (_settingsService?.Settings?.TextInjection != null)
                     {
-                        var currentDebugMode = _settingsService?.Settings?.TextInjection?.EnableDebugMode ?? false;
-                        var newDebugMode = !currentDebugMode;
-                        
-                        textInjection.SetDebugMode(newDebugMode);
-                        
-                        if (_settingsService?.Settings?.TextInjection != null)
-                        {
-                            _settingsService.Settings.TextInjection.EnableDebugMode = newDebugMode;
-                            await _settingsService.SaveAsync();
-                        }
-                        
-                        Dispatcher.Invoke(() =>
-                        {
-                            if (DebugModeStatusText != null)
-                            {
-                                DebugModeStatusText.Text = $"Debug mode: {(newDebugMode ? "On" : "Off")}";
-                            }
+                        _settingsService.Settings.TextInjection.EnableDebugMode = newDebugMode;
+                        await _settingsService.SaveAsync();
+                    }
+                    
+                    if (DebugModeStatusText != null)
+                    {
+                        DebugModeStatusText.Text = $"Debug mode: {(newDebugMode ? "On" : "Off")}";
+                    }
                             
-                            MessageBox.Show($"Debug mode is now {(newDebugMode ? "ENABLED" : "DISABLED")}", 
-                                "Debug Mode Toggle", MessageBoxButton.OK, MessageBoxImage.Information);
-                        });
-                    }
-                    else
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
-                        });
-                    }
+                    MessageBox.Show($"Debug mode is now {(newDebugMode ? "ENABLED" : "DISABLED")}", 
+                        "Debug Mode Toggle", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Dispatcher.Invoke(() =>
-                    {
-                        MessageBox.Show($"Error toggling debug mode: {ex.Message}", "Toggle Error", 
-                            MessageBoxButton.OK, MessageBoxImage.Error);
-                    });
+                    MessageBox.Show("Text injection service is not available.", "Service Unavailable", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error toggling debug mode: {ex.Message}", "Toggle Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void EnableAutoPunctuation_Checked(object sender, RoutedEventArgs e) { }

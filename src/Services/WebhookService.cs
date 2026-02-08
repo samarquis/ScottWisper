@@ -279,8 +279,8 @@ namespace WhisperKey.Services
         private bool _isEnabled = false;
         private readonly List<WebhookLogEntry> _log = new();
         private readonly object _lock = new();
-        private AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
-        private AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
+        private AsyncRetryPolicy<HttpResponseMessage>? _retryPolicy;
+        private AsyncCircuitBreakerPolicy? _circuitBreakerPolicy;
         
         /// <summary>
         /// Gets a value indicating whether webhook delivery is currently enabled.

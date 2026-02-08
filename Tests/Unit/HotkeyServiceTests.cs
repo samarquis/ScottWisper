@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
+using WhisperKey.Exceptions;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -629,9 +630,9 @@ namespace WhisperKey.Tests.Unit
         }
 
         [TestMethod]
-        public async Task ExportProfileAsync_InvalidProfile_ThrowsArgumentException()
+        public async Task ExportProfileAsync_InvalidProfile_ThrowsHotkeyRegistrationException()
         {
-            await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+            await Assert.ThrowsExceptionAsync<HotkeyRegistrationException>(async () =>
             {
                 await _hotkeyService.ExportProfileAsync("NonExistent", "test.json");
             });

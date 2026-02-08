@@ -9,6 +9,9 @@ namespace WhisperKey.Services.Memory
     /// </summary>
     public class ByteArrayPool : IByteArrayPool
     {
+        private static readonly Lazy<ByteArrayPool> _instance = new Lazy<ByteArrayPool>(() => new ByteArrayPool());
+        public static ByteArrayPool Instance => _instance.Value;
+
         private readonly ArrayPool<byte> _pool;
         private long _rentCount;
         private long _returnCount;

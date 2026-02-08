@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WhisperKey.Models;
 using WhisperKey.Services;
+using WhisperKey.Services.Database;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -24,6 +26,7 @@ namespace WhisperKey.Tests.Unit
             
             _service = new AuditLoggingService(
                 NullLogger<AuditLoggingService>.Instance,
+                new NullAuditRepository(),
                 _testLogDirectory);
         }
 
@@ -428,6 +431,327 @@ namespace WhisperKey.Tests.Unit
 
             var isValid = await _service.VerifyLogIntegrityAsync(entry.Id);
             Assert.IsTrue(isValid);
+        }
+
+        [TestMethod]
+        public async Task Test_VerifyLogIntegrity_InvalidId_ReturnsFalse()
+        {
+            // Act
+            var isValid = await _service.VerifyLogIntegrityAsync("nonexistent-id");
+
+            // Assert
+            Assert.IsFalse(isValid);
+        }
+
+        [TestMethod]
+        public async Task Test_VerifyLogIntegrity_CorruptedHash_ReturnsFalse()
+        {
+            // Arrange
+            var entry = await _service.LogEventAsync(
+                AuditEventType.TranscriptionStarted,
+                "Corruption test");
+
+            // Corrupt the hash by modifying the file directly
+            var files = Directory.GetFiles(_testLogDirectory, "audit-*.json");
+            foreach (var file in files)
+            {
+                var json = await File.ReadAllTextAsync(file);
+                var corrupted = json.Replace(entry.IntegrityHash, "corruptedhash123");
+                await File.WriteAllTextAsync(file, corrupted);
+            }
+
+            // Act
+            var isValid = await _service.VerifyLogIntegrityAsync(entry.Id);
+
+            // Assert
+            Assert.IsFalse(isValid);
+        }
+
+        #endregion
+
+        #region VerifyHashChainAsync Tests
+
+        [TestMethod]
+        public async Task Test_VerifyHashChain_MultipleEntries_ValidChain()
+        {
+            // Arrange - Log multiple events to create a chain
+            var entry1 = await _service.LogEventAsync(AuditEventType.TranscriptionStarted, "Entry 1");
+            var entry2 = await _service.LogEventAsync(AuditEventType.AudioCaptured, "Entry 2");
+            var entry3 = await _service.LogEventAsync(AuditEventType.TranscriptionCompleted, "Entry 3");
+
+            // Act - Verify each entry in the chain
+            var valid1 = await _service.VerifyLogIntegrityAsync(entry1.Id);
+            var valid2 = await _service.VerifyLogIntegrityAsync(entry2.Id);
+            var valid3 = await _service.VerifyLogIntegrityAsync(entry3.Id);
+
+            // Assert
+            Assert.IsTrue(valid1, "First entry should be valid");
+            Assert.IsTrue(valid2, "Second entry should be valid");
+            Assert.IsTrue(valid3, "Third entry should be valid");
+        }
+
+        [TestMethod]
+        public async Task Test_VerifyHashChain_FirstEntry_NoPreviousHash()
+        {
+            // Arrange - First entry has no previous hash to verify
+            var entry = await _service.LogEventAsync(AuditEventType.TranscriptionStarted, "First entry");
+
+            // Act
+            var isValid = await _service.VerifyLogIntegrityAsync(entry.Id);
+
+            // Assert - First entry should still be valid (no chain to verify)
+            Assert.IsTrue(isValid);
+        }
+
+        #endregion
+
+        #region Concurrent Logging Tests
+
+        [TestMethod]
+        public async Task Test_ConcurrentLogging_NoDuplicates()
+        {
+            // Arrange
+            var tasks = new List<Task<AuditLogEntry>>();
+            var entryIds = new List<string>();
+
+            // Act - Log many events concurrently
+            for (int i = 0; i < 50; i++)
+            {
+                var index = i;
+                tasks.Add(Task.Run(async () =>
+                {
+                    return await _service.LogEventAsync(
+                        AuditEventType.TranscriptionStarted,
+                        $"Concurrent entry {index}");
+                }));
+            }
+
+            var entries = await Task.WhenAll(tasks);
+
+            // Assert
+            Assert.AreEqual(50, entries.Length);
+
+            // Verify all entries have unique IDs
+            var uniqueIds = entries.Select(e => e.Id).Distinct().Count();
+            Assert.AreEqual(50, uniqueIds, "All entries should have unique IDs");
+
+            // Verify all entries have integrity hashes
+            Assert.IsTrue(entries.All(e => !string.IsNullOrEmpty(e.IntegrityHash)));
+        }
+
+        [TestMethod]
+        public async Task Test_ConcurrentLogging_GetLogsConsistent()
+        {
+            // Arrange
+            var tasks = new List<Task>();
+            for (int i = 0; i < 30; i++)
+            {
+                var index = i;
+                tasks.Add(_service.LogEventAsync(AuditEventType.TranscriptionStarted, $"Entry {index}"));
+            }
+
+            await Task.WhenAll(tasks);
+
+            // Act - Get logs multiple times
+            var logs1 = await _service.GetLogsAsync();
+            var logs2 = await _service.GetLogsAsync();
+            var logs3 = await _service.GetLogsAsync();
+
+            // Assert - All calls should return consistent results
+            Assert.AreEqual(logs1.Count, logs2.Count);
+            Assert.AreEqual(logs2.Count, logs3.Count);
+        }
+
+        #endregion
+
+        #region Retention Policy Failure Tests
+
+        [TestMethod]
+        public async Task Test_ApplyRetentionPolicies_CorruptedFile_HandlesGracefully()
+        {
+            // Arrange - Create a corrupted log file
+            var corruptedFile = Path.Combine(_testLogDirectory, "audit-corrupted.json");
+            await File.WriteAllTextAsync(corruptedFile, "{ invalid json");
+
+            // Act - Should not throw
+            var deleted = await _service.ApplyRetentionPoliciesAsync();
+
+            // Assert - Should complete without exception
+            Assert.IsTrue(deleted >= 0);
+        }
+
+        [TestMethod]
+        public async Task Test_ArchiveOldLogs_CorruptedFile_HandlesGracefully()
+        {
+            // Arrange - Create a corrupted log file
+            var corruptedFile = Path.Combine(_testLogDirectory, "audit-corrupted.json");
+            await File.WriteAllTextAsync(corruptedFile, "{ invalid json");
+
+            // Act - Should not throw
+            var archived = await _service.ArchiveOldLogsAsync(0);
+
+            // Assert - Should complete without exception
+            Assert.IsTrue(archived >= 0);
+        }
+
+        [TestMethod]
+        public async Task Test_GetLogs_CorruptedFile_SkipsFile()
+        {
+            // Arrange
+            await _service.LogEventAsync(AuditEventType.TranscriptionStarted, "Valid entry");
+
+            // Create a corrupted log file
+            var corruptedFile = Path.Combine(_testLogDirectory, "audit-corrupted.json");
+            await File.WriteAllTextAsync(corruptedFile, "{ invalid json");
+
+            // Act
+            var logs = await _service.GetLogsAsync();
+
+            // Assert - Should return valid entries, skipping corrupted file
+            Assert.IsTrue(logs.Count >= 1);
+            Assert.IsTrue(logs.Any(l => l.Description.Contains("Valid entry")));
+        }
+
+        [TestMethod]
+        public async Task Test_GetStatistics_CorruptedFile_HandlesGracefully()
+        {
+            // Arrange
+            await _service.LogEventAsync(AuditEventType.TranscriptionStarted, "Valid entry");
+
+            // Create a corrupted log file
+            var corruptedFile = Path.Combine(_testLogDirectory, "audit-corrupted.json");
+            await File.WriteAllTextAsync(corruptedFile, "{ invalid json");
+
+            // Act
+            var stats = await _service.GetStatisticsAsync();
+
+            // Assert - Should return stats for valid entries
+            Assert.IsNotNull(stats);
+            Assert.IsTrue(stats.TotalEntries >= 1);
+        }
+
+        #endregion
+
+        #region Export Failure Tests
+
+        [TestMethod]
+        public async Task Test_ExportLogs_InvalidDirectory_ThrowsException()
+        {
+            // Arrange
+            await _service.LogEventAsync(AuditEventType.TranscriptionStarted, "Test entry");
+            // Use an invalid path format that will definitely fail
+            var invalidPath = "/\\/\\/::invalid>>path<<|?*.json";
+
+            // Act & Assert - Should throw some exception for invalid path
+            try
+            {
+                await _service.ExportLogsAsync(filePath: invalidPath);
+                Assert.Fail("Expected exception to be thrown");
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException || ex is NotSupportedException)
+            {
+                // Expected - various exceptions can be thrown for invalid paths
+                Assert.IsTrue(true);
+            }
+        }
+
+        #endregion
+
+        #region Retention Policy Edge Cases
+
+        [TestMethod]
+        public async Task Test_RetentionPolicy_ByEventType()
+        {
+            // Arrange
+            await _service.LogEventAsync(AuditEventType.SecurityEvent, "Security event", sensitivity: DataSensitivity.Critical);
+            await _service.LogEventAsync(AuditEventType.TranscriptionStarted, "Regular event");
+
+            // Act
+            var policies = await _service.GetRetentionPoliciesAsync();
+            var securityPolicy = policies.FirstOrDefault(p => p.Name.Contains("Security"));
+
+            // Assert
+            Assert.IsNotNull(securityPolicy);
+            Assert.IsTrue(securityPolicy.ApplicableEventTypes?.Contains(AuditEventType.SecurityEvent));
+        }
+
+        [TestMethod]
+        public async Task Test_RetentionPolicy_DefaultForUnknownEvent()
+        {
+            // Arrange
+            await _service.LogEventAsync((AuditEventType)9999, "Unknown event type");
+
+            // Act
+            var logs = await _service.GetLogsAsync();
+            var entry = logs.First(l => l.Description.Contains("Unknown event type"));
+
+            // Assert - Should use General compliance type for unknown events
+            Assert.AreEqual(ComplianceType.General, entry.ComplianceType);
+        }
+
+        [TestMethod]
+        public async Task Test_ConfigureRetentionPolicy_UpdateExisting()
+        {
+            // Arrange
+            var policy = new RetentionPolicy
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = "Test Policy",
+                RetentionDays = 30
+            };
+            await _service.ConfigureRetentionPolicyAsync(policy);
+
+            // Act - Update the policy
+            policy.RetentionDays = 60;
+            policy.Description = "Updated description";
+            await _service.ConfigureRetentionPolicyAsync(policy);
+
+            var policies = await _service.GetRetentionPoliciesAsync();
+            var updatedPolicy = policies.FirstOrDefault(p => p.Id == policy.Id);
+
+            // Assert
+            Assert.IsNotNull(updatedPolicy);
+            Assert.AreEqual(60, updatedPolicy.RetentionDays);
+            Assert.AreEqual("Updated description", updatedPolicy.Description);
+        }
+
+        [TestMethod]
+        public async Task Test_PurgeArchivedLogs_NoArchiveDirectory_ReturnsZero()
+        {
+            // Act - Archive directory doesn't exist yet
+            var purged = await _service.PurgeArchivedLogsAsync(0);
+
+            // Assert
+            Assert.AreEqual(0, purged);
+        }
+
+        [TestMethod]
+        public async Task Test_PurgeArchivedLogs_WithOldArchives_PurgesCorrectly()
+        {
+            // Arrange - Create old archived file
+            var archiveDir = Path.Combine(_testLogDirectory, "Archive");
+            Directory.CreateDirectory(archiveDir);
+
+            var oldArchive = Path.Combine(archiveDir, "audit-archive-old.json");
+            var entries = new List<AuditLogEntry>
+            {
+                new AuditLogEntry
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    EventType = AuditEventType.TranscriptionStarted,
+                    Description = "Old entry",
+                    Timestamp = DateTime.UtcNow.AddDays(-100)
+                }
+            };
+            await File.WriteAllTextAsync(oldArchive, System.Text.Json.JsonSerializer.Serialize(entries));
+            File.SetCreationTimeUtc(oldArchive, DateTime.UtcNow.AddDays(-100));
+
+            // Act
+            var purged = await _service.PurgeArchivedLogsAsync(30); // Purge archives older than 30 days
+
+            // Assert
+            Assert.AreEqual(1, purged);
+            Assert.IsFalse(File.Exists(oldArchive));
         }
 
         #endregion

@@ -117,6 +117,7 @@ namespace WhisperKey.Tests.E2E
                 {
                     result.Success = false;
                     result.ErrorMessage = "Text injection failed";
+                    await _feedbackService.SetStatusAsync(IFeedbackService.DictationStatus.Error, result.ErrorMessage);
                     return result;
                 }
 

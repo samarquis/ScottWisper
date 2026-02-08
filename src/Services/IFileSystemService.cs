@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Threading.Tasks;
 
 namespace WhisperKey.Services
@@ -114,6 +116,13 @@ namespace WhisperKey.Services
         /// Gets the temporary directory path.
         /// </summary>
         string GetTempPath();
+
+        /// <summary>
+        /// Sets strict NTFS permissions on a file or directory (Current User + SYSTEM only).
+        /// Follows NIST AC-3 requirements.
+        /// </summary>
+        /// <param name="path">Path to the file or directory</param>
+        void SetStrictPermissions(string path);
     }
 
     /// <summary>
@@ -322,6 +331,79 @@ namespace WhisperKey.Services
         public string GetTempPath()
         {
             return _fileSystem.Path.GetTempPath();
+        }
+
+        public void SetStrictPermissions(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException("Path cannot be null or whitespace", nameof(path));
+
+            if (!FileExists(path) && !DirectoryExists(path))
+                throw new FileNotFoundException($"Path not found: {path}");
+
+            try
+            {
+                // Get current user identity
+                var currentUser = WindowsIdentity.GetCurrent();
+                if (currentUser?.User == null) return;
+
+                // Create System SID
+                var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+
+                if (DirectoryExists(path))
+                {
+                    var dirInfo = new DirectoryInfo(path);
+                    var dirSecurity = new DirectorySecurity();
+
+                    // Disable inheritance and remove inherited rules
+                    dirSecurity.SetAccessRuleProtection(true, false);
+
+                    // Add FullControl for Current User
+                    dirSecurity.AddAccessRule(new FileSystemAccessRule(
+                        currentUser.User,
+                        FileSystemRights.FullControl,
+                        InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None,
+                        AccessControlType.Allow));
+
+                    // Add FullControl for SYSTEM
+                    dirSecurity.AddAccessRule(new FileSystemAccessRule(
+                        systemSid,
+                        FileSystemRights.FullControl,
+                        InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                        PropagationFlags.None,
+                        AccessControlType.Allow));
+
+                    dirInfo.SetAccessControl(dirSecurity);
+                }
+                else
+                {
+                    var fileInfo = new FileInfo(path);
+                    var fileSecurity = new FileSecurity();
+
+                    // Disable inheritance and remove inherited rules
+                    fileSecurity.SetAccessRuleProtection(true, false);
+
+                    // Add FullControl for Current User
+                    fileSecurity.AddAccessRule(new FileSystemAccessRule(
+                        currentUser.User,
+                        FileSystemRights.FullControl,
+                        AccessControlType.Allow));
+
+                    // Add FullControl for SYSTEM
+                    fileSecurity.AddAccessRule(new FileSystemAccessRule(
+                        systemSid,
+                        FileSystemRights.FullControl,
+                        AccessControlType.Allow));
+
+                    fileInfo.SetAccessControl(fileSecurity);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log or wrap exception as needed
+                throw new InvalidOperationException($"Failed to set strict permissions on {path}: {ex.Message}", ex);
+            }
         }
     }
 }

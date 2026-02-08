@@ -5,28 +5,18 @@ namespace WhisperKey.Exceptions
     /// <summary>
     /// Domain-specific exception for audio capture-related errors
     /// </summary>
-    public class AudioCaptureException : Exception
+    public class AudioCaptureException : WhisperKeyException
     {
         public string? DeviceId { get; }
         public string? AudioFormat { get; }
 
-        public AudioCaptureException() : base() { }
+        public AudioCaptureException(string message, string errorCode = "AUDIO_ERROR") 
+            : base(message, errorCode) { }
 
-        public AudioCaptureException(string message) : base(message) { }
-
-        public AudioCaptureException(string message, Exception innerException) : base(message, innerException) { }
-
-        public AudioCaptureException(string message, string deviceId, Exception? innerException = null)
-            : base(message, innerException)
+        public AudioCaptureException(string message, string deviceId, string errorCode, Exception? innerException = null)
+            : base(message, errorCode, innerException)
         {
             DeviceId = deviceId;
-        }
-
-        public AudioCaptureException(string message, string deviceId, string audioFormat, Exception? innerException = null)
-            : base(message, innerException)
-        {
-            DeviceId = deviceId;
-            AudioFormat = audioFormat;
         }
     }
 
@@ -36,7 +26,7 @@ namespace WhisperKey.Exceptions
     public class NoAudioDeviceException : AudioCaptureException
     {
         public NoAudioDeviceException(string message, Exception? innerException = null)
-            : base(message, innerException)
+            : base(message, "NO_DEVICE", "NO_DEVICE_ERROR", innerException)
         {
         }
     }
@@ -49,7 +39,7 @@ namespace WhisperKey.Exceptions
         public string? RequiredPermission { get; }
 
         public AudioDevicePermissionException(string deviceId, string requiredPermission, string message, Exception? innerException = null)
-            : base(message, deviceId, innerException)
+            : base(message, deviceId, "PERMISSION_DENIED", innerException)
         {
             RequiredPermission = requiredPermission;
         }
@@ -61,18 +51,7 @@ namespace WhisperKey.Exceptions
     public class AudioDeviceBusyException : AudioCaptureException
     {
         public AudioDeviceBusyException(string deviceId, string message, Exception? innerException = null)
-            : base(message, deviceId, innerException)
-        {
-        }
-    }
-
-    /// <summary>
-    /// Exception thrown when audio device is not found
-    /// </summary>
-    public class AudioDeviceNotFoundException : AudioCaptureException
-    {
-        public AudioDeviceNotFoundException(string deviceId, string message, Exception? innerException = null)
-            : base(message, deviceId, innerException)
+            : base(message, deviceId, "DEVICE_BUSY", innerException)
         {
         }
     }

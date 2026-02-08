@@ -1,15 +1,16 @@
+using System.Linq;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-using MSTest.TestFramework;
-using MSTest.TestAdapter;
 using WhisperKey.Services;
-using WhisperKey.Tests.Smoke;
-using WhisperKey.Tests.Smoke.HealthChecks;
+using WhisperKey.Infrastructure.SmokeTesting;
+using WhisperKey.Infrastructure.SmokeTesting.HealthChecks;
 
-namespace WhisperKey.Tests.Smoke
+namespace WhisperKey.Infrastructure.SmokeTesting
 {
     [TestClass]
     public class SmokeTestFrameworkTests
@@ -59,16 +60,16 @@ namespace WhisperKey.Tests.Smoke
         {
             // Arrange
             _mockSettingsService.Setup(s => s.LoadSettingsAsync())
-                .ReturnsAsync(new WhisperKey.Models.AppSettings());
+                .ReturnsAsync(new WhisperKey.Configuration.AppSettings());
             _mockAuthService.Setup(a => a.IsAuthenticatedAsync())
                 .ReturnsAsync(true);
-            _mockAudioService.Setup(a => a.GetAvailableDevicesAsync())
-                .ReturnsAsync(new List<WhisperKey.Models.AudioDevice>
+            _mockAudioService.Setup(a => a.GetInputDevicesAsync())
+                .ReturnsAsync(new List<WhisperKey.Services.AudioDevice>
                 {
-                    new WhisperKey.Models.AudioDevice { Id = "test", Name = "Test Device", IsDefault = true }
+                    new WhisperKey.Services.AudioDevice { Id = "test", Name = "Test Device", IsDefault = true }
                 });
-            _mockTextInjection.Setup(t => t.InjectTextAsync(It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+            _mockTextInjection.Setup(t => t.InjectTextAsync(It.IsAny<string>(), It.IsAny<WhisperKey.Services.InjectionOptions>()))
+                .ReturnsAsync(true);
 
             var healthChecker = new SystemHealthChecker(_mockServiceProvider.Object, _testConfiguration);
 
@@ -224,8 +225,8 @@ namespace WhisperKey.Tests.Smoke
         {
             // Arrange
             _mockSettingsService.Setup(s => s.LoadSettingsAsync())
-                .ReturnsAsync(new WhisperKey.Models.AppSettings());
-            _mockSettingsService.Setup(s => s.SaveSettingsAsync(It.IsAny<WhisperKey.Models.AppSettings>()))
+                .ReturnsAsync(new WhisperKey.Configuration.AppSettings());
+            _mockSettingsService.Setup(s => s.SaveSettingsAsync())
                 .Returns(Task.CompletedTask);
 
             var healthChecker = new DatabaseHealthChecker(_mockServiceProvider.Object, _testConfiguration);
@@ -261,12 +262,12 @@ namespace WhisperKey.Tests.Smoke
         public async Task ExternalServiceHealthChecker_WithNetworkAccess_ReturnsSuccess()
         {
             // Arrange
-            _mockAudioService.Setup(a => a.GetAvailableDevicesAsync())
-                .ReturnsAsync(new List<WhisperKey.Models.AudioDevice>());
-            _mockAudioService.Setup(a => a.GetDefaultDeviceAsync())
-                .ReturnsAsync(new WhisperKey.Models.AudioDevice { Id = "default", Name = "Default" });
-            _mockTextInjection.Setup(t => t.InjectTextAsync(It.IsAny<string>()))
-                .Returns(Task.CompletedTask);
+            _mockAudioService.Setup(a => a.GetInputDevicesAsync())
+                .ReturnsAsync(new List<WhisperKey.Services.AudioDevice>());
+            _mockAudioService.Setup(a => a.GetDefaultInputDeviceAsync())
+                .ReturnsAsync(new WhisperKey.Services.AudioDevice { Id = "default", Name = "Default" });
+            _mockTextInjection.Setup(t => t.InjectTextAsync(It.IsAny<string>(), It.IsAny<WhisperKey.Services.InjectionOptions>()))
+                .ReturnsAsync(true);
 
             var healthChecker = new ExternalServiceHealthChecker(_mockServiceProvider.Object, _testConfiguration);
 

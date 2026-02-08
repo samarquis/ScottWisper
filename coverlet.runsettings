@@ -1,23 +1,18 @@
-{
-  "coverlet.collector": {
-    "enabled": true,
-    "exclude": [
-      "[*]*",
-      "WhisperKey.*Tests*",
-      "*Migrations*"
-    ],
-    "include": [
-      "WhisperKey.Services*",
-      "WhisperKey.Exceptions*"
-    ],
-    "format": "json,opencover,lcov,teamcity",
-    "output": "./CoverageResults/",
-    "threshold": {
-      "type": "line",
-      "minimum": 80,
-      "branch": 80,
-      "method": 80
-    },
-    "verbosity": "normal"
-  }
-}
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Exclude>[WhisperKey.Tests]*,[WhisperKey.Benchmarks]*,[*Tests*]*,[*Migrations*]*</Exclude>
+          <Include>[WhisperKey]WhisperKey.Services.*,[WhisperKey]WhisperKey.Models.*,[WhisperKey]WhisperKey.Repositories.*,[WhisperKey]WhisperKey.Validation.*,[WhisperKey]WhisperKey.Exceptions.*,[WhisperKey]WhisperKey.Integration.*,[WhisperKey]WhisperKey.Interfaces.*</Include>
+          <Format>json,opencover,cobertura</Format>
+          <OutputDirectory>./TestResults/CoverageResults/</OutputDirectory>
+          <Threshold>95</Threshold>
+          <ThresholdType>line,branch,method</ThresholdType>
+          <Verbosity>normal</Verbosity>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

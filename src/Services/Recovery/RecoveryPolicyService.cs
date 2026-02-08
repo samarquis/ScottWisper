@@ -29,7 +29,7 @@ namespace WhisperKey.Services.Recovery
         public AsyncRetryPolicy GetApiRetryPolicy(int retryCount = 3)
         {
             return Policy
-                .Handle<HttpRequestException>()
+                .Handle<HttpRequestException>(ex => IsTransient(ex))
                 .Or<TimeoutException>()
                 .WaitAndRetryAsync(
                     retryCount,
@@ -45,6 +45,66 @@ namespace WhisperKey.Services.Recovery
                             exception.Message,
                             DataSensitivity.Low);
                     });
+        }
+
+        /// <summary>
+        /// Creates a generic retry policy for transient network and API failures.
+        /// </summary>
+        public AsyncRetryPolicy<T> GetApiRetryPolicy<T>(int retryCount = 3)
+        {
+            var builder = Policy<T>
+                .Handle<HttpRequestException>(ex => IsTransient(ex))
+                .Or<TimeoutException>();
+
+            if (typeof(T) == typeof(HttpResponseMessage))
+            {
+                // Specialized handling for HTTP responses if T is HttpResponseMessage
+                return (AsyncRetryPolicy<T>)(object)Policy<HttpResponseMessage>
+                    .Handle<HttpRequestException>(ex => IsTransient(ex))
+                    .Or<TimeoutException>()
+                    .OrResult(r => r.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
+                                   r.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
+                                   r.StatusCode == System.Net.HttpStatusCode.BadGateway ||
+                                   r.StatusCode == System.Net.HttpStatusCode.GatewayTimeout ||
+                                   r.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                    .WaitAndRetryAsync(
+                        retryCount,
+                        retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                        onRetry: (outcome, timeSpan, retryAttempt, context) =>
+                        {
+                            LogRetry(outcome.Exception, outcome.Result?.ToString(), retryAttempt, timeSpan);
+                        });
+            }
+
+            return builder.WaitAndRetryAsync(
+                retryCount,
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                onRetry: (outcome, timeSpan, retryAttempt, context) =>
+                {
+                    LogRetry(outcome.Exception, outcome.Result?.ToString(), retryAttempt, timeSpan);
+                });
+        }
+
+        private bool IsTransient(HttpRequestException ex)
+        {
+            return ex.StatusCode == null || 
+                   ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests ||
+                   ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
+                   ex.StatusCode == System.Net.HttpStatusCode.BadGateway ||
+                   ex.StatusCode == System.Net.HttpStatusCode.GatewayTimeout ||
+                   ex.StatusCode == System.Net.HttpStatusCode.InternalServerError;
+        }
+
+        private void LogRetry(Exception? ex, string? result, int attempt, TimeSpan delay)
+        {
+            _logger.LogWarning(ex, "Retry {Attempt} after {Delay}ms due to {Message}", 
+                attempt, delay.TotalMilliseconds, ex?.Message ?? result);
+            
+            _ = _auditService.LogEventAsync(
+                AuditEventType.SecurityEvent,
+                $"Transient failure retry: Attempt {attempt}",
+                ex?.Message ?? result,
+                DataSensitivity.Low);
         }
 
         /// <summary>

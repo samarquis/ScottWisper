@@ -14,6 +14,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using WhisperKey.Configuration;
 using WhisperKey.Repositories;
+using WhisperKey.Exceptions;
 
 namespace WhisperKey.Services
 {
@@ -81,7 +82,7 @@ namespace WhisperKey.Services
     ///     Console.WriteLine($"Setting {e.Key} changed from {e.OldValue} to {e.NewValue}");
     /// </code>
     /// </example>
-    public interface ISettingsService
+    public interface ISettingsService : IDisposable
     {
         /// <summary>
         /// Gets the current application settings instance.
@@ -129,7 +130,27 @@ namespace WhisperKey.Services
         /// The save is performed asynchronously to avoid blocking the calling thread.
         /// Multiple rapid save calls are debounced to prevent performance issues.
         /// </remarks>
+        /// <summary>
+        /// Explicitly loads user settings from the repository.
+        /// </summary>
+        Task LoadUserSettingsAsync();
+
+        /// <summary>
+        /// Backward compatibility method for loading settings.
+        /// </summary>
+        Task<AppSettings> LoadSettingsAsync();
+
+        /// <summary>
+        /// Saves all pending settings changes to persistent storage immediately.
+        /// </summary>
+        Task SaveImmediateAsync();
+
         Task SaveAsync();
+
+        /// <summary>
+        /// Backward compatibility method for saving settings.
+        /// </summary>
+        Task SaveSettingsAsync();
         
         /// <summary>
         /// Retrieves a typed setting value by key with automatic type conversion.
@@ -268,11 +289,16 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         private readonly IOptionsMonitor<AppSettings> _options;
         private readonly ILogger<SettingsService> _logger;
         private readonly ISettingsRepository _repository;
+        private readonly ICredentialService? _credentialService;
+        private readonly IAuditLoggingService? _auditService;
+        private readonly bool _autoLoad;
+        private readonly string? _customAppDataPath;
         private AppSettings _currentSettings;
+        private byte[]? _masterSecret;
         
         // Debouncing fields for settings saves
         private readonly SemaphoreSlim _saveSemaphore = new SemaphoreSlim(1, 1);
- private System.Timers.Timer? _debounceTimer;
+        private System.Timers.Timer? _debounceTimer;
         private readonly TimeSpan _debounceDelay = TimeSpan.FromMilliseconds(500);
         private volatile bool _savePending = false;
 
@@ -288,50 +314,88 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         /// <param name="options">The options monitor for configuration change notifications. Must not be null.</param>
         /// <param name="logger">The logger for operation tracking and debugging. Must not be null.</param>
         /// <param name="repository">The settings repository for persistent storage. Must not be null.</param>
+        /// <param name="credentialService">The credential service for secure secret management. Optional.</param>
+        /// <param name="auditService">The audit logging service for security events. Optional.</param>
+        /// <param name="autoLoad">Whether to automatically load settings on initialization.</param>
+        /// <param name="customAppDataPath">Optional custom path for application data.</param>
         /// <exception cref="ArgumentNullException">Thrown when any required parameter is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown when initial settings loading fails.</exception>
-        /// <remarks>
-        /// This constructor:
-        /// <list type="number">
-        /// <item><description>Initializes in-memory settings with configuration defaults</description></item>
-        /// <item><description>Sets up change notification handlers</description></item>
-        /// <item><description>Configures save debouncing mechanisms</description></item>
-        /// <item><description>Asynchronously loads user-specific overrides</description></item>
-        /// <item><description>Validates initial settings state</description></item>
-        /// </list>
-        /// Settings loading is performed asynchronously to avoid blocking the calling thread.
-        /// Any errors during loading are logged but do not prevent service construction.
-        /// </remarks>
         public SettingsService(
             IConfiguration configuration, 
             IOptionsMonitor<AppSettings> options, 
             ILogger<SettingsService> logger,
-            ISettingsRepository repository)
+            ISettingsRepository repository,
+            ICredentialService? credentialService = null,
+            IAuditLoggingService? auditService = null,
+            bool autoLoad = true,
+            string? customAppDataPath = null)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _credentialService = credentialService;
+            _auditService = auditService;
+            _autoLoad = autoLoad;
+            _customAppDataPath = customAppDataPath;
             
             _currentSettings = options.CurrentValue;
             
-            // Load user-specific settings from repository (fire-and-forget with error handling)
-            _ = LoadUserSettingsAsync().ContinueWith(t =>
+            if (_autoLoad)
             {
-                if (t.IsFaulted)
+                // Load user-specific settings from repository (fire-and-forget with error handling)
+                _ = LoadUserSettingsAsync().ContinueWith(t =>
                 {
-                    _logger.LogError(t.Exception, "Failed to load user settings during service initialization");
-                }
-                else if (t.IsCompleted)
+                    if (t.IsFaulted)
+                    {
+                        _logger.LogError(t.Exception, "Failed to load user settings during service initialization");
+                    }
+                    else if (t.IsCompleted)
+                    {
+                        _logger.LogDebug("User settings loaded successfully during service initialization");
+                    }
+                });
+            }
+        }
+
+        public async Task SaveImmediateAsync()
+        {
+            try
+            {
+                // Cancel any pending debounced save
+                _debounceTimer?.Stop();
+                _savePending = false;
+
+                // Validate and save directly
+                ValidateSettings(_currentSettings);
+                
+                await _saveSemaphore.WaitAsync();
+                try
                 {
-                    _logger.LogDebug("User settings loaded successfully during service initialization");
+                    await _repository.SaveAsync(_currentSettings).ConfigureAwait(false);
+                    _logger.LogInformation("Settings saved immediately bypassing debounce");
                 }
-            });
+                finally
+                {
+                    _saveSemaphore.Release();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during immediate save");
+                throw;
+            }
         }
 
         public async Task SaveAsync()
         {
+            if (!_autoLoad) return;
             await SaveAsyncInternal();
+        }
+
+        public async Task SaveSettingsAsync()
+        {
+            await SaveAsync().ConfigureAwait(false);
         }
         
         /// <summary>
@@ -404,62 +468,192 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
 
         public async Task<T> GetValueAsync<T>(string key)
         {
-            var value = _configuration[key];
-            if (value != null)
+            if (string.IsNullOrEmpty(key)) return default(T)!;
+
+            try
             {
-                try
+                // Try to get from _currentSettings using reflection for structured paths
+                var value = GetValueByPath(_currentSettings, key);
+                if (value != null)
                 {
-                return JsonSerializer.Deserialize<T>(value);
+                    if (value is T typedValue) return typedValue;
+                    return (T)Convert.ChangeType(value, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
                 }
-                catch (JsonException)
-                {
-                    return default(T)!;
-                }
+
+                // Fallback to configuration
+                var configValue = _configuration[key];
+                if (configValue == null) return default(T)!;
+
+                if (typeof(T) == typeof(string)) return (T)(object)configValue;
+                if (typeof(T).IsPrimitive || typeof(T) == typeof(decimal))
+                    return (T)Convert.ChangeType(configValue, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
+
+                return JsonSerializer.Deserialize<T>(configValue) ?? default(T)!;
             }
-            return default(T)!;
+            catch (Exception ex)
+            {
+                _logger.LogTrace(ex, "Failed to get setting {Key}", key);
+                return default(T)!;
+            }
         }
 
         public async Task SetValueAsync<T>(string key, T value)
         {
+            if (string.IsNullOrEmpty(key)) throw new ArgumentNullException(nameof(key));
+
             var oldValue = await GetValueAsync<T>(key).ConfigureAwait(false);
+            if (EqualityComparer<T>.Default.Equals(oldValue, value)) return;
+
+            // Update _currentSettings using reflection
+            SetValueByPath(_currentSettings, key, value);
+
+            // Update configuration for consistency
+            _configuration[key] = value?.ToString();
             
-            // For now, this will update the in-memory settings
-            // In a full implementation, you'd want to update specific properties
-            var json = JsonSerializer.Serialize(value);
-            _configuration[key] = json;
-            
+            // Log configuration change
+            if (_auditService != null)
+            {
+                await _auditService.LogEventAsync(
+                    Models.AuditEventType.SecurityEvent,
+                    $"Configuration changed: {key}",
+                    JsonSerializer.Serialize(new { 
+                        Key = key,
+                        OldValue = oldValue?.ToString() ?? "null",
+                        NewValue = value?.ToString() ?? "null",
+                        UserId = Environment.UserName
+                    }),
+                    Models.DataSensitivity.Medium).ConfigureAwait(false);
+            }
+
             // Fire SettingsChanged event
             SettingsChanged?.Invoke(this, new SettingsChangedEventArgs
             {
                 Key = key,
                 OldValue = oldValue,
                 NewValue = value,
-                Category = "General",
+                Category = GetCategoryFromKey(key),
                 RequiresRestart = false
             });
+
+            // Trigger save
+            await SaveAsync().ConfigureAwait(false);
+        }
+
+        private object? GetValueByPath(object obj, string path)
+        {
+            if (obj == null || string.IsNullOrEmpty(path)) return null;
+
+            var parts = path.Split(new[] { ':', '.' }, StringSplitOptions.RemoveEmptyEntries);
+            var current = obj;
+
+            foreach (var part in parts)
+            {
+                var property = current.GetType().GetProperty(part, 
+                    System.Reflection.BindingFlags.Public | 
+                    System.Reflection.BindingFlags.Instance | 
+                    System.Reflection.BindingFlags.IgnoreCase);
+                
+                if (property == null) return null;
+                current = property.GetValue(current);
+                if (current == null) return null;
+            }
+
+            return current;
+        }
+
+        private void SetValueByPath(object obj, string path, object? value)
+        {
+            if (obj == null || string.IsNullOrEmpty(path)) return;
+
+            var parts = path.Split(new[] { ':', '.' }, StringSplitOptions.RemoveEmptyEntries);
+            var current = obj;
+
+            for (int i = 0; i < parts.Length - 1; i++)
+            {
+                if (current == null) return;
+                var property = current.GetType().GetProperty(parts[i], 
+                    System.Reflection.BindingFlags.Public | 
+                    System.Reflection.BindingFlags.Instance | 
+                    System.Reflection.BindingFlags.IgnoreCase);
+                
+                if (property == null) return;
+                var next = property.GetValue(current);
+                if (next == null)
+                {
+                    // Optionally instantiate nested objects if they are null
+                    next = Activator.CreateInstance(property.PropertyType);
+                    property.SetValue(current, next);
+                }
+                current = next;
+            }
+
+            if (current == null) return;
+            var finalProperty = current.GetType().GetProperty(parts[^1], 
+                System.Reflection.BindingFlags.Public | 
+                System.Reflection.BindingFlags.Instance | 
+                System.Reflection.BindingFlags.IgnoreCase);
+            
+            if (finalProperty != null && finalProperty.CanWrite)
+            {
+                var targetType = Nullable.GetUnderlyingType(finalProperty.PropertyType) ?? finalProperty.PropertyType;
+                var convertedValue = (value == null) ? null : Convert.ChangeType(value, targetType, System.Globalization.CultureInfo.InvariantCulture);
+                finalProperty.SetValue(current, convertedValue);
+            }
+        }
+
+        private string GetCategoryFromKey(string key)
+        {
+            if (key.StartsWith("Audio", StringComparison.OrdinalIgnoreCase)) return "Audio";
+            if (key.StartsWith("Transcription", StringComparison.OrdinalIgnoreCase)) return "Transcription";
+            if (key.StartsWith("Hotkey", StringComparison.OrdinalIgnoreCase)) return "Hotkeys";
+            if (key.StartsWith("UI", StringComparison.OrdinalIgnoreCase)) return "UI";
+            return "General";
         }
 
         public async Task<string> GetEncryptedValueAsync(string key)
         {
             try
             {
-                var encryptedData = await File.ReadAllTextAsync(GetEncryptedFilePath(key)).ConfigureAwait(false);
-                return DecryptString(encryptedData);
+                var filePath = GetEncryptedFilePath(key);
+                if (!File.Exists(filePath))
+                    return string.Empty;
+
+                var encryptedData = await File.ReadAllTextAsync(filePath).ConfigureAwait(false);
+                var decryptedValue = await DecryptStringAsync(encryptedData).ConfigureAwait(false);
+
+                // Log access to secrets (NIST AU-2)
+                if (_auditService != null && !string.IsNullOrEmpty(decryptedValue))
+                {
+                    await _auditService.LogEventAsync(
+                        Models.AuditEventType.ApiKeyAccessed,
+                        $"Encrypted setting retrieved: {key}",
+                        JsonSerializer.Serialize(new { 
+                            Key = key,
+                            UserId = Environment.UserName,
+                            Timestamp = DateTime.UtcNow
+                        }),
+                        Models.DataSensitivity.High).ConfigureAwait(false);
+                }
+
+                return decryptedValue;
             }
             catch (FileNotFoundException)
             {
                 return string.Empty;
             }
-            catch (IOException)
+            catch (IOException ex)
             {
+                _logger.LogWarning(ex, "IO error reading encrypted value for {Key}", key);
                 return string.Empty;
             }
-            catch (UnauthorizedAccessException)
+            catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning(ex, "Access denied reading encrypted value for {Key}", key);
                 return string.Empty;
             }
-            catch (CryptographicException)
+            catch (CryptographicException ex)
             {
+                _logger.LogWarning(ex, "Cryptographic error decrypting value for {Key}", key);
                 return string.Empty;
             }
         }
@@ -468,25 +662,28 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         {
             try
             {
-                var encryptedData = EncryptString(value);
+                var encryptedData = await EncryptStringAsync(value).ConfigureAwait(false);
                 var filePath = GetEncryptedFilePath(key);
                 await File.WriteAllTextAsync(filePath, encryptedData).ConfigureAwait(false);
             }
             catch (IOException ex)
             {
+                _logger.LogError(ex, "Failed to save encrypted value for {Key}", key);
                 throw new InvalidOperationException($"Failed to save encrypted value for {key}: {ex.Message}", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
+                _logger.LogError(ex, "Access denied saving encrypted value for {Key}", key);
                 throw new InvalidOperationException($"Failed to save encrypted value for {key}: {ex.Message}", ex);
             }
             catch (SecurityException ex)
             {
+                _logger.LogError(ex, "Security error saving encrypted value for {Key}", key);
                 throw new InvalidOperationException($"Failed to save encrypted value for {key}: {ex.Message}", ex);
             }
         }
 
-        private async Task LoadUserSettingsAsync()
+        public async Task LoadUserSettingsAsync()
         {
             try
             {
@@ -506,6 +703,12 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                 // Log error but continue with default settings
                 _logger.LogWarning(ex, "Failed to load user settings via repository, using defaults");
             }
+        }
+
+        public async Task<AppSettings> LoadSettingsAsync()
+        {
+            await LoadUserSettingsAsync().ConfigureAwait(false);
+            return Settings;
         }
 
         private void MergeSettings(AppSettings target, AppSettings source)
@@ -551,12 +754,14 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
         public async Task SetSelectedInputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.InputDeviceId = deviceId ?? "default";
+            _currentSettings.Audio.SelectedInputDeviceId = deviceId ?? "default";
             await SaveAsync().ConfigureAwait(false);
         }
 
         public async Task SetSelectedOutputDeviceAsync(string deviceId)
         {
             _currentSettings.Audio.OutputDeviceId = deviceId ?? "default";
+            _currentSettings.Audio.SelectedOutputDeviceId = deviceId ?? "default";
             await SaveAsync().ConfigureAwait(false);
         }
 
@@ -784,29 +989,29 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             // Audio settings validation
             if (settings.Audio.SampleRate <= 0)
             {
-                throw new ValidationException("Sample rate must be greater than 0");
+                throw new SettingsValidationException("Sample rate must be greater than 0");
             }
             
             if (settings.Audio.Channels < 1 || settings.Audio.Channels > 2)
             {
-                throw new ValidationException("Channels must be 1 or 2");
+                throw new SettingsValidationException("Channels must be 1 or 2");
             }
 
             // Transcription settings validation
             if (string.IsNullOrWhiteSpace(settings.Transcription.Provider))
             {
-                throw new ValidationException("Transcription provider is required");
+                throw new SettingsValidationException("Transcription provider is required");
             }
 
             if (string.IsNullOrWhiteSpace(settings.Transcription.Model))
             {
-                throw new ValidationException("Transcription model is required");
+                throw new SettingsValidationException("Transcription model is required");
             }
 
             // Hotkey settings validation
             if (string.IsNullOrWhiteSpace(settings.Hotkeys.ToggleRecording))
             {
-                throw new ValidationException("Toggle recording hotkey is required");
+                throw new SettingsValidationException("Toggle recording hotkey is required");
             }
 
             // Validate device settings
@@ -814,31 +1019,94 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             {
                 if (deviceSettings.SampleRate <= 0)
                 {
-                    throw new ValidationException($"Device {deviceSettings.Name} has invalid sample rate");
+                    throw new SettingsValidationException($"Device {deviceSettings.Name} has invalid sample rate");
                 }
 
                 if (deviceSettings.Channels < 1 || deviceSettings.Channels > 2)
                 {
-                    throw new ValidationException($"Device {deviceSettings.Name} has invalid channel count");
+                    throw new SettingsValidationException($"Device {deviceSettings.Name} has invalid channel count");
                 }
 
                 if (deviceSettings.BufferSize <= 0)
                 {
-                    throw new ValidationException($"Device {deviceSettings.Name} has invalid buffer size");
+                    throw new SettingsValidationException($"Device {deviceSettings.Name} has invalid buffer size");
                 }
             }
         }
 
-        private byte[] GenerateEntropy()
+        private async Task<byte[]> GetMasterSecretAsync()
         {
-            // Use Windows DPAPI with optional entropy tied to machine and user
-            // This provides secure encryption without managing keys ourselves
+            if (_masterSecret != null)
+                return _masterSecret;
+
+            if (_credentialService == null)
+            {
+                // Fallback to predictable entropy if no credential service
+                return GenerateOldEntropy();
+            }
+
+            var secret = await _credentialService.RetrieveCredentialAsync("MasterSecret").ConfigureAwait(false);
+            if (string.IsNullOrEmpty(secret))
+            {
+                // Generate new master secret
+                var newSecret = new byte[32];
+                using (var rng = RandomNumberGenerator.Create())
+                {
+                    rng.GetBytes(newSecret);
+                }
+                secret = Convert.ToBase64String(newSecret);
+                await _credentialService.StoreCredentialAsync("MasterSecret", secret).ConfigureAwait(false);
+                _masterSecret = newSecret;
+            }
+            else
+            {
+                try
+                {
+                    _masterSecret = Convert.FromBase64String(secret);
+                }
+                catch (FormatException)
+                {
+                    // If stored secret is invalid, generate a new one
+                    var newSecret = new byte[32];
+                    using (var rng = RandomNumberGenerator.Create())
+                    {
+                        rng.GetBytes(newSecret);
+                    }
+                    secret = Convert.ToBase64String(newSecret);
+                    await _credentialService.StoreCredentialAsync("MasterSecret", secret).ConfigureAwait(false);
+                    _masterSecret = newSecret;
+                }
+            }
+
+            return _masterSecret;
+        }
+
+        private async Task<byte[]> DeriveEntropyAsync(byte[] salt)
+        {
+            var masterSecret = await GetMasterSecretAsync().ConfigureAwait(false);
+            
+            // Use PBKDF2 to derive 32 bytes of entropy from MasterSecret and salt
+            // SC-28: Harden encryption using high-entropy source and PBKDF2
+            using var pbkdf2 = new Rfc2898DeriveBytes(masterSecret, salt, 10000, HashAlgorithmName.SHA256);
+            return pbkdf2.GetBytes(32);
+        }
+
+        private byte[] GenerateOldEntropy()
+        {
+            // Predictable entropy used in v1 - kept for backward compatibility migration
             var entropySource = $"{Environment.MachineName}_{Environment.UserName}_WhisperKey_v1";
             using var sha256 = SHA256.Create();
             return sha256.ComputeHash(Encoding.UTF8.GetBytes(entropySource));
         }
 
-        private string EncryptString(string plainText)
+        private byte[] GenerateEntropy()
+        {
+            // This is now synchronous fallback or for non-async contexts if needed
+            // Prefer DeriveEntropyAsync whenever possible
+            return GenerateOldEntropy();
+        }
+
+        private async Task<string> EncryptStringAsync(string plainText)
         {
             if (string.IsNullOrEmpty(plainText))
                 return string.Empty;
@@ -846,7 +1114,15 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             try
             {
                 var plainBytes = Encoding.UTF8.GetBytes(plainText);
-                var entropy = GenerateEntropy();
+                
+                // Generate a random salt (16 bytes)
+                var salt = new byte[16];
+                using (var rng = RandomNumberGenerator.Create())
+                {
+                    rng.GetBytes(salt);
+                }
+
+                var entropy = await DeriveEntropyAsync(salt).ConfigureAwait(false);
                 
                 // Use Windows DPAPI for secure encryption tied to the current user
                 var encryptedBytes = ProtectedData.Protect(
@@ -854,7 +1130,12 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                     entropy, 
                     DataProtectionScope.CurrentUser);
                 
-                return Convert.ToBase64String(encryptedBytes);
+                // Combine salt and encrypted bytes: [salt (16)] [encrypted data]
+                var result = new byte[salt.Length + encryptedBytes.Length];
+                Buffer.BlockCopy(salt, 0, result, 0, salt.Length);
+                Buffer.BlockCopy(encryptedBytes, 0, result, salt.Length, encryptedBytes.Length);
+
+                return Convert.ToBase64String(result);
             }
             catch (CryptographicException ex)
             {
@@ -863,23 +1144,50 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             }
         }
 
-        private string DecryptString(string encryptedText)
+        private async Task<string> DecryptStringAsync(string encryptedText)
         {
             if (string.IsNullOrEmpty(encryptedText))
                 return string.Empty;
 
             try
             {
-                var encryptedBytes = Convert.FromBase64String(encryptedText);
-                var entropy = GenerateEntropy();
+                var combinedBytes = Convert.FromBase64String(encryptedText);
                 
-                // Use Windows DPAPI to decrypt data
-                var decryptedBytes = ProtectedData.Unprotect(
-                    encryptedBytes, 
-                    entropy, 
+                // Check if it's the new format (at least 16 bytes for salt + some data)
+                if (combinedBytes.Length > 16)
+                {
+                    try 
+                    {
+                        var salt = new byte[16];
+                        Buffer.BlockCopy(combinedBytes, 0, salt, 0, 16);
+                        
+                        var encryptedBytes = new byte[combinedBytes.Length - 16];
+                        Buffer.BlockCopy(combinedBytes, 16, encryptedBytes, 0, encryptedBytes.Length);
+                        
+                        var entropy = await DeriveEntropyAsync(salt).ConfigureAwait(false);
+                        
+                        var decryptedBytes = ProtectedData.Unprotect(
+                            encryptedBytes, 
+                            entropy, 
+                            DataProtectionScope.CurrentUser);
+                        
+                        return Encoding.UTF8.GetString(decryptedBytes);
+                    }
+                    catch (CryptographicException)
+                    {
+                        // Fallback to old method if DPAPI unprotect fails with new entropy
+                        _logger.LogDebug("DPAPI unprotect failed with new entropy, falling back to legacy decryption");
+                    }
+                }
+
+                // Old method fallback (Legacy Decryption)
+                var oldEntropy = GenerateOldEntropy();
+                var oldDecryptedBytes = ProtectedData.Unprotect(
+                    combinedBytes, 
+                    oldEntropy, 
                     DataProtectionScope.CurrentUser);
                 
-                return Encoding.UTF8.GetString(decryptedBytes);
+                return Encoding.UTF8.GetString(oldDecryptedBytes);
             }
             catch (FormatException ex)
             {
@@ -969,11 +1277,32 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             {
                 return profile;
             }
-            
+
             // Return default profile if current not found
-            return _currentSettings.Hotkeys.Profiles.TryGetValue("Default", out var defaultProfile) 
-                ? defaultProfile 
+            return _currentSettings.Hotkeys.Profiles.TryGetValue("Default", out var defaultProfile)
+                ? defaultProfile
                 : new HotkeyProfile { Id = "Default", Name = "Default" };
+        }
+
+        public async Task ResetToDefaultsAsync()
+        {
+            // Reset to default settings from options
+            _currentSettings = _options.CurrentValue;
+            
+            // Trigger save to persist defaults
+            await SaveImmediateAsync().ConfigureAwait(false);
+            
+            // Fire settings changed event for all categories
+            SettingsChanged?.Invoke(this, new SettingsChangedEventArgs
+            {
+                Key = "*",
+                OldValue = null,
+                NewValue = _currentSettings,
+                Category = "All",
+                RequiresRestart = false
+            });
+            
+            _logger.LogInformation("Settings reset to defaults");
         }
 
         public async Task ExportHotkeyProfileAsync(string profileId, string filePath)
@@ -998,7 +1327,12 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                 }
             };
 
-            var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+            var options = new JsonSerializerOptions 
+            { 
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+            var json = JsonSerializer.Serialize(exportData, options);
             await File.WriteAllTextAsync(validatedPath, json).ConfigureAwait(false);
 
             // Store backup path
@@ -1146,6 +1480,20 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
                     RequiresRestart = true
                 });
                 
+                // Log settings restoration
+                if (_auditService != null)
+                {
+                    await _auditService.LogEventAsync(
+                        Models.AuditEventType.SecurityEvent,
+                        "Settings restored from backup",
+                        JsonSerializer.Serialize(new { 
+                            BackupId = backupId,
+                            UserId = Environment.UserName,
+                            Timestamp = DateTime.UtcNow
+                        }),
+                        Models.DataSensitivity.High).ConfigureAwait(false);
+                }
+
                 _logger.LogInformation("Settings restored from backup: {BackupId}", backupId);
             }
             catch (Exception ex)
@@ -1195,12 +1543,24 @@ Task<List<Configuration.DeviceRecommendation>> GetDeviceRecommendationsAsync();
             }
         }
 
-        private string GetEncryptedFilePath(string key)
-        {
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var appFolder = Path.Combine(appDataPath, "WhisperKey");
-            Directory.CreateDirectory(appFolder);
-            return Path.Combine(appFolder, $"{key}.encrypted");
+                private string GetEncryptedFilePath(string key)
+
+                {
+
+                    var appFolder = _customAppDataPath ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "WhisperKey");
+
+                    Directory.CreateDirectory(appFolder);
+
+        
+
+                    // Hash the key to create a safe filename
+
+        
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(key));
+            var safeFileName = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            
+            return Path.Combine(appFolder, $"{safeFileName}.encrypted");
         }
         
         /// <summary>

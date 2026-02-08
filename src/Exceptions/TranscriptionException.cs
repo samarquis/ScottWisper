@@ -5,27 +5,19 @@ namespace WhisperKey.Exceptions
     /// <summary>
     /// Domain-specific exception for transcription-related errors
     /// </summary>
-    public class TranscriptionException : Exception
+    public class TranscriptionException : WhisperKeyException
     {
-        public string? ErrorCode { get; }
         public string? AudioFormat { get; }
 
-        public TranscriptionException() : base() { }
+        public TranscriptionException(string message, string errorCode = "TRANSCRIPTION_ERROR") 
+            : base(message, errorCode) { }
 
-        public TranscriptionException(string message) : base(message) { }
-
-        public TranscriptionException(string message, Exception innerException) : base(message, innerException) { }
-
-        public TranscriptionException(string message, string errorCode, Exception? innerException = null) 
-            : base(message, innerException)
-        {
-            ErrorCode = errorCode;
-        }
+        public TranscriptionException(string message, string errorCode, Exception innerException) 
+            : base(message, errorCode, innerException) { }
 
         public TranscriptionException(string message, string errorCode, string audioFormat, Exception? innerException = null)
-            : base(message, innerException)
+            : base(message, errorCode, innerException ?? new Exception("None"))
         {
-            ErrorCode = errorCode;
             AudioFormat = audioFormat;
         }
     }
@@ -38,7 +30,7 @@ namespace WhisperKey.Exceptions
         public string? ModelName { get; }
 
         public TranscriptionModelException(string modelName, string message, Exception? innerException = null)
-            : base(message, "MODEL_ERROR", innerException)
+            : base(message, "MODEL_ERROR", innerException ?? new Exception("None"))
         {
             ModelName = modelName;
         }
@@ -61,7 +53,7 @@ namespace WhisperKey.Exceptions
     public class TranscriptionNetworkException : TranscriptionException
     {
         public TranscriptionNetworkException(string message, Exception? innerException = null)
-            : base(message, "NETWORK_ERROR", innerException)
+            : base(message, "NETWORK_ERROR", innerException ?? new Exception("None"))
         {
         }
     }

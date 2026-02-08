@@ -17,6 +17,11 @@ namespace WhisperKey.Services.Recovery
         AsyncRetryPolicy GetApiRetryPolicy(int retryCount = 3);
 
         /// <summary>
+        /// Gets a generic retry policy for transient network and API failures.
+        /// </summary>
+        AsyncRetryPolicy<HttpResponseMessage> GetApiRetryPolicy<HttpResponseMessage>(int retryCount = 3);
+
+        /// <summary>
         /// Gets a circuit breaker policy for high-frequency operations.
         /// </summary>
         AsyncCircuitBreakerPolicy GetCircuitBreakerPolicy(int exceptionsAllowedBeforeBreaking = 5, int durationOfBreakSeconds = 30);

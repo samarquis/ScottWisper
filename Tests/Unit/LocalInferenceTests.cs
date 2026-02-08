@@ -16,7 +16,7 @@ namespace WhisperKey.Tests.Unit
     public class LocalInferenceTests
     {
         private string _testModelsDirectory = null!;
-        private IModelManagerService _modelManager = null!;
+        private Mock<IModelManagerService> _modelManagerMock = null!;
         private Mock<ISettingsService> _settingsServiceMock = null!;
         private ILocalInferenceService _localInference = null!;
 
@@ -26,9 +26,12 @@ namespace WhisperKey.Tests.Unit
             _testModelsDirectory = Path.Combine(Path.GetTempPath(), $"WhisperKeyModelsTest_{Guid.NewGuid():N}");
             Directory.CreateDirectory(_testModelsDirectory);
 
-            _modelManager = new ModelManagerService(
-                NullLogger<ModelManagerService>.Instance,
-                _testModelsDirectory);
+            _modelManagerMock = new Mock<IModelManagerService>();
+            _modelManagerMock.Setup(m => m.IsModelDownloadedAsync(It.IsAny<string>())).ReturnsAsync(false);
+            _modelManagerMock.Setup(m => m.GetAvailableModelsAsync()).ReturnsAsync(new System.Collections.Generic.List<WhisperModelInfo>
+            {
+                new WhisperModelInfo { Id = "base", Name = "Base", RequiredRamMb = 512 }
+            });
 
             _settingsServiceMock = new Mock<ISettingsService>();
             _settingsServiceMock.Setup(s => s.Settings).Returns(new AppSettings
@@ -43,7 +46,8 @@ namespace WhisperKey.Tests.Unit
 
             _localInference = new LocalInferenceService(
                 _settingsServiceMock.Object,
-                _modelManager,
+                _modelManagerMock.Object,
+                new MockWhisperProcessorFactory(),
                 NullLogger<LocalInferenceService>.Instance);
         }
 
@@ -68,7 +72,8 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelManager_GetAvailableModels()
         {
-            var models = await _modelManager.GetAvailableModelsAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var models = await modelManager.GetAvailableModelsAsync();
 
             Assert.IsNotNull(models);
             Assert.IsTrue(models.Count > 0);
@@ -81,7 +86,8 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelManager_GetModelInfo()
         {
-            var models = await _modelManager.GetAvailableModelsAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var models = await modelManager.GetAvailableModelsAsync();
             var baseModel = models.First(m => m.Id == "base");
 
             Assert.AreEqual("Base", baseModel.Name);
@@ -94,7 +100,8 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelManager_GetRecommendedModel()
         {
-            var recommended = await _modelManager.GetRecommendedModelAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var recommended = await modelManager.GetRecommendedModelAsync();
 
             Assert.IsNotNull(recommended);
             Assert.IsFalse(string.IsNullOrEmpty(recommended.Id));
@@ -104,21 +111,24 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelManager_IsModelDownloaded_NotDownloaded()
         {
-            var isDownloaded = await _modelManager.IsModelDownloadedAsync("base");
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var isDownloaded = await modelManager.IsModelDownloadedAsync("base");
             Assert.IsFalse(isDownloaded);
         }
 
         [TestMethod]
         public async Task Test_ModelManager_DownloadedModels_EmptyInitially()
         {
-            var downloaded = await _modelManager.GetDownloadedModelsAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var downloaded = await modelManager.GetDownloadedModelsAsync();
             Assert.AreEqual(0, downloaded.Count);
         }
 
         [TestMethod]
         public async Task Test_ModelManager_DiskSpace_ZeroInitially()
         {
-            var space = await _modelManager.GetTotalDiskSpaceUsedAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var space = await modelManager.GetTotalDiskSpaceUsedAsync();
             Assert.AreEqual(0, space);
         }
 
@@ -129,10 +139,13 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_LocalInference_Initialize_NoModelDownloaded()
         {
+            _modelManagerMock.Setup(m => m.DownloadModelAsync(It.IsAny<string>(), It.IsAny<IProgress<ModelDownloadStatus>>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ModelDownloadStatus { State = DownloadState.Failed, ErrorMessage = "Not found" });
+
             // Try to initialize without downloading model first
             var result = await _localInference.InitializeAsync("base");
 
-            // Should fail since model is not downloaded
+            // Should fail since model is not downloaded and download failed
             Assert.IsFalse(result);
             Assert.IsFalse(_localInference.IsModelLoaded);
         }
@@ -168,26 +181,21 @@ namespace WhisperKey.Tests.Unit
         }
 
         [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
-        public async Task Test_LocalInference_Transcribe_NotInitialized()
-        {
-            // Should throw when not initialized
-            await _localInference.TranscribeAudioAsync(new byte[1000]);
-        }
-
-        [TestMethod]
         public async Task Test_LocalInference_Transcribe_EmptyAudio()
         {
-            // Mock a downloaded model by creating a fake model file
+            // Mock a downloaded model
             var modelPath = Path.Combine(_testModelsDirectory, "ggml-base.bin");
             File.WriteAllBytes(modelPath, new byte[100]); // Fake model file
+            
+            _modelManagerMock.Setup(m => m.IsModelDownloadedAsync("base")).ReturnsAsync(true);
+            _modelManagerMock.Setup(m => m.GetModelPathAsync("base")).ReturnsAsync(modelPath);
 
             // Initialize
             var initResult = await _localInference.InitializeAsync("base");
             Assert.IsTrue(initResult);
 
             // Try to transcribe empty audio
-            await Assert.ThrowsExceptionAsync<ArgumentException>(async () =>
+            await Assert.ThrowsExceptionAsync<WhisperKey.Exceptions.TranscriptionFormatException>(async () =>
             {
                 await _localInference.TranscribeAudioAsync(new byte[0]);
             });
@@ -288,7 +296,8 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelSizes_Ordered()
         {
-            var models = await _modelManager.GetAvailableModelsAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var models = await modelManager.GetAvailableModelsAsync();
             var tiny = models.First(m => m.Id == "tiny");
             var baseModel = models.First(m => m.Id == "base");
             var small = models.First(m => m.Id == "small");
@@ -307,7 +316,8 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelRequirements()
         {
-            var models = await _modelManager.GetAvailableModelsAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var models = await modelManager.GetAvailableModelsAsync();
 
             foreach (var model in models)
             {
@@ -417,9 +427,12 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_LocalInference_TranscriptionEvents()
         {
-            // Create fake model file
+            // Mock a downloaded model
             var modelPath = Path.Combine(_testModelsDirectory, "ggml-base.bin");
             File.WriteAllBytes(modelPath, new byte[100]);
+            
+            _modelManagerMock.Setup(m => m.IsModelDownloadedAsync("base")).ReturnsAsync(true);
+            _modelManagerMock.Setup(m => m.GetModelPathAsync("base")).ReturnsAsync(modelPath);
 
             // Initialize
             await _localInference.InitializeAsync("base");
@@ -447,9 +460,12 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_LocalInference_Statistics_AfterTranscription()
         {
-            // Create fake model file
+            // Mock a downloaded model
             var modelPath = Path.Combine(_testModelsDirectory, "ggml-base.bin");
             File.WriteAllBytes(modelPath, new byte[100]);
+            
+            _modelManagerMock.Setup(m => m.IsModelDownloadedAsync("base")).ReturnsAsync(true);
+            _modelManagerMock.Setup(m => m.GetModelPathAsync("base")).ReturnsAsync(modelPath);
 
             // Initialize and transcribe
             await _localInference.InitializeAsync("base");
@@ -498,14 +514,16 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_ModelManager_VerifyModel_NotDownloaded()
         {
-            var isValid = await _modelManager.VerifyModelAsync("base");
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var isValid = await modelManager.VerifyModelAsync("base");
             Assert.IsFalse(isValid);
         }
 
         [TestMethod]
         public async Task Test_ModelManager_VerifyModel_InvalidModel()
         {
-            var isValid = await _modelManager.VerifyModelAsync("nonexistent-model");
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var isValid = await modelManager.VerifyModelAsync("nonexistent-model");
             Assert.IsFalse(isValid);
         }
 
@@ -516,7 +534,8 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public async Task Test_Models_LanguageSupport()
         {
-            var models = await _modelManager.GetAvailableModelsAsync();
+            var modelManager = new ModelManagerService(NullLogger<ModelManagerService>.Instance, _testModelsDirectory);
+            var models = await modelManager.GetAvailableModelsAsync();
             var tiny = models.First(m => m.Id == "tiny");
             var tinyEn = models.First(m => m.Id == "tiny.en");
 

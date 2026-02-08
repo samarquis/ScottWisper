@@ -13,7 +13,7 @@ namespace WhisperKey
     /// </summary>
     public partial class TranscriptionReviewWindow : Window
     {
-        private readonly DispatcherTimer _countdownTimer;
+        private DispatcherTimer? _countdownTimer;
         private int _remainingSeconds;
         private readonly bool _autoInsertEnabled;
         private string _reviewedText = string.Empty;

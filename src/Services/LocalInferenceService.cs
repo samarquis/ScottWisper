@@ -82,6 +82,7 @@ namespace WhisperKey.Services
         private readonly ILogger<LocalInferenceService>? _logger;
         private readonly ISettingsService _settingsService;
         private readonly IModelManagerService _modelManager;
+        private readonly IWhisperProcessorFactory _processorFactory;
         private bool _isModelLoaded = false;
         private string _currentModelId = string.Empty;
         private string _currentModelPath = string.Empty;
@@ -91,8 +92,7 @@ namespace WhisperKey.Services
         private readonly object _lock = new();
         
         // Whisper.net components
-        private WhisperFactory? _whisperFactory;
-        private WhisperProcessor? _whisperProcessor;
+        private IWhisperProcessor? _whisperProcessor;
         
         public bool IsModelLoaded => _isModelLoaded;
         public LocalInferenceStatus Status => _status;
@@ -110,9 +110,19 @@ namespace WhisperKey.Services
             ISettingsService settingsService, 
             IModelManagerService modelManager,
             ILogger<LocalInferenceService>? logger = null)
+            : this(settingsService, modelManager, new WhisperProcessorFactory(), logger)
+        {
+        }
+
+        public LocalInferenceService(
+            ISettingsService settingsService, 
+            IModelManagerService modelManager,
+            IWhisperProcessorFactory processorFactory,
+            ILogger<LocalInferenceService>? logger = null)
         {
             _settingsService = settingsService;
             _modelManager = modelManager;
+            _processorFactory = processorFactory;
             _logger = logger;
             
             // Load settings
@@ -201,14 +211,8 @@ namespace WhisperKey.Services
                 {
                     _logger?.LogInformation("Initializing Whisper.net with model: {ModelPath}", modelPath);
                     
-                    // Create the factory from the model file
-                    _whisperFactory = WhisperFactory.FromPath(modelPath);
-                    
-                    // Build the processor with default settings
-                    // Language will be set per-transcription
-                    _whisperProcessor = _whisperFactory.CreateBuilder()
-                        .WithLanguage("auto") // Auto-detect language
-                        .Build();
+                    // Create the processor via factory
+                    _whisperProcessor = _processorFactory.CreateProcessor(modelPath, "auto");
                     
                     _logger?.LogInformation("Whisper.net processor created successfully");
                 }
@@ -318,9 +322,7 @@ namespace WhisperKey.Services
                 if (!string.IsNullOrEmpty(language) && language != "auto")
                 {
                     _whisperProcessor?.Dispose();
-                    _whisperProcessor = _whisperFactory?.CreateBuilder()
-                        .WithLanguage(language)
-                        .Build();
+                    _whisperProcessor = _processorFactory.CreateProcessor(_currentModelPath, language);
                 }
                 
                 if (_whisperProcessor == null)
@@ -537,8 +539,6 @@ namespace WhisperKey.Services
                     // Dispose Whisper.net components
                     _whisperProcessor?.Dispose();
                     _whisperProcessor = null;
-                    _whisperFactory?.Dispose();
-                    _whisperFactory = null;
                     
                     _isModelLoaded = false;
                     _currentModelId = string.Empty;

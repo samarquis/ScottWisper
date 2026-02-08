@@ -18,7 +18,7 @@ namespace WhisperKey.UI
         /// <summary>
         /// Creates the settings window
         /// </summary>
-        Window CreateSettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService);
+        Window CreateSettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IApiKeyManagementService apiKeyManagement);
         
         /// <summary>
         /// Creates the transcription window
@@ -53,9 +53,9 @@ namespace WhisperKey.UI
             return new MainWindow();
         }
         
-        public Window CreateSettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService)
+        public Window CreateSettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IApiKeyManagementService apiKeyManagement)
         {
-            return new SettingsWindow(settingsService, audioDeviceService);
+            return new SettingsWindow(settingsService, audioDeviceService, apiKeyManagement);
         }
         
         public Window CreateTranscriptionWindow()

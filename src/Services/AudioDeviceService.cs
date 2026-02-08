@@ -643,20 +643,20 @@ namespace WhisperKey.Services
     public class AudioDeviceService : IAudioDeviceService, IDisposable
     {
         private readonly IAudioDeviceEnumerator _enumerator;
+        private readonly Func<IWaveIn> _waveInFactory;
         private readonly ILogger<AudioDeviceService> _logger;
         private readonly ICorrelationService _correlationService;
         private readonly IStructuredLoggingService _structuredLogger;
         private readonly object _lockObject = new object();
         private bool _disposed = false;
         private readonly bool _ownsEnumerator;
-        private WaveInEvent? _monitoringWaveIn;
+        private IWaveIn? _monitoringWaveIn;
         private System.Threading.Timer? _levelUpdateTimer;
         private float _currentAudioLevel = 0f;
         private bool _isMonitoring = false;
         
         // Device change monitoring
         private IntPtr _deviceNotificationHandle = IntPtr.Zero;
-        private WinEventDelegate? _winEventDelegate;
         private IntPtr _winEventHook = IntPtr.Zero;
         private IntPtr _messageWindowHandle = IntPtr.Zero;
         private readonly object _deviceLock = new object();
@@ -673,6 +673,16 @@ namespace WhisperKey.Services
         public event EventHandler<AudioLevelEventArgs>? AudioLevelUpdated;
         public event EventHandler<DeviceRecoveryEventArgs>? DeviceRecoveryAttempted;
         public event EventHandler<DeviceRecoveryEventArgs>? DeviceRecoveryCompleted;
+
+        /// <summary>
+        /// Determines if an exception is fatal and should not be caught.
+        /// </summary>
+        private static bool IsFatalException(Exception ex)
+        {
+            return ex is OutOfMemoryException ||
+                   ex is StackOverflowException ||
+                   ex is AccessViolationException;
+        }
 
         // Windows API declarations for permission handling
         [DllImport("user32.dll", SetLastError = true)]
@@ -799,9 +809,11 @@ namespace WhisperKey.Services
         ILogger<AudioDeviceService>? logger = null,
         ICorrelationService? correlationService = null,
         IStructuredLoggingService? structuredLogger = null,
-        bool ownsEnumerator = false)
+        bool ownsEnumerator = false,
+        Func<IWaveIn>? waveInFactory = null)
     {
         _enumerator = enumerator ?? throw new ArgumentNullException(nameof(enumerator));
+        _waveInFactory = waveInFactory ?? (() => new WaveInWrapper());
         _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AudioDeviceService>.Instance;
         _correlationService = correlationService ?? new CorrelationService();
         
@@ -830,15 +842,15 @@ namespace WhisperKey.Services
             }
             catch (InvalidOperationException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Fire-and-forget operation '{operationName}' failed: {ex.Message}");
+                _logger.LogError(ex, "Fire-and-forget operation '{OperationName}' failed", operationName);
             }
             catch (COMException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Fire-and-forget operation '{operationName}' failed: {ex.Message}");
+                _logger.LogError(ex, "Fire-and-forget operation '{OperationName}' failed due to COM error", operationName);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
-                System.Diagnostics.Debug.WriteLine($"Fire-and-forget operation '{operationName}' failed unexpectedly: {ex.Message}");
+                _logger.LogError(ex, "Fire-and-forget operation '{OperationName}' failed unexpectedly", operationName);
             }
         }
         
@@ -858,15 +870,15 @@ namespace WhisperKey.Services
             }
             catch (InvalidOperationException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error initializing monitoring: {ex.Message}");
+                _logger.LogError(ex, "Error initializing monitoring");
             }
             catch (COMException ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error initializing monitoring: {ex.Message}");
+                _logger.LogError(ex, "Error initializing monitoring due to COM error");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
-                System.Diagnostics.Debug.WriteLine($"Unexpected error initializing monitoring: {ex.Message}");
+                _logger.LogError(ex, "Unexpected error initializing monitoring");
             }
         }
 
@@ -986,12 +998,12 @@ namespace WhisperKey.Services
                 }
                 catch (InvalidOperationException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error enumerating output devices: {ex.Message}");
+                    _logger.LogWarning(ex, "Error enumerating output devices");
                     return Task.FromResult(new List<AudioDevice>());
                 }
                 catch (COMException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error enumerating output devices: {ex.Message}");
+                    _logger.LogWarning(ex, "COM error enumerating output devices");
                     return Task.FromResult(new List<AudioDevice>());
                 }
             }
@@ -1010,17 +1022,17 @@ namespace WhisperKey.Services
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
-                    throw new AudioDevicePermissionException(null, "Audio device access", "Unable to get default input device - unauthorized access", ex);
+                    _logger.LogError(ex, "Error getting default input device: unauthorized access");
+                    throw new AudioDevicePermissionException(string.Empty, "Audio device access", "Unable to get default input device - unauthorized access", ex);
                 }
                 catch (SecurityException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
-                    throw new AudioDevicePermissionException(null, "Audio device access", "Unable to get default input device - security exception", ex);
+                    _logger.LogError(ex, "Error getting default input device: security exception");
+                    throw new AudioDevicePermissionException(string.Empty, "Audio device access", "Unable to get default input device - security exception", ex);
                 }
                 catch (COMException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error getting default input device: {ex.Message}");
+                    _logger.LogError(ex, "Error getting default input device: COM error");
                     throw new InvalidOperationException("Unable to get default input device", ex);
                 }
                 catch (InvalidOperationException)
@@ -1043,17 +1055,17 @@ namespace WhisperKey.Services
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
+                    _logger.LogError(ex, "Error getting default output device: unauthorized access");
                     throw new InvalidOperationException("Unable to get default output device", ex);
                 }
                 catch (SecurityException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
+                    _logger.LogError(ex, "Error getting default output device: security exception");
                     throw new InvalidOperationException("Unable to get default output device", ex);
                 }
                 catch (COMException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error getting default output device: {ex.Message}");
+                    _logger.LogError(ex, "Error getting default output device: COM error");
                     throw new InvalidOperationException("Unable to get default output device", ex);
                 }
                 catch (InvalidOperationException)
@@ -1077,7 +1089,7 @@ namespace WhisperKey.Services
                     if (device == null) return Task.FromResult(false);
 
                     // Test basic device functionality
-                    using (var waveIn = new WaveInEvent())
+                    using (var waveIn = _waveInFactory())
                     {
                         waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                         
@@ -1094,22 +1106,27 @@ namespace WhisperKey.Services
                 }
                 catch (UnauthorizedAccessException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    _logger.LogWarning(ex, "Error testing device {DeviceId}: unauthorized access", deviceId);
                     return Task.FromResult(false);
                 }
                 catch (SecurityException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    _logger.LogWarning(ex, "Error testing device {DeviceId}: security exception", deviceId);
                     return Task.FromResult(false);
                 }
                 catch (InvalidOperationException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    _logger.LogWarning(ex, "Error testing device {DeviceId}: invalid operation", deviceId);
+                    return Task.FromResult(false);
+                }
+                catch (COMException ex)
+                {
+                    _logger.LogWarning(ex, "Error testing device {DeviceId}: COM error", deviceId);
                     return Task.FromResult(false);
                 }
                 catch (IOException ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error testing device {deviceId}: {ex.Message}");
+                    _logger.LogWarning(ex, "Error testing device {DeviceId}: IO error", deviceId);
                     return Task.FromResult(false);
                 }
             }
@@ -1136,7 +1153,7 @@ namespace WhisperKey.Services
                 };
 
                 // Test 1: Basic functionality (sync, no lock needed)
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                     waveIn.WaveFormat = new WaveFormat(16000, 1);
@@ -1230,7 +1247,7 @@ namespace WhisperKey.Services
                 var buffer = new byte[16000 * durationMs / 1000]; // 16kHz, 16-bit
                 var samples = new float[durationMs / 10]; // Sample every 10ms
 
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                     waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
@@ -1334,7 +1351,7 @@ namespace WhisperKey.Services
                     {
                         // Sample rate scoring (16kHz+ is optimal for speech)
                         if (format.SampleRate >= 16000)
-                            score.SampleRateScore = Math.Min(1.0f, 16000f / format.SampleRate);
+                            score.SampleRateScore = 1.0f; // Any rate >= 16kHz is considered optimal
                         else
                             score.SampleRateScore = 0.2f;
 
@@ -1410,7 +1427,7 @@ namespace WhisperKey.Services
 
             try
             {
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                     waveIn.WaveFormat = new WaveFormat(16000, 1);
@@ -1499,7 +1516,7 @@ namespace WhisperKey.Services
                     
                     if (device == null) return Task.CompletedTask;
 
-                    _monitoringWaveIn = new WaveInEvent();
+                    _monitoringWaveIn = _waveInFactory();
                     _monitoringWaveIn.DeviceNumber = GetDeviceNumber(device.ID);
                     _monitoringWaveIn.WaveFormat = new WaveFormat(16000, 1);
                     _monitoringWaveIn.BufferMilliseconds = 50;
@@ -1616,7 +1633,7 @@ namespace WhisperKey.Services
                     new WaveFormat(48000, 16, 1), // 48kHz mono
                 };
 
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(device.ID);
 
@@ -1702,7 +1719,7 @@ namespace WhisperKey.Services
         {
             try
             {
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                     waveIn.WaveFormat = new WaveFormat(16000, 1);
@@ -1745,7 +1762,7 @@ namespace WhisperKey.Services
         {
             try
             {
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                     waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
@@ -1957,6 +1974,7 @@ namespace WhisperKey.Services
                 var audioDevice = new AudioDevice
                 {
                     Id = device.ID,
+                    DeviceId = device.ID, // Set both for compatibility
                     Name = device.FriendlyName,
                     Description = device.DeviceFriendlyName,
                     DataFlow = device.DataFlow == DataFlow.Capture ? AudioDataFlow.Capture : AudioDataFlow.Render,
@@ -2080,7 +2098,7 @@ namespace WhisperKey.Services
 
                         // Attempt to access device to trigger permission dialog
                         var testDevice = devices.First();
-                        using (var waveIn = new WaveInEvent())
+                        using (var waveIn = _waveInFactory())
                         {
                             waveIn.DeviceNumber = GetDeviceNumber(testDevice.ID);
                             waveIn.WaveFormat = new WaveFormat(16000, 1);
@@ -2104,12 +2122,12 @@ namespace WhisperKey.Services
                             return Task.FromResult(false);
                         }
                     }
-                    catch (UnauthorizedAccessException ex)
+                    catch (UnauthorizedAccessException)
                     {
                         PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Access to microphone was denied. Please enable microphone access in Windows Settings.", ""));
                         return Task.FromResult(false);
                     }
-                    catch (SecurityException ex)
+                    catch (SecurityException)
                     {
                         PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Security error accessing microphone. Please check Windows Privacy Settings.", ""));
                         return Task.FromResult(false);
@@ -2135,7 +2153,7 @@ namespace WhisperKey.Services
             try
             {
                 // Try to create and configure a WaveInEvent to test permission
-                using (var waveIn = new WaveInEvent())
+                using (var waveIn = _waveInFactory())
                 {
                     waveIn.DeviceNumber = GetDeviceNumber(deviceId);
                     waveIn.WaveFormat = new WaveFormat(16000, 1); // 16kHz mono
@@ -2267,7 +2285,7 @@ namespace WhisperKey.Services
             {
                 await MonitorDeviceMessages().ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
                 System.Diagnostics.Debug.WriteLine($"Background monitoring task failed unexpectedly: {ex.Message}");
                 _isMonitoring = false;
@@ -2381,7 +2399,7 @@ namespace WhisperKey.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error handling device reconnection: {ex.Message}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
                 System.Diagnostics.Debug.WriteLine($"Unexpected error handling device reconnection: {ex.Message}");
             }
@@ -2655,7 +2673,7 @@ namespace WhisperKey.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error stopping monitoring during fallback: {ex.Message}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
                 System.Diagnostics.Debug.WriteLine($"Unexpected error in graceful fallback: {ex.Message}");
             }
@@ -2805,7 +2823,7 @@ namespace WhisperKey.Services
                     }
 
                     // Test device functionality
-                    using (var waveIn = new WaveInEvent())
+                    using (var waveIn = _waveInFactory())
                     {
                         waveIn.DeviceNumber = GetDeviceNumber(device.ID);
                         waveIn.WaveFormat = new WaveFormat(16000, 1);

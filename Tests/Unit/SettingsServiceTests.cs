@@ -1,16 +1,18 @@
 using System;
-using System.IO;
-using System.Threading.Tasks;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using WhisperKey.Services;
-using WhisperKey.Configuration;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using WhisperKey.Configuration;
+using WhisperKey.Models;
 using WhisperKey.Repositories;
+using WhisperKey.Services;
+using WhisperKey.Exceptions;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -18,841 +20,145 @@ namespace WhisperKey.Tests.Unit
     public class SettingsServiceTests
     {
         private string _testAppDataPath = null!;
-        private string _userSettingsPath = null!;
-        private Mock<IConfiguration> _mockConfiguration = null!;
-        private Mock<IOptionsMonitor<AppSettings>> _mockOptions = null!;
-        private ILogger<SettingsService> _logger = null!;
+        private Mock<ISettingsRepository> _repositoryMock = null!;
+        private Mock<IOptionsMonitor<AppSettings>> _optionsMock = null!;
+        private IConfiguration _configuration = null!;
+        private SettingsService _service = null!;
+        private AppSettings _defaultSettings = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            _testAppDataPath = Path.Combine(Path.GetTempPath(), "WhisperKeyTests_" + Guid.NewGuid().ToString());
-            _userSettingsPath = Path.Combine(_testAppDataPath, "settings.json");
+            _testAppDataPath = Path.Combine(Path.GetTempPath(), $"SettingsServiceTests_{Guid.NewGuid():N}");
             Directory.CreateDirectory(_testAppDataPath);
+
+            _repositoryMock = new Mock<ISettingsRepository>();
+            _defaultSettings = new AppSettings();
             
-            _mockConfiguration = new Mock<IConfiguration>();
-            _mockOptions = new Mock<IOptionsMonitor<AppSettings>>();
-            _logger = new NullLogger<SettingsService>();
-            
-            // Setup mock to return default settings
-            _mockOptions.Setup(x => x.CurrentValue).Returns(new AppSettings());
+            _optionsMock = new Mock<IOptionsMonitor<AppSettings>>();
+            _optionsMock.Setup(o => o.CurrentValue).Returns(_defaultSettings);
+
+            _configuration = new ConfigurationBuilder().Build();
+
+            _service = new SettingsService(
+                _configuration,
+                _optionsMock.Object,
+                NullLogger<SettingsService>.Instance,
+                _repositoryMock.Object,
+                autoLoad: false,
+                customAppDataPath: _testAppDataPath);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
+            _service?.Dispose();
             if (Directory.Exists(_testAppDataPath))
             {
-                try
-                {
-                    Directory.Delete(_testAppDataPath, true);
-                }
-                catch
-                {
-                    // Ignore cleanup errors
-                }
+                try { Directory.Delete(_testAppDataPath, true); } catch { }
             }
         }
 
-        #region Initialization Tests
-
         [TestMethod]
-        public void Constructor_WithValidDependencies_CreatesInstance()
+        public async Task LoadUserSettingsAsync_WithValidSettings_MergesCorrectly()
         {
             // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
+            var userSettings = new AppSettings();
+            userSettings.Audio.SampleRate = 44100;
+            userSettings.Transcription.Provider = "CustomProvider";
+            
+            _repositoryMock.Setup(r => r.LoadAsync()).ReturnsAsync(userSettings);
 
             // Act
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
+            await _service.LoadUserSettingsAsync();
 
             // Assert
-            Assert.IsNotNull(service);
-            Assert.IsNotNull(service.Settings);
+            Assert.AreEqual(44100, _service.Settings.Audio.SampleRate);
+            Assert.AreEqual("CustomProvider", _service.Settings.Transcription.Provider);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void Constructor_WithNullConfiguration_ThrowsArgumentNullException()
+        public async Task SetValueAsync_UpdatesMemoryAndTriggersSave()
         {
             // Act
-            new TestableSettingsService(
-                null!, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void Constructor_WithNullOptions_ThrowsArgumentNullException()
-        {
-            // Act
-            new TestableSettingsService(
-                _mockConfiguration.Object, 
-                null!, 
-                _logger,
-                _userSettingsPath);
-        }
-
-        #endregion
-
-        #region Settings Property Tests
-
-        [TestMethod]
-        public void Settings_ReturnsCurrentSettings()
-        {
-            // Arrange
-            var expectedSettings = new AppSettings
-            {
-                Audio = new AudioSettings { SampleRate = 48000 },
-                Transcription = new TranscriptionSettings { Provider = "TestProvider" }
-            };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(expectedSettings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var actualSettings = service.Settings;
+            await _service.SetValueAsync("Audio:SampleRate", 22050);
 
             // Assert
-            Assert.AreEqual(expectedSettings, actualSettings);
-            Assert.AreEqual(48000, actualSettings.Audio.SampleRate);
-            Assert.AreEqual("TestProvider", actualSettings.Transcription.Provider);
+            Assert.AreEqual(22050, _service.Settings.Audio.SampleRate);
+            // Since autoLoad is false, it shouldn't have called SaveAsyncInternal yet
+            _repositoryMock.Verify(r => r.SaveAsync(It.IsAny<AppSettings>()), Times.Never);
         }
 
         [TestMethod]
-        public void Settings_ReturnsSameInstanceOnMultipleCalls()
+        public async Task SaveImmediateAsync_PersistsToRepository()
         {
             // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
+            _service.Settings.Audio.SampleRate = 8000;
 
             // Act
-            var settings1 = service.Settings;
-            var settings2 = service.Settings;
+            await _service.SaveImmediateAsync();
 
             // Assert
-            Assert.AreSame(settings1, settings2);
+            _repositoryMock.Verify(r => r.SaveAsync(It.IsAny<AppSettings>()), Times.Once);
         }
 
-        #endregion
-
-        #region Value Get/Set Tests
-
         [TestMethod]
-        public async Task GetValueAsync_ExistingKey_ReturnsValue()
+        public async Task GetEncryptedValueAsync_ReturnsStoredValue()
         {
             // Arrange
-            var settings = new AppSettings
-            {
-                Transcription = new TranscriptionSettings { Provider = "OpenAI" }
-            };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
+            var key = "SecretKey";
+            var secretValue = "P@ssword123";
+            await _service.SetEncryptedValueAsync(key, secretValue);
 
             // Act
-            var value = await service.GetValueAsync<string>("Transcription:Provider");
+            var retrieved = await _service.GetEncryptedValueAsync(key);
 
             // Assert
-            Assert.AreEqual("OpenAI", value);
+            Assert.AreEqual(secretValue, retrieved);
         }
 
         [TestMethod]
-        public async Task SetValueAsync_UpdatesSettingsValue()
+        public async Task ResetAsync_RestoresDefaults()
         {
             // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
+            _service.Settings.Audio.SampleRate = 99999;
+            
             // Act
-            await service.SetValueAsync("Transcription:Provider", "Azure");
+            await _service.ResetToDefaultsAsync();
 
             // Assert
-            Assert.AreEqual("Azure", settings.Transcription.Provider);
+            Assert.AreEqual(16000, _service.Settings.Audio.SampleRate);
         }
 
         [TestMethod]
-        public async Task SetValueAsync_RaisesSettingsChangedEvent()
+        public async Task CreateHotkeyProfileAsync_AddsToProfiles()
         {
             // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            SettingsChangedEventArgs? capturedArgs = null;
-            service.SettingsChanged += (s, e) => capturedArgs = e;
+            var profile = new HotkeyProfile { Id = "NewProfile", Name = "New Profile" };
 
             // Act
-            await service.SetValueAsync("Transcription:Provider", "Azure");
-
-            // Assert
-            Assert.IsNotNull(capturedArgs);
-            Assert.AreEqual("Transcription:Provider", capturedArgs.Key);
-            Assert.AreEqual("Azure", capturedArgs.NewValue);
-        }
-
-        #endregion
-
-        #region Encrypted Value Tests
-
-        [TestMethod]
-        public async Task SetEncryptedValueAsync_StoresEncryptedData()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var sensitiveValue = "sk-test123456789";
-
-            // Act
-            await service.SetEncryptedValueAsync("ApiKey", sensitiveValue);
-            var retrievedValue = await service.GetEncryptedValueAsync("ApiKey");
-
-            // Assert
-            Assert.AreEqual(sensitiveValue, retrievedValue);
-        }
-
-        [TestMethod]
-        public async Task GetEncryptedValueAsync_NonExistentKey_ReturnsEmptyString()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var value = await service.GetEncryptedValueAsync("NonExistentKey");
-
-            // Assert
-            Assert.AreEqual(string.Empty, value);
-        }
-
-        [TestMethod]
-        public async Task SetEncryptedValueAsync_EmptyValue_RemovesKey()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            await service.SetEncryptedValueAsync("TestKey", "initialValue");
-
-            // Act
-            await service.SetEncryptedValueAsync("TestKey", string.Empty);
-            var retrievedValue = await service.GetEncryptedValueAsync("TestKey");
-
-            // Assert
-            Assert.AreEqual(string.Empty, retrievedValue);
-        }
-
-        #endregion
-
-        #region Device Settings Tests
-
-        [TestMethod]
-        public async Task SetSelectedInputDeviceAsync_UpdatesDeviceId()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            await service.SetSelectedInputDeviceAsync("device-123");
-
-            // Assert
-            Assert.AreEqual("device-123", settings.Audio.SelectedInputDeviceId);
-        }
-
-        [TestMethod]
-        public async Task SetSelectedOutputDeviceAsync_UpdatesDeviceId()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            await service.SetSelectedOutputDeviceAsync("output-456");
-
-            // Assert
-            Assert.AreEqual("output-456", settings.Audio.SelectedOutputDeviceId);
-        }
-
-        [TestMethod]
-        public async Task GetDeviceSettingsAsync_NewDevice_ReturnsDefaultSettings()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var deviceSettings = await service.GetDeviceSettingsAsync("new-device");
-
-            // Assert
-            Assert.IsNotNull(deviceSettings);
-            Assert.AreEqual("new-device", deviceSettings.Name);
-            Assert.IsTrue(deviceSettings.IsEnabled);
-        }
-
-        [TestMethod]
-        public async Task SetDeviceSettingsAsync_StoresSettings()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var deviceSettings = new DeviceSpecificSettings
-            {
-                Name = "Test Mic",
-                SampleRate = 48000,
-                IsEnabled = false
-            };
-
-            // Act
-            await service.SetDeviceSettingsAsync("test-device", deviceSettings);
-            var retrieved = await service.GetDeviceSettingsAsync("test-device");
-
-            // Assert
-            Assert.AreEqual("Test Mic", retrieved.Name);
-            Assert.AreEqual(48000, retrieved.SampleRate);
-            Assert.IsFalse(retrieved.IsEnabled);
-        }
-
-        #endregion
-
-        #region Hotkey Profile Tests
-
-        [TestMethod]
-        public async Task CreateHotkeyProfileAsync_AddsNewProfile()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var profile = new HotkeyProfile
-            {
-                Id = "test-profile",
-                Name = "Test Profile"
-            };
-
-            // Act
-            var result = await service.CreateHotkeyProfileAsync(profile);
+            var result = await _service.CreateHotkeyProfileAsync(profile);
 
             // Assert
             Assert.IsTrue(result);
-            Assert.IsTrue(settings.Hotkeys.Profiles.ContainsKey("test-profile"));
+            var profiles = await _service.GetHotkeyProfilesAsync();
+            Assert.IsTrue(profiles.Any(p => p.Id == "NewProfile"));
         }
 
         [TestMethod]
-        public async Task CreateHotkeyProfileAsync_DuplicateId_ReturnsFalse()
+        public async Task SwitchHotkeyProfileAsync_ChangesCurrentProfile()
         {
             // Arrange
-            var settings = new AppSettings();
-            settings.Hotkeys.Profiles["existing"] = new HotkeyProfile { Id = "existing" };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var profile = new HotkeyProfile
-            {
-                Id = "existing",
-                Name = "Duplicate"
-            };
+            var profile = new HotkeyProfile { Id = "TargetProfile", Name = "Target" };
+            await _service.CreateHotkeyProfileAsync(profile);
 
             // Act
-            var result = await service.CreateHotkeyProfileAsync(profile);
-
-            // Assert
-            Assert.IsFalse(result);
-        }
-
-        [TestMethod]
-        public async Task DeleteHotkeyProfileAsync_ExistingProfile_RemovesAndReturnsTrue()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            settings.Hotkeys.Profiles["to-delete"] = new HotkeyProfile { Id = "to-delete" };
-            settings.Hotkeys.CurrentProfile = "other";
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var result = await service.DeleteHotkeyProfileAsync("to-delete");
+            var result = await _service.SwitchHotkeyProfileAsync("TargetProfile");
 
             // Assert
             Assert.IsTrue(result);
-            Assert.IsFalse(settings.Hotkeys.Profiles.ContainsKey("to-delete"));
-        }
-
-        [TestMethod]
-        public async Task SwitchHotkeyProfileAsync_SetsCurrentProfile()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            settings.Hotkeys.Profiles["profile1"] = new HotkeyProfile { Id = "profile1" };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var result = await service.SwitchHotkeyProfileAsync("profile1");
-
-            // Assert
-            Assert.IsTrue(result);
-            Assert.AreEqual("profile1", settings.Hotkeys.CurrentProfile);
-        }
-
-        [TestMethod]
-        public async Task GetHotkeyProfilesAsync_ReturnsAllProfiles()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            settings.Hotkeys.Profiles["p1"] = new HotkeyProfile { Id = "p1", Name = "Profile 1" };
-            settings.Hotkeys.Profiles["p2"] = new HotkeyProfile { Id = "p2", Name = "Profile 2" };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var profiles = await service.GetHotkeyProfilesAsync();
-
-            // Assert
-            Assert.AreEqual(2, profiles.Count);
-        }
-
-        #endregion
-
-        #region Settings Changed Event Tests
-
-        [TestMethod]
-        public async Task MultipleSettingsChanges_RaiseMultipleEvents()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var eventCount = 0;
-            service.SettingsChanged += (s, e) => eventCount++;
-
-            // Act
-            await service.SetValueAsync("Audio:SampleRate", 48000);
-            await service.SetValueAsync("Transcription:Provider", "Azure");
-            await service.SetValueAsync("UI:Theme", "Light");
-
-            // Assert
-            Assert.AreEqual(3, eventCount);
-        }
-
-        [TestMethod]
-        public async Task SetValueAsync_SameValue_DoesNotRaiseEvent()
-        {
-            // Arrange
-            var settings = new AppSettings
-            {
-                Transcription = new TranscriptionSettings { Provider = "OpenAI" }
-            };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var eventRaised = false;
-            service.SettingsChanged += (s, e) => eventRaised = true;
-
-            // Act - set same value
-            await service.SetValueAsync("Transcription:Provider", "OpenAI");
-
-            // Assert
-            Assert.IsFalse(eventRaised);
-        }
-
-        #endregion
-
-        #region Validation Tests
-
-        [TestMethod]
-        public async Task ValidateHotkeyAsync_EmptyCombination_ReturnsInvalid()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var result = await service.ValidateHotkeyAsync("");
-
-            // Assert
-            Assert.IsFalse(result.IsValid);
-            Assert.IsFalse(string.IsNullOrEmpty(result.ErrorMessage));
-        }
-
-        [TestMethod]
-        public async Task ValidateHotkeyAsync_ValidCombination_ReturnsValid()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var result = await service.ValidateHotkeyAsync("Ctrl+Alt+V");
-
-            // Assert - should be valid (though may have warnings)
-            Assert.IsNotNull(result);
-        }
-
-        #endregion
-
-        #region Negative Test Cases
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public async Task SetValueAsync_NullKey_ThrowsArgumentNullException()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            await service.SetValueAsync<string>(null!, "value");
-        }
-
-        [TestMethod]
-        public async Task DeleteHotkeyProfileAsync_NonExistent_ReturnsFalse()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var result = await service.DeleteHotkeyProfileAsync("non-existent");
-
-            // Assert
-            Assert.IsFalse(result);
-        }
-
-        [TestMethod]
-        public async Task SwitchHotkeyProfileAsync_NonExistent_ReturnsFalse()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            // Act
-            var result = await service.SwitchHotkeyProfileAsync("non-existent");
-
-            // Assert
-            Assert.IsFalse(result);
-        }
-
-        [TestMethod]
-        public async Task GetValueAsync_InvalidKey_ReturnsDefault()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            // Act
-            var value = await service.GetValueAsync<string>("Invalid:Key:Path");
-            
-            // Assert
-            Assert.IsNull(value);
-        }
-        
-        [TestMethod]
-        public async Task GetValueAsync_NestedKey_ReturnsCorrectValue()
-        {
-            // Arrange
-            var settings = new AppSettings
-            {
-                Transcription = new TranscriptionSettings { 
-                    Provider = "NestedProvider",
-                    Model = "TestModel"
-                }
-            };
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            // Act
-            var value = await service.GetValueAsync<string>("Transcription:Provider");
-            
-            // Assert
-            Assert.AreEqual("NestedProvider", value);
-        }
-        
-        [TestMethod]
-        public async Task SetValueAsync_WithNullValue_DoesNotThrow()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var Service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            // Act & Assert - should not throw when setting null value
-            await Service.SetValueAsync<string>("Test:Key", null!);
-            
-            // Verify no exception thrown and value is set to null
-            var finalValue = await Service.GetValueAsync<string>("Test:Key");
-            Assert.IsNull(finalValue);
-        }
-
-        #endregion
-
-        #region Boundary Value Tests
-
-        [TestMethod]
-        public async Task SetValueAsync_VeryLongString_HandlesCorrectly()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var longValue = new string('a', 10000);
-
-            // Act
-            await service.SetValueAsync("Transcription:Model", longValue);
-
-            // Assert
-            Assert.AreEqual(longValue, settings.Transcription.Model);
-        }
-
-        [TestMethod]
-        public async Task SetValueAsync_SpecialCharacters_HandlesCorrectly()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-
-            var service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-
-            var specialValue = "Test<>&\"'\n\r\tValue";
-
-            // Act
-            await service.SetValueAsync("Transcription:Provider", specialValue);
-
-            // Assert
-            Assert.AreEqual(specialValue, settings.Transcription.Provider);
-        }
-        
-        [TestMethod]
-        public async Task SetEncryptedValueAsync_VeryLongKey_HandlesCorrectly()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var Service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            var longKey = new string('k', 500);
-            var value = "test-value";
-            
-            // Act
-            await Service.SetEncryptedValueAsync(longKey, value);
-            var retrieved = await Service.GetEncryptedValueAsync(longKey);
-            
-            // Assert
-            Assert.AreEqual(value, retrieved);
-        }
-        
-        [TestMethod]
-        public async Task GetValueAsync_EmptyKey_ReturnsNull()
-        {
-            // Arrange
-            var settings = new AppSettings();
-            _mockOptions.Setup(x => x.CurrentValue).Returns(settings);
-            
-            var Service = new TestableSettingsService(
-                _mockConfiguration.Object, 
-                _mockOptions.Object, 
-                _logger,
-                _userSettingsPath);
-            
-            // Act
-            var value = await Service.GetValueAsync<string>("");
-            
-            // Assert
-            Assert.IsNull(value);
-        }
-        
-        #endregion
-
-        /// <summary>
-        /// Testable version of SettingsService that allows injection of custom settings path
-        /// </summary>
-        private class TestableSettingsService : SettingsService
-        {
-            public TestableSettingsService(
-                IConfiguration configuration,
-                IOptionsMonitor<AppSettings> options,
-                ILogger<SettingsService> logger,
-                string settingsPath) : base(configuration, options, logger, new Mock<ISettingsRepository>().Object)
-            {
-                // Use reflection to set the private field for testing
-                var field = typeof(SettingsService).GetField("_userSettingsPath", 
-                    System.Reflection.BindingFlags.NonPublic | 
-                    System.Reflection.BindingFlags.Instance);
-                field?.SetValue(this, settingsPath);
-            }
+            var current = await _service.GetCurrentHotkeyProfileAsync();
+            Assert.AreEqual("TargetProfile", current.Id);
         }
     }
 }

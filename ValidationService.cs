@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using WhisperKey.Services;
 
 namespace WhisperKey
 {
@@ -16,6 +17,7 @@ namespace WhisperKey
         private readonly IAudioCaptureService _audioCaptureService;
         private readonly IWhisperService _whisperService;
         private readonly IHotkeyService _hotkeyService;
+        private readonly ICredentialService _credentialService;
         private readonly CostTrackingService _costTrackingService;
         private readonly List<ValidationResult> _results = new();
 
@@ -23,11 +25,13 @@ namespace WhisperKey
             IAudioCaptureService audioCaptureService,
             IWhisperService whisperService, 
             IHotkeyService hotkeyService,
+            ICredentialService credentialService,
             CostTrackingService costTrackingService)
         {
             _audioCaptureService = audioCaptureService ?? throw new ArgumentNullException(nameof(audioCaptureService));
             _whisperService = whisperService ?? throw new ArgumentNullException(nameof(whisperService));
             _hotkeyService = hotkeyService ?? throw new ArgumentNullException(nameof(hotkeyService));
+            _credentialService = credentialService ?? throw new ArgumentNullException(nameof(credentialService));
             _costTrackingService = costTrackingService ?? throw new ArgumentNullException(nameof(costTrackingService));
         }
 
@@ -102,8 +106,26 @@ namespace WhisperKey
 
             try
             {
-                // Check if API key is configured
-                var apiKeyConfigured = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OPENAI_API_KEY"));
+                // Check if API key is configured using secure credential service (NIST IA-5)
+                bool apiKeyConfigured = false;
+                
+                // Try to get credential from secure storage
+                var apiKey = await _credentialService.RetrieveCredentialAsync("OpenAI_ApiKey");
+                if (!string.IsNullOrEmpty(apiKey))
+                {
+                    apiKeyConfigured = true;
+                    result.Details = "API key found in secure storage (NIST IA-5 compliant). ";
+                }
+                else
+                {
+                    // Fallback check for environment variable (for backward compatibility, with warning)
+                    var envKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+                    if (!string.IsNullOrEmpty(envKey))
+                    {
+                        apiKeyConfigured = true;
+                        result.Details = "WARNING: API key found in environment variable (Insecure). Please migrate to Windows Credential Manager. ";
+                    }
+                }
                 
                 if (!apiKeyConfigured)
                 {
@@ -116,7 +138,7 @@ namespace WhisperKey
                 // Test service initialization
                 var whisperInitialized = _whisperService != null;
                 result.Passed = whisperInitialized;
-                result.Details = whisperInitialized 
+                result.Details += whisperInitialized 
                     ? "Whisper service initialized successfully | Live audio testing required for accuracy validation"
                     : "Failed to initialize Whisper service";
 

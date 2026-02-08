@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
@@ -34,6 +35,11 @@ namespace WhisperKey.Bootstrap
         public IAudioDeviceService? AudioDeviceService { get; private set; }
         public ValidationService? ValidationService { get; private set; }
         public ApiKeyRotationService? ApiKeyRotationService { get; private set; }
+        public IIntelligentAlertingService? IntelligentAlertingService { get; private set; }
+        public IDeploymentRollbackService? DeploymentRollbackService { get; private set; }
+        public IConfigurationManagementService? ConfigurationManagementService { get; private set; }
+        public IGracefulDegradationService? GracefulDegradationService { get; private set; }
+        public ILazyInitializationService? LazyInitializationService { get; private set; }
         
         // State
         public bool GracefulFallbackMode { get; private set; }
@@ -53,6 +59,30 @@ namespace WhisperKey.Bootstrap
                 // Get core services from DI
                 SettingsService = _serviceProvider.GetRequiredService<ISettingsService>();
                 TextInjectionService = _serviceProvider.GetRequiredService<ITextInjection>();
+                var fileSystem = _serviceProvider.GetRequiredService<IFileSystemService>();
+                DeploymentRollbackService = _serviceProvider.GetRequiredService<IDeploymentRollbackService>();
+                ConfigurationManagementService = _serviceProvider.GetRequiredService<IConfigurationManagementService>();
+                GracefulDegradationService = _serviceProvider.GetRequiredService<IGracefulDegradationService>();
+                LazyInitializationService = _serviceProvider.GetRequiredService<ILazyInitializationService>();
+
+                // Check for configuration drift (DEFERRED)
+                LazyInitializationService.RegisterDeferredTask("ConfigDriftCheck", 
+                    async () => await ConfigurationManagementService.ValidateParityAsync(), 
+                    DeferredPriority.Normal);
+
+                // Secure appsettings.json (NIST AC-3)
+                var appSettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+                if (File.Exists(appSettingsPath))
+                {
+                    try
+                    {
+                        fileSystem.SetStrictPermissions(appSettingsPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Warning: Failed to secure appsettings.json: {ex.Message}");
+                    }
+                }
                 
                 // Initialize enhanced feedback service first
                 var feedbackService = new FeedbackService();
@@ -70,9 +100,12 @@ namespace WhisperKey.Bootstrap
                 var apiKeyManagement = _serviceProvider.GetRequiredService<IApiKeyManagementService>();
                 var memoryPool = _serviceProvider.GetRequiredService<IByteArrayPool>();
                 var recoveryPolicy = _serviceProvider.GetRequiredService<IRecoveryPolicyService>();
-                WhisperService = new WhisperService(SettingsService, null, null, apiKeyManagement, recoveryPolicy);
+                var performanceMonitoring = _serviceProvider.GetRequiredService<IPerformanceMonitoringService>();
+                var rateLimiting = _serviceProvider.GetRequiredService<IRateLimitingService>();
+                
+                WhisperService = new WhisperService(SettingsService, null, null, apiKeyManagement, recoveryPolicy, null, null, null, performanceMonitoring, rateLimiting);
                 CostTrackingService = new CostTrackingService(SettingsService);
-                AudioCaptureService = new AudioCaptureService(SettingsService, AudioDeviceService!, memoryPool);
+                AudioCaptureService = new AudioCaptureService(SettingsService, AudioDeviceService!, memoryPool, null, performanceMonitoring);
                 
                 // Initialize transcription window
                 TranscriptionWindow = new TranscriptionWindow();
@@ -87,20 +120,40 @@ namespace WhisperKey.Bootstrap
                 // Initialize enhanced services for gap closure
                 await InitializeEnhancedServicesAsync().ConfigureAwait(false);
                 
-                // Start API key rotation service
+                // Start API key rotation service (DEFERRED)
                 ApiKeyRotationService = _serviceProvider.GetRequiredService<ApiKeyRotationService>();
-                ApiKeyRotationService.Start();
+                LazyInitializationService.RegisterDeferredTask("ApiKeyRotation", 
+                    async () => { ApiKeyRotationService.Start(); await Task.CompletedTask; }, 
+                    DeferredPriority.Low);
+
+                // Start intelligent alerting service (DEFERRED)
+                IntelligentAlertingService = _serviceProvider.GetRequiredService<IIntelligentAlertingService>();
+                LazyInitializationService.RegisterDeferredTask("IntelligentAlerting", 
+                    async () => { IntelligentAlertingService.Start(); await Task.CompletedTask; }, 
+                    DeferredPriority.Normal);
+                
+                // Start deferred initialization after small delay to let UI settle
+                _ = Task.Delay(2000).ContinueWith(_ => LazyInitializationService.StartDeferredInitialization());
+
+                // Record successful startup
+                await DeploymentRollbackService.RecordStartupSuccessAsync();
                 
                 return true;
             }
             catch (InvalidOperationException ex)
             {
+                if (DeploymentRollbackService != null)
+                    await DeploymentRollbackService.RecordStartupFailureAsync(ex.Message);
+
                 MessageBox.Show($"Service initialization failed: {ex.Message}", "WhisperKey Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             catch (System.IO.IOException ex)
             {
+                if (DeploymentRollbackService != null)
+                    await DeploymentRollbackService.RecordStartupFailureAsync(ex.Message);
+
                 MessageBox.Show($"I/O error during initialization: {ex.Message}", "WhisperKey Error", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
@@ -186,6 +239,7 @@ namespace WhisperKey.Bootstrap
         /// </summary>
         public void Shutdown()
         {
+            IntelligentAlertingService?.Stop();
             ApiKeyRotationService?.Stop();
             ApiKeyRotationService?.Dispose();
             HotkeyService?.Dispose();

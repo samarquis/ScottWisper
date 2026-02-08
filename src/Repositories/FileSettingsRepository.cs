@@ -21,23 +21,28 @@ namespace WhisperKey.Repositories
     {
         private readonly string _settingsPath;
         private readonly string _backupPath;
+        private readonly IFileSystemService _fileSystem;
         private readonly ILogger<FileSettingsRepository> _logger;
 
-        public FileSettingsRepository(ILogger<FileSettingsRepository> logger)
+        public FileSettingsRepository(ILogger<FileSettingsRepository> logger, IFileSystemService fileSystem, string? customPath = null)
         {
             _logger = logger;
+            _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
             
             // Initialize paths
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var appFolder = Path.Combine(appDataPath, "WhisperKey");
-            Directory.CreateDirectory(appFolder);
+            var appDataPath = customPath ?? _fileSystem.GetAppDataPath();
+            var appFolder = customPath != null ? customPath : appDataPath;
+            _fileSystem.CreateDirectory(appFolder);
             
-            _settingsPath = Path.Combine(appFolder, "usersettings.json");
-            _backupPath = Path.Combine(appFolder, "backups");
-            Directory.CreateDirectory(_backupPath);
+            _settingsPath = _fileSystem.CombinePath(appFolder, "usersettings.json");
+            _backupPath = _fileSystem.CombinePath(appFolder, "backups");
+            _fileSystem.CreateDirectory(_backupPath);
             
             // Enforce secure permissions on settings directory and files
-            _ = Task.Run(() => EnforceSecurePermissions());
+            if (customPath == null) // Only enforce on real AppData
+            {
+                _ = Task.Run(() => EnforceSecurePermissions());
+            }
         }
 
         public async Task<AppSettings> LoadAsync()
@@ -388,153 +393,32 @@ namespace WhisperKey.Repositories
         {
             try
             {
-#if WINDOWS
-                EnforceWindowsPermissions();
-#else
-                EnforceUnixPermissions();
-#endif
+                // Enforce permissions on the settings directory
+                var settingsDir = _fileSystem.GetDirectoryName(_settingsPath);
+                if (!string.IsNullOrEmpty(settingsDir) && _fileSystem.DirectoryExists(settingsDir))
+                {
+                    _fileSystem.SetStrictPermissions(settingsDir);
+                }
+
+                // Enforce permissions on the settings file
+                if (_fileSystem.FileExists(_settingsPath))
+                {
+                    _fileSystem.SetStrictPermissions(_settingsPath);
+                }
+
+                // Enforce permissions on the backup directory
+                if (_fileSystem.DirectoryExists(_backupPath))
+                {
+                    _fileSystem.SetStrictPermissions(_backupPath);
+                }
+
                 _logger.LogInformation("Secure permissions enforced on settings files");
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to enforce secure permissions on settings files");
-            }
-        }
-
-#if WINDOWS
-        /// <summary>
-        /// Windows-specific permission enforcement using ACLs
-        /// </summary>
-        private void EnforceWindowsPermissions()
-        {
-            try
-            {
-                // Get current user identity
-                var currentUser = WindowsIdentity.GetCurrent();
-                if (currentUser?.User == null)
-                {
-                    _logger.LogWarning("Could not determine current Windows user identity or SID");
-                    return;
-                }
-
-                _logger.LogDebug($"Enforcing Windows ACLs for user: {currentUser.Name}");
-
-                // 1. Enforce permissions on the settings directory (WhisperKey folder)
-                var settingsDir = Path.GetDirectoryName(_settingsPath);
-                if (!string.IsNullOrEmpty(settingsDir) && Directory.Exists(settingsDir))
-                {
-                    ApplyDirectorySecurity(settingsDir, currentUser.User);
-                }
-
-                // 2. Enforce permissions on the settings file
-                if (File.Exists(_settingsPath))
-                {
-                    ApplyFileSecurity(_settingsPath, currentUser.User);
-                }
-
-                // 3. Enforce permissions on the backup directory
-                if (Directory.Exists(_backupPath))
-                {
-                    ApplyDirectorySecurity(_backupPath, currentUser.User);
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to enforce secure permissions on settings files");
+                        }
+                    }
                 }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to apply Windows permissions via ACLs");
-            }
-        }
-
-        private void ApplyFileSecurity(string filePath, SecurityIdentifier userSid)
-        {
-            try
-            {
-                var fileInfo = new FileInfo(filePath);
-                var fileSecurity = fileInfo.GetAccessControl();
-                
-                // Disable inheritance and remove inherited rules
-                fileSecurity.SetAccessRuleProtection(true, false);
-
-                // Remove existing rules to ensure clean state (optional but safer)
-                var rules = fileSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
-                foreach (FileSystemAccessRule rule in rules)
-                {
-                    fileSecurity.RemoveAccessRule(rule);
-                }
-
-                // Add FullControl for the current user
-                fileSecurity.AddAccessRule(new FileSystemAccessRule(
-                    userSid,
-                    FileSystemRights.FullControl,
-                    AccessControlType.Allow));
-
-                // Apply to file
-                fileInfo.SetAccessControl(fileSecurity);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, $"Failed to apply ACL to file: {filePath}");
-            }
-        }
-
-        private void ApplyDirectorySecurity(string dirPath, SecurityIdentifier userSid)
-        {
-            try
-            {
-                var dirInfo = new DirectoryInfo(dirPath);
-                var dirSecurity = dirInfo.GetAccessControl();
-
-                // Disable inheritance and remove inherited rules
-                dirSecurity.SetAccessRuleProtection(true, false);
-
-                // Remove existing rules
-                var rules = dirSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
-                foreach (FileSystemAccessRule rule in rules)
-                {
-                    dirSecurity.RemoveAccessRule(rule);
-                }
-
-                // Add FullControl for the current user (with inheritance for sub-items)
-                dirSecurity.AddAccessRule(new FileSystemAccessRule(
-                    userSid,
-                    FileSystemRights.FullControl,
-                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
-                    PropagationFlags.None,
-                    AccessControlType.Allow));
-
-                // Apply to directory
-                dirInfo.SetAccessControl(dirSecurity);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, $"Failed to apply ACL to directory: {dirPath}");
-            }
-        }
-#else
-        /// <summary>
-        /// Unix-specific permission enforcement using chmod
-        /// </summary>
-        private void EnforceUnixPermissions()
-        {
-            try
-            {
-                // Set directory permissions to user read/write/execute only (700)
-                var directoryInfo = new DirectoryInfo(_backupPath);
-                directoryInfo.UnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
-                
-                // Set file permissions to user read/write only (600)
-                if (File.Exists(_settingsPath))
-                {
-                    var fileInfo = new FileInfo(_settingsPath);
-                    fileInfo.UnixFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                }
-                
-                _logger.LogInformation("Unix file permissions applied to settings files");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to apply Unix file permissions");
-            }
-        }
-#endif
-    }
-}
+            

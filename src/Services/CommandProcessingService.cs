@@ -171,8 +171,11 @@ namespace WhisperKey.Services
             if (string.IsNullOrWhiteSpace(text))
                 return commands;
             
-            // Check for each known command
-            foreach (var kvp in _commandMap)
+            // To track which characters are already part of a command
+            var matchedIndices = new bool[text.Length];
+            
+            // Check for each known command, longest first to prioritize "open quote" over "quote"
+            foreach (var kvp in _commandMap.OrderByDescending(k => k.Key.Length))
             {
                 var trigger = kvp.Key;
                 var (type, replacement) = kvp.Value;
@@ -181,10 +184,19 @@ namespace WhisperKey.Services
                 var index = text.IndexOf(trigger, StringComparison.OrdinalIgnoreCase);
                 while (index != -1)
                 {
-                    // Check if it's a whole word (not part of another word)
+                    // Check if it's a whole word AND not already matched
                     var isWholeWord = IsWholeWord(text, index, trigger.Length);
+                    var rangeAlreadyMatched = false;
+                    for (int i = 0; i < trigger.Length; i++)
+                    {
+                        if (index + i < matchedIndices.Length && matchedIndices[index + i])
+                        {
+                            rangeAlreadyMatched = true;
+                            break;
+                        }
+                    }
                     
-                    if (isWholeWord)
+                    if (isWholeWord && !rangeAlreadyMatched)
                     {
                         commands.Add(new VoiceCommand
                         {
@@ -195,6 +207,13 @@ namespace WhisperKey.Services
                             Replacement = replacement,
                             DeleteCount = type == VoiceCommandType.Delete ? 1 : 0
                         });
+                        
+                        // Mark indices as matched
+                        for (int i = 0; i < trigger.Length; i++)
+                        {
+                            if (index + i < matchedIndices.Length)
+                                matchedIndices[index + i] = true;
+                        }
                     }
                     
                     // Find next occurrence
@@ -234,108 +253,94 @@ namespace WhisperKey.Services
         /// <summary>
         /// Execute detected commands and return processed text
         /// </summary>
-        private string ExecuteCommands(string text, List<VoiceCommand> commands)
-        {
-            if (commands.Count == 0)
-                return text;
-            
-            var result = text;
-            var offset = 0;
-            
-            foreach (var command in commands)
-            {
-                var adjustedPosition = command.Position + offset;
-                
-                switch (command.Type)
+                private string ExecuteCommands(string text, List<VoiceCommand> commands)
                 {
-                    case VoiceCommandType.Punctuation:
-                        // Replace command text with punctuation, with smart spacing
-                        if (!string.IsNullOrEmpty(command.Replacement))
-                        {
-                            var replacement = command.Replacement;
-                            bool shouldHandleSpacing = ShouldHandleSpacingForPunctuation(replacement);
-                            
-                            if (shouldHandleSpacing && adjustedPosition > 0 && result[adjustedPosition - 1] == ' ')
-                            {
-                                // Remove the space and the command text, then insert punctuation
-                                result = result.Remove(adjustedPosition - 1, command.Length + 1)
-                                              .Insert(adjustedPosition - 1, replacement);
-                                offset += replacement.Length - (command.Length + 1);
-                            }
-                            else
-                            {
-                                // No space before or spacing not needed, just replace the command text
-                                result = result.Remove(adjustedPosition, command.Length)
-                                              .Insert(adjustedPosition, replacement);
-                                offset += replacement.Length - command.Length;
-                            }
-                        }
-                        break;
-                        
-                    case VoiceCommandType.Delete:
-                        // Remove command and previous character
-                        if (adjustedPosition > 0)
-                        {
-                            result = result.Remove(adjustedPosition - 1, command.Length + 1);
-                            offset -= command.Length + 1;
-                        }
-                        else
-                        {
-                            // Just remove the command if at the start
-                            result = result.Remove(adjustedPosition, command.Length);
-                            offset -= command.Length;
-                        }
-                        break;
-                        
-                    case VoiceCommandType.NewLine:
-                    case VoiceCommandType.Tab:
-                        // Replace command with whitespace
-                        if (!string.IsNullOrEmpty(command.Replacement))
-                        {
-                            result = result.Remove(adjustedPosition, command.Length)
-                                          .Insert(adjustedPosition, command.Replacement);
-                            offset += command.Replacement.Length - command.Length;
-                        }
-                        break;
-                        
-                    case VoiceCommandType.Undo:
-                        // Remove command text (undo requires external handling)
-                        result = result.Remove(adjustedPosition, command.Length);
-                        offset -= command.Length;
-                        break;
-                        
-                    case VoiceCommandType.Capitalize:
-                        // Capitalize next word (remove command, capitalize next word)
-                        result = result.Remove(adjustedPosition, command.Length);
-                        offset -= command.Length;
-                        
-                        // Find and capitalize the next word
-                        var nextWordStart = FindNextWordStart(result, adjustedPosition);
-                        if (nextWordStart >= 0 && nextWordStart < result.Length)
-                        {
-                            var nextWordEnd = FindNextWordEnd(result, nextWordStart);
-                            if (nextWordEnd > nextWordStart)
-                            {
-                                var word = result.Substring(nextWordStart, nextWordEnd - nextWordStart);
-                                var capitalized = char.ToUpper(word[0]) + word.Substring(1);
-                                result = result.Remove(nextWordStart, word.Length)
-                                              .Insert(nextWordStart, capitalized);
-                            }
-                        }
-                        break;
-                        
-                    default:
-                        // Remove unknown commands
-                        result = result.Remove(adjustedPosition, command.Length);
-                        offset -= command.Length;
-                        break;
-                }
-            }
-            
-            return result;
-        }
+                    if (commands.Count == 0)
+                        return text;
         
-        /// <summary>
+                    var result = text;
+                    // Process commands from end to start to avoid index shifting issues
+                    foreach (var command in commands.OrderByDescending(c => c.Position))
+                    {
+                        var pos = command.Position;
+        
+                        switch (command.Type)
+                        {
+                            case VoiceCommandType.Punctuation:
+                                if (!string.IsNullOrEmpty(command.Replacement))
+                                {
+                                    var replacement = command.Replacement;
+                                    bool shouldHandleSpacing = ShouldHandleSpacingForPunctuation(replacement);
+        
+                                    if (shouldHandleSpacing && pos > 0 && result[pos - 1] == ' ')
+                                    {
+                                        result = result.Remove(pos - 1, command.Length + 1)
+                                                      .Insert(pos - 1, replacement);
+                                    }
+                                    else
+                                    {
+                                        result = result.Remove(pos, command.Length)
+                                                      .Insert(pos, replacement);
+                                    }
+                                }
+                                break;
+        
+                            case VoiceCommandType.Delete:
+                                if (pos > 0)
+                                {
+                                    if (result[pos - 1] == ' ' && pos > 1)
+                                    {
+                                        result = result.Remove(pos - 2, command.Length + 2);
+                                    }
+                                    else
+                                    {
+                                        result = result.Remove(pos - 1, command.Length + 1);
+                                    }
+                                }
+                                else
+                                {
+                                    result = result.Remove(pos, command.Length);
+                                }
+                                break;
+        
+                            case VoiceCommandType.NewLine:
+                            case VoiceCommandType.Tab:
+                                if (!string.IsNullOrEmpty(command.Replacement))
+                                {
+                                    result = result.Remove(pos, command.Length)
+                                                  .Insert(pos, command.Replacement);
+                                }
+                                break;
+        
+                            case VoiceCommandType.Undo:
+                                result = result.Remove(pos, command.Length);
+                                break;
+        
+                            case VoiceCommandType.Capitalize:
+                                result = result.Remove(pos, command.Length);
+                                var nextWordStart = FindNextWordStart(result, pos);
+                                if (nextWordStart >= 0 && nextWordStart < result.Length)
+                                {
+                                    var nextWordEnd = FindNextWordEnd(result, nextWordStart);
+                                    if (nextWordEnd > nextWordStart)
+                                    {
+                                        var word = result.Substring(nextWordStart, nextWordEnd - nextWordStart);
+                                        var capitalized = char.ToUpper(word[0]) + word.Substring(1);
+                                        result = result.Remove(nextWordStart, word.Length)
+                                                      .Insert(nextWordStart, capitalized);
+                                    }
+                                }
+                                break;
+        
+                            default:
+                                result = result.Remove(pos, command.Length);
+                                break;
+                        }
+                    }
+        
+                    return result.Trim();
+                }
+                /// <summary>
         /// Apply auto-punctuation heuristics to text
         /// </summary>
         public string ApplyAutoPunctuation(string text)

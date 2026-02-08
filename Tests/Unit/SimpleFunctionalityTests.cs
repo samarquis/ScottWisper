@@ -47,10 +47,27 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public void Application_ShouldHaveValidStructure()
         {
+            // Find project root by looking for WhisperKey.csproj starting from assembly location
+            var currentDir = AppDomain.CurrentDomain.BaseDirectory;
+            var projectRoot = "";
+            var dir = new System.IO.DirectoryInfo(currentDir);
+            
+            while (dir != null)
+            {
+                if (System.IO.File.Exists(System.IO.Path.Combine(dir.FullName, "WhisperKey.csproj")))
+                {
+                    projectRoot = dir.FullName;
+                    break;
+                }
+                dir = dir.Parent;
+            }
+
+            Assert.IsFalse(string.IsNullOrEmpty(projectRoot), "Could not locate project root directory");
+            
             // Test that the application structure is valid
-            Assert.IsTrue(System.IO.File.Exists("WhisperKey.csproj"), "Project file should exist");
-            Assert.IsTrue(System.IO.Directory.Exists("src"), "Source directory should exist");
-            Assert.IsTrue(System.IO.Directory.Exists("Tests"), "Tests directory should exist");
+            Assert.IsTrue(System.IO.File.Exists(System.IO.Path.Combine(projectRoot, "WhisperKey.csproj")), "Project file should exist");
+            Assert.IsTrue(System.IO.Directory.Exists(System.IO.Path.Combine(projectRoot, "src")), "Source directory should exist");
+            Assert.IsTrue(System.IO.Directory.Exists(System.IO.Path.Combine(projectRoot, "Tests")), "Tests directory should exist");
             Console.WriteLine("✓ Application structure is valid");
         }
 

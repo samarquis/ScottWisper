@@ -12,19 +12,10 @@ using Moq;
 using WhisperKey.Services;
 using WhisperKey.Configuration;
 using WhisperKey.Repositories;
+using WhisperKey.Exceptions;
 
 namespace WhisperKey.Tests.Unit
 {
-    /// <summary>
-    /// Validation exception for settings validation
-    /// </summary>
-    public class ValidationException : Exception
-    {
-        public ValidationException() : base() { }
-        public ValidationException(string message) : base(message) { }
-        public ValidationException(string message, Exception innerException) : base(message, innerException) { }
-    }
-
     [TestClass]
     public class SettingsValidationTests
     {
@@ -53,16 +44,27 @@ namespace WhisperKey.Tests.Unit
 
             _mockRepository = new Mock<ISettingsRepository>();
             var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            _settingsService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, _mockRepository.Object);
+            var fileSystem = new FileSystemService("WhisperKeyTests");
+            var repository = new FileSettingsRepository(NullLogger<FileSettingsRepository>.Instance, fileSystem, _testAppDataPath);
+            _settingsService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, repository, autoLoad: false, customAppDataPath: _testAppDataPath);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
+            _settingsService?.Dispose();
+
             // Clean up test environment
             if (Directory.Exists(_testAppDataPath))
             {
-                Directory.Delete(_testAppDataPath, true);
+                try
+                {
+                    Directory.Delete(_testAppDataPath, true);
+                }
+                catch
+                {
+                    // Ignore transient cleanup errors
+                }
             }
         }
 
@@ -78,60 +80,60 @@ namespace WhisperKey.Tests.Unit
             
             try
             {
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
             }
-            catch (ValidationException)
+            catch (SettingsValidationException)
             {
                 Assert.Fail("Valid settings should not throw validation exception");
             }
 
             // Test invalid sample rate
             validSettings.Audio.SampleRate = 0;
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Zero sample rate should throw validation exception");
 
             validSettings.Audio.SampleRate = -1;
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Negative sample rate should throw validation exception");
 
             // Test invalid channels
             validSettings.Audio.SampleRate = 16000; // Reset to valid
             validSettings.Audio.Channels = 0;
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Zero channels should throw validation exception");
 
             validSettings.Audio.Channels = 3;
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "More than 2 channels should throw validation exception");
 
             // Test empty transcription provider
             validSettings.Audio.Channels = 1; // Reset to valid
             validSettings.Transcription.Provider = "";
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Empty provider should throw validation exception");
 
             validSettings.Transcription.Provider = null;
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Null provider should throw validation exception");
 
             // Test empty model
             validSettings.Transcription.Provider = "OpenAI"; // Reset to valid
             validSettings.Transcription.Model = "";
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Empty model should throw validation exception");
 
             // Test empty hotkey
             validSettings.Transcription.Model = "whisper-1"; // Reset to valid
             validSettings.Hotkeys.ToggleRecording = "";
-            await Assert.ThrowsExceptionAsync<ValidationException>(
-                () => _settingsService.SaveAsync(),
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(
+                () => _settingsService.SaveImmediateAsync(),
                 "Empty hotkey should throw validation exception");
         }
 
@@ -155,6 +157,8 @@ namespace WhisperKey.Tests.Unit
 
             // Add first hotkey to current profile
             await _settingsService.CreateHotkeyProfileAsync(profile);
+            await _settingsService.SwitchHotkeyProfileAsync(profile.Id);
+            await _settingsService.SaveImmediateAsync();
 
             // Test conflict detection for duplicate
             var conflictResult = await _settingsService.ValidateHotkeyAsync("Ctrl+Alt+V");
@@ -252,11 +256,7 @@ namespace WhisperKey.Tests.Unit
             Assert.IsTrue(exportContent.Contains("ExportTest"), "Export should contain profile name");
             Assert.IsTrue(exportContent.Contains("Ctrl+Shift+T"), "Export should contain hotkey combination");
 
-            // Delete original profile
-            var deleteResult = await _settingsService.DeleteHotkeyProfileAsync("ExportTest");
-            Assert.IsTrue(deleteResult, "Should delete original profile");
-
-            // Import profile
+            // Import profile - don't delete original, to force conflict and rename
             var importedProfile = await _settingsService.ImportHotkeyProfileAsync(exportPath);
             Assert.IsNotNull(importedProfile, "Import should return valid profile");
             Assert.AreEqual("ExportTest_1", importedProfile.Id, "Import should rename conflicting profile");
@@ -284,7 +284,8 @@ namespace WhisperKey.Tests.Unit
                     .Build();
                 
                 var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-                var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, _mockRepository.Object);
+                var recoveryRepository = new FileSettingsRepository(NullLogger<FileSettingsRepository>.Instance, new FileSystemService(), _testAppDataPath);
+                var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, recoveryRepository, autoLoad: false, customAppDataPath: _testAppDataPath);
                 
                 // Should not crash, should fall back to defaults
                 var recoveredSettings = recoveryService.Settings;
@@ -301,12 +302,12 @@ namespace WhisperKey.Tests.Unit
             originalSettings.Audio.SampleRate = 48000;
             originalSettings.Transcription.Provider = "TestProvider";
             
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Reset to defaults
             _settingsService.Settings.Audio.SampleRate = 16000;
             _settingsService.Settings.Transcription.Provider = "OpenAI";
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             var resetSettings = _settingsService.Settings;
             Assert.AreEqual(16000, resetSettings.Audio.SampleRate, "Should reset sample rate to default");
@@ -322,9 +323,13 @@ namespace WhisperKey.Tests.Unit
             // Test encrypted value storage
             await _settingsService.SetEncryptedValueAsync(testKey, testData);
 
-            // Verify encrypted file exists and is not plaintext
-            var encryptedFilePath = Path.Combine(_testAppDataPath, $"{testKey}.encrypted");
-            Assert.IsTrue(File.Exists(encryptedFilePath), "Encrypted file should exist");
+            // Verify encrypted file exists using SHA256 hashed name as implemented in service
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(testKey));
+            var safeFileName = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            var encryptedFilePath = Path.Combine(_testAppDataPath, $"{safeFileName}.encrypted");
+            
+            Assert.IsTrue(File.Exists(encryptedFilePath), $"Encrypted file should exist at {encryptedFilePath}");
 
             var encryptedContent = await File.ReadAllTextAsync(encryptedFilePath);
             Assert.AreNotEqual(testData, encryptedContent, "File should not contain plaintext");
@@ -373,7 +378,7 @@ namespace WhisperKey.Tests.Unit
 
             // Measure save performance
             var saveStartTime = DateTime.Now;
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
             var saveDuration = DateTime.Now - saveStartTime;
             
             Assert.IsTrue(saveDuration.TotalSeconds < 5, "Save should complete within 5 seconds even with large settings");
@@ -411,17 +416,17 @@ namespace WhisperKey.Tests.Unit
 
             // Test numeric validation
             settings.Audio.SampleRate = -100;
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), "Negative sample rate should fail");
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), "Negative sample rate should fail");
 
             settings.Audio.SampleRate = 0;
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), "Zero sample rate should fail");
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), "Zero sample rate should fail");
 
             settings.Audio.SampleRate = 1000000; // Unrealistic but valid
             try
             {
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
             }
-            catch (ValidationException)
+            catch (SettingsValidationException)
             {
                 Assert.Fail("High but valid sample rate should not fail");
             }
@@ -433,15 +438,15 @@ namespace WhisperKey.Tests.Unit
 
             settings.Transcription.Provider = "ValidProvider";
             settings.Transcription.Model = ""; // Empty string
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), "Empty model should fail");
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), "Empty model should fail");
 
             // Test range validation
             settings.Transcription.Model = "ValidModel";
             settings.Audio.Channels = -1;
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), "Negative channels should fail");
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), "Negative channels should fail");
 
             settings.Audio.Channels = 5;
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), "Too many channels should fail");
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), "Too many channels should fail");
 
             // Test format validation
             settings.Audio.Channels = 1; // Reset to valid
@@ -451,15 +456,15 @@ namespace WhisperKey.Tests.Unit
             // Test dependency validation
             settings.Transcription.ApiKey = "sk-1234567890"; // Valid format
             settings.Transcription.Provider = ""; // Empty but API key present
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), "Missing provider with API key should fail");
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), "Missing provider with API key should fail");
 
             settings.Transcription.Provider = "LocalWhisper";
             settings.Transcription.ApiKey = ""; // Local provider doesn't need API key
             try
             {
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
             }
-            catch (ValidationException)
+            catch (SettingsValidationException)
             {
                 Assert.Fail("Local provider without API key should be valid");
             }
@@ -478,9 +483,9 @@ namespace WhisperKey.Tests.Unit
             // Should be valid - all required fields present
             try
             {
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
             }
-            catch (ValidationException)
+            catch (SettingsValidationException)
             {
                 Assert.Fail("Valid dependent settings should save successfully");
             }
@@ -489,13 +494,13 @@ namespace WhisperKey.Tests.Unit
             settings.Audio.SampleRate = 16000; // Audio configured
             settings.Transcription.Provider = ""; // Missing provider
             
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), 
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), 
                 "Missing transcription provider should fail when audio is configured");
 
             // Test hotkey dependency
             settings.Transcription.Provider = "OpenAI"; // Reset
             settings.Hotkeys.ToggleRecording = ""; // Missing hotkey
-            await Assert.ThrowsExceptionAsync<ValidationException>(() => _settingsService.SaveAsync(), 
+            await Assert.ThrowsExceptionAsync<SettingsValidationException>(() => _settingsService.SaveImmediateAsync(), 
                 "Missing toggle hotkey should fail when transcription is configured");
 
             // Test device dependency validation
@@ -505,9 +510,9 @@ namespace WhisperKey.Tests.Unit
             // Should warn about non-existent device but may not fail (depends on validation strategy)
             try
             {
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
             }
-            catch (ValidationException)
+            catch (SettingsValidationException)
             {
                 // This is acceptable behavior
             }
@@ -520,9 +525,9 @@ namespace WhisperKey.Tests.Unit
             // Should be valid
             try
             {
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
             }
-            catch (ValidationException)
+            catch (SettingsValidationException)
             {
                 Assert.Fail("Valid UI settings should save successfully");
             }

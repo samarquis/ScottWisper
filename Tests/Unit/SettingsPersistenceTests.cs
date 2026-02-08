@@ -384,16 +384,11 @@ namespace WhisperKey.Tests.Unit
             var viewModel = new SettingsViewModel(_settingsServiceMock.Object, _audioDeviceServiceMock.Object);
             viewModel.Theme = "InvalidTheme";
             
-            // Act & Assert
-            try
-            {
-                await viewModel.SaveSettingsAsync();
-                Assert.Fail("Should have thrown validation exception");
-            }
-            catch (InvalidOperationException ex)
-            {
-                StringAssert.Contains(ex.Message, "Validation", "Should indicate validation failure");
-            }
+            // Act
+            await viewModel.SaveSettingsAsync();
+            
+            // Assert
+            StringAssert.Contains(viewModel.StatusMessage, "Validation", "Status message should indicate validation failure");
         }
     }
 }

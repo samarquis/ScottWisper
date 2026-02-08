@@ -18,16 +18,18 @@ namespace WhisperKey.UI
     {
         private readonly ISettingsService _settingsService;
         private readonly IAudioDeviceService _audioDeviceService;
+        private readonly IApiKeyManagementService _apiKeyManagement;
         private int _currentStep = 1;
         private bool _isMicrophoneTestRunning = false;
         private DispatcherTimer? _audioLevelTimer;
         
         public bool SetupCompleted { get; private set; } = false;
         
-        public FirstTimeSetupWizard(ISettingsService settingsService, IAudioDeviceService audioDeviceService)
+        public FirstTimeSetupWizard(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IApiKeyManagementService apiKeyManagement)
         {
             _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
             _audioDeviceService = audioDeviceService ?? throw new ArgumentNullException(nameof(audioDeviceService));
+            _apiKeyManagement = apiKeyManagement ?? throw new ArgumentNullException(nameof(apiKeyManagement));
             
             InitializeComponent();
             LoadMicrophones();
@@ -150,11 +152,16 @@ namespace WhisperKey.UI
                 var settings = _settingsService.Settings;
                 settings.Transcription.Mode = TranscriptionMode.Local; // Default to local (offline) mode
                 settings.Transcription.Provider = provider;
+                
                 if (!string.IsNullOrWhiteSpace(apiKey))
                 {
-                    settings.Transcription.ApiKey = apiKey;
+                    // Use ApiKeyManagementService for secure storage (IA-5 compliance)
+                    // This replaces storing the key in plain text in the settings file
+                    await _apiKeyManagement.RegisterKeyAsync(provider, "Default Key", apiKey);
+                    
                     settings.Transcription.Mode = TranscriptionMode.Cloud; // Only use cloud if API key provided
                 }
+                
                 await _settingsService.SaveAsync();
                 
                 ApiKeyValidationText.Text = "";

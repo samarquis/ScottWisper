@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using WhisperKey.Models;
+using WhisperKey.Services.Database;
 
 namespace WhisperKey.Services
 {
@@ -108,6 +109,7 @@ namespace WhisperKey.Services
     public class AuditLoggingService : IAuditLoggingService, IDisposable
     {
         private readonly ILogger<AuditLoggingService> _logger;
+        private readonly IAuditRepository _repository;
         private readonly string _logDirectory;
         private readonly List<RetentionPolicy> _retentionPolicies;
         private readonly ISecurityContextService _securityContextService;
@@ -121,10 +123,14 @@ namespace WhisperKey.Services
         
         public bool IsEnabled => _isEnabled;
         
-        public AuditLoggingService(ILogger<AuditLoggingService> logger, string? logDirectory = null, 
+        public AuditLoggingService(
+            ILogger<AuditLoggingService> logger, 
+            IAuditRepository repository,
+            string? logDirectory = null, 
             ISecurityContextService? securityContextService = null)
         {
             _logger = logger;
+            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
             _isEnabled = true;
             _retentionPolicies = new List<RetentionPolicy>();
             _securityContextService = securityContextService ?? new SecurityContextService(
@@ -245,8 +251,8 @@ namespace WhisperKey.Services
                 // Calculate integrity hash
                 entry.IntegrityHash = CalculateHash(entry);
                 
-                // Save to file
-                await SaveLogEntryAsync(entry);
+                // Save to repository
+                await _repository.AddAsync(entry);
                 
                 // Raise event for real-time alerting
                 EventLogged?.Invoke(this, entry);
@@ -916,7 +922,10 @@ namespace WhisperKey.Services
                         var existingDict = JsonSerializer.Deserialize<Dictionary<string, object>>(existingMetadata);
                         if (existingDict != null)
                         {
-                            metadataDict.AddRange(existingDict);
+                            foreach (var kvp in existingDict)
+                            {
+                                metadataDict[kvp.Key] = kvp.Value;
+                            }
                         }
                     }
                     catch

@@ -12,25 +12,25 @@ namespace WhisperKey.Tests.Unit
     [TestClass]
     public class HotkeyRegistrationServiceTests
     {
-        private Mock<Win32HotkeyRegistrar> _win32RegistrarMock = null!;
+        private Mock<IHotkeyRegistrar> _win32RegistrarMock = null!;
         private Mock<ILogger<HotkeyRegistrationService>> _loggerMock = null!;
         private HotkeyRegistrationService _registrationService = null!;
         private IntPtr _testWindowHandle = new IntPtr(12345);
 
-        [TestInitialize]
-        public void Setup()
-        {
-            _win32RegistrarMock = new Mock<Win32HotkeyRegistrar>();
-            _loggerMock = new Mock<ILogger<HotkeyRegistrationService>>();
-            
-            _registrationService = new HotkeyRegistrationService(
-                _win32RegistrarMock.Object,
-                _loggerMock.Object,
-                _testWindowHandle
-            );
-        }
-
-        [TestCleanup]
+                [TestInitialize]
+                public void Setup()
+                {
+                    _win32RegistrarMock = new Mock<IHotkeyRegistrar>();
+                    _win32RegistrarMock.Setup(r => r.UnregisterHotKey(It.IsAny<IntPtr>(), It.IsAny<int>())).Returns(true);
+                    _loggerMock = new Mock<ILogger<HotkeyRegistrationService>>();
+        
+                    _registrationService = new HotkeyRegistrationService(
+                        _win32RegistrarMock.Object,
+                        _loggerMock.Object,
+                        _testWindowHandle
+                    );
+                }
+                [TestCleanup]
         public void Cleanup()
         {
             _registrationService?.Dispose();

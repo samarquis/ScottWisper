@@ -110,20 +110,24 @@ namespace WhisperKey.Services
     public partial class TextInjectionService : ITextInjection, IDisposable
     {
         private readonly ILogger<TextInjectionService>? _logger;
+        private readonly IPerformanceMonitoringService? _performanceMonitoring;
+        private readonly IRateLimitingService? _rateLimiting;
         private bool _disposed = false;
         private bool _debugMode = false;
 
         /// <summary>
         /// Application compatibility map with all supported apps
         /// </summary>
-        public Dictionary<TargetApplication, ApplicationCompatibility> ApplicationCompatibilityMap { get; private set; }
+        public Dictionary<TargetApplication, ApplicationCompatibility>? ApplicationCompatibilityMap { get; private set; }
 
         /// <summary>
-        /// Constructor with logging support
+        /// Constructor with logging and monitoring support
         /// </summary>
-        public TextInjectionService(ILogger<TextInjectionService>? logger = null)
+        public TextInjectionService(ILogger<TextInjectionService>? logger = null, IPerformanceMonitoringService? performanceMonitoring = null, IRateLimitingService? rateLimiting = null)
         {
             _logger = logger;
+            _performanceMonitoring = performanceMonitoring;
+            _rateLimiting = rateLimiting;
             InitializeApplicationCompatibilityMap();
         }
 
@@ -685,6 +689,15 @@ namespace WhisperKey.Services
         /// </summary>
         public async Task<bool> InjectTextAsync(string text, InjectionOptions? options = null)
         {
+            using var activity = _performanceMonitoring?.StartActivity("TextInjectionService.InjectText");
+            
+            // Check rate limiting
+            if (_rateLimiting != null && !_rateLimiting.TryConsume("Injection"))
+            {
+                _logger?.LogWarning("Injection rate limit exceeded");
+                return false;
+            }
+
             var opts = options ?? new InjectionOptions();
             
             // Validate input
@@ -697,6 +710,8 @@ namespace WhisperKey.Services
             try
             {
                 _logger?.LogDebug("Injecting text: {Text}", text);
+                
+                _performanceMonitoring?.RecordMetric("injection.text_length", text.Length, "chars");
                 
                 // Check if target window is focused
                 if (!IsTargetWindowFocused())

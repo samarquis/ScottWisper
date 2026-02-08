@@ -54,18 +54,29 @@ namespace WhisperKey.Tests.Unit
                 })
                 .Build();
 
-            _mockRepository = new Mock<ISettingsRepository>();
+            // Use a real repository for tests that verify file operations
+            var fileSystem = new FileSystemService("WhisperKeyTests");
+            var repository = new FileSettingsRepository(NullLogger<FileSettingsRepository>.Instance, fileSystem, _testAppDataPath);
             var optionsMonitor = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            _settingsService = new SettingsService(configuration, optionsMonitor, NullLogger<SettingsService>.Instance, _mockRepository.Object);
+            _settingsService = new SettingsService(configuration, optionsMonitor, NullLogger<SettingsService>.Instance, repository, autoLoad: false, customAppDataPath: _testAppDataPath);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
+            _settingsService?.Dispose();
+            
             // Clean up test environment
             if (Directory.Exists(_testAppDataPath))
             {
-                Directory.Delete(_testAppDataPath, true);
+                try
+                {
+                    Directory.Delete(_testAppDataPath, true);
+                }
+                catch
+                {
+                    // Ignore transient cleanup errors
+                }
             }
         }
 
@@ -86,7 +97,7 @@ namespace WhisperKey.Tests.Unit
             initialSettings.UI.ShowVisualFeedback = false;
 
             // Save settings
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify settings file exists
             var settingsPath = Path.Combine(_testAppDataPath, "usersettings.json");
@@ -98,7 +109,10 @@ namespace WhisperKey.Tests.Unit
                 .Build();
             
             var newOptionsMonitor = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            var newSettingsService = new SettingsService(newConfiguration, newOptionsMonitor, NullLogger<SettingsService>.Instance, _mockRepository.Object);
+            var newRepository = new FileSettingsRepository(NullLogger<FileSettingsRepository>.Instance, new FileSystemService(), _testAppDataPath);
+            var newSettingsService = new SettingsService(newConfiguration, newOptionsMonitor, NullLogger<SettingsService>.Instance, newRepository, autoLoad: false, customAppDataPath: _testAppDataPath);
+            // Explicitly load
+            await newSettingsService.LoadUserSettingsAsync();
             var loadedSettings = newSettingsService.Settings;
 
             Assert.AreEqual(48000, loadedSettings.Audio.SampleRate, "Should persist modified sample rate");
@@ -129,7 +143,7 @@ namespace WhisperKey.Tests.Unit
 
             // Update setting
             _settingsService.Settings.Audio.SampleRate = newSampleRate;
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify immediate effect
             Assert.AreEqual(newSampleRate, _settingsService.Settings.Audio.SampleRate, "Setting should update immediately");
@@ -142,7 +156,7 @@ namespace WhisperKey.Tests.Unit
                 updates.Add(Task.Run(async () =>
                 {
                     _settingsService.Settings.Audio.SampleRate = updateValue;
-                    await _settingsService.SaveAsync();
+                    await _settingsService.SaveImmediateAsync();
                 }));
             }
 
@@ -162,7 +176,7 @@ namespace WhisperKey.Tests.Unit
             // Service 1 modifies audio settings
             service1Settings.Audio.SampleRate = 48000;
             service1Settings.Audio.Channels = 2;
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Service 2 should see changes
             Assert.AreEqual(48000, service2Settings.Audio.SampleRate, "Service 2 should see Service 1 changes");
@@ -171,7 +185,7 @@ namespace WhisperKey.Tests.Unit
             // Service 2 modifies transcription settings
             service2Settings.Transcription.Provider = "UpdatedProvider";
             service2Settings.Transcription.Model = "updated-model";
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Service 1 should see changes
             Assert.AreEqual("UpdatedProvider", service1Settings.Transcription.Provider, "Service 1 should see Service 2 changes");
@@ -206,7 +220,7 @@ namespace WhisperKey.Tests.Unit
             originalSettings.UI.ShowVisualFeedback = true;
             originalSettings.UI.MinimizeToTray = false;
 
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Test hotkey profile backup
             var testProfile = new HotkeyProfile
@@ -223,6 +237,7 @@ namespace WhisperKey.Tests.Unit
             };
 
             await _settingsService.CreateHotkeyProfileAsync(testProfile);
+            await _settingsService.SaveImmediateAsync();
 
             // Export profile (backup)
             var backupPath = Path.Combine(_testAppDataPath, "backup_profile.json");
@@ -232,8 +247,10 @@ namespace WhisperKey.Tests.Unit
             // Verify backup content
             var backupContent = await File.ReadAllTextAsync(backupPath);
             Assert.IsTrue(backupContent.Contains("BackupTestProfile"), "Backup should contain profile name");
-            Assert.IsTrue(backupContent.Contains("Ctrl+Shift+A"), "Backup should contain hotkey 1");
-            Assert.IsTrue(backupContent.Contains("Ctrl+Shift+B"), "Backup should contain hotkey 2");
+            Assert.IsTrue(backupContent.Contains("TestAction1"), "Backup should contain hotkey 1 name");
+            Assert.IsTrue(backupContent.Contains("Ctrl+Shift+A"), "Backup should contain hotkey 1 combination");
+            Assert.IsTrue(backupContent.Contains("TestAction2"), "Backup should contain hotkey 2 name");
+            Assert.IsTrue(backupContent.Contains("Ctrl+Shift+B"), "Backup should contain hotkey 2 combination");
 
             // Delete original profile
             await _settingsService.DeleteHotkeyProfileAsync("BackupTestProfile");
@@ -242,6 +259,10 @@ namespace WhisperKey.Tests.Unit
             var profiles = await _settingsService.GetHotkeyProfilesAsync();
             var deletedProfile = profiles.FirstOrDefault(p => p.Id == "BackupTestProfile");
             Assert.IsNull(deletedProfile, "Profile should be deleted");
+
+            // Re-create the profile to cause a conflict upon import
+            await _settingsService.CreateHotkeyProfileAsync(testProfile);
+            await _settingsService.SaveImmediateAsync();
 
             // Import profile (restore)
             var restoredProfile = await _settingsService.ImportHotkeyProfileAsync(backupPath);
@@ -260,7 +281,7 @@ namespace WhisperKey.Tests.Unit
             // Modify current settings
             _settingsService.Settings.Audio.SampleRate = 8000;
             _settingsService.Settings.Transcription.Provider = "TempProvider";
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Restore from backup
             var backupJson = await File.ReadAllTextAsync(settingsBackupPath);
@@ -270,7 +291,7 @@ namespace WhisperKey.Tests.Unit
             {
                 _settingsService.Settings.Audio.SampleRate = restoredSettings.Audio.SampleRate;
                 _settingsService.Settings.Transcription.Provider = restoredSettings.Transcription.Provider;
-                await _settingsService.SaveAsync();
+                await _settingsService.SaveImmediateAsync();
 
                 Assert.AreEqual(48000, _settingsService.Settings.Audio.SampleRate, "Should restore audio settings");
                 Assert.AreEqual("BackupTestProvider", _settingsService.Settings.Transcription.Provider, "Should restore transcription settings");
@@ -285,13 +306,16 @@ namespace WhisperKey.Tests.Unit
             var settingsPath = Path.Combine(_testAppDataPath, "usersettings.json");
             await File.WriteAllTextAsync(settingsPath, corruptJson);
 
-            // Create new service instance with corrupted settings
+            // Use a simple configuration instead of AddJsonFile(corruptPath) to avoid crash in AddJsonFile itself
             var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
-                .AddJsonFile(settingsPath, optional: true, reloadOnChange: true)
                 .Build();
 
             var options = new TestOptionsMonitor<AppSettings>(new AppSettings());
-            var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, _mockRepository.Object);
+            var recoveryRepository = new FileSettingsRepository(NullLogger<FileSettingsRepository>.Instance, new FileSystemService(), _testAppDataPath);
+            var recoveryService = new SettingsService(configuration, options, NullLogger<SettingsService>.Instance, recoveryRepository, autoLoad: false, customAppDataPath: _testAppDataPath);
+            
+            // This should catch the JsonException from repository and use defaults
+            await recoveryService.LoadUserSettingsAsync();
 
             // Should recover with default settings
             var recoveredSettings = recoveryService.Settings;
@@ -380,7 +404,7 @@ namespace WhisperKey.Tests.Unit
                         for (int j = 0; j < 10; j++)
                         {
                             _settingsService.Settings.Audio.SampleRate = 16000 + (i * 1000) + j;
-                            await _settingsService.SaveAsync();
+                            await _settingsService.SaveImmediateAsync();
                         }
                     }
                     catch (Exception ex) when (ex is not OutOfMemoryException
@@ -465,7 +489,7 @@ namespace WhisperKey.Tests.Unit
             settings.UI.ShowVisualFeedback = true;
             settings.UI.MinimizeToTray = true;
             settings.UI.StartWithWindows = false;
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify boolean values
             Assert.IsTrue(settings.UI.ShowVisualFeedback, "Should persist boolean true");
@@ -476,7 +500,7 @@ namespace WhisperKey.Tests.Unit
             settings.Audio.SampleRate = 44100;
             settings.Audio.Channels = 2;
             settings.UI.WindowOpacity = 75;
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify numeric values
             Assert.AreEqual(44100, settings.Audio.SampleRate, "Should persist integer value");
@@ -488,7 +512,7 @@ namespace WhisperKey.Tests.Unit
             settings.Transcription.Model = "whisper-base";
             settings.Transcription.ApiKey = "test_api_key_123";
             settings.Hotkeys.ToggleRecording = "Ctrl+Alt+S";
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify string values
             Assert.AreEqual("LocalWhisper", settings.Transcription.Provider, "Should persist string value");
@@ -510,7 +534,7 @@ namespace WhisperKey.Tests.Unit
                 CreatedAt = DateTime.Now
             };
 
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify collection values
             Assert.AreEqual(2, settings.Hotkeys.Profiles.Count, "Should persist collection count");
@@ -527,7 +551,7 @@ namespace WhisperKey.Tests.Unit
                 ShowTranscriptionWindow = true
             };
 
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify nested object values
             Assert.AreEqual(false, settings.UI.ShowVisualFeedback, "Should persist nested boolean");
@@ -577,7 +601,7 @@ namespace WhisperKey.Tests.Unit
             settings.Transcription = resetSettings.Transcription;
             settings.Hotkeys = resetSettings.Hotkeys;
 
-            await _settingsService.SaveAsync();
+            await _settingsService.SaveImmediateAsync();
 
             // Verify reset worked
             Assert.AreEqual(resetSettings.Audio.SampleRate, settings.Audio.SampleRate, "Should reset audio sample rate");

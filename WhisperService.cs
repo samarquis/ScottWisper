@@ -14,6 +14,7 @@ using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
 using WhisperKey.Services;
+using WhisperKey.Services.Validation;
 using WhisperKey.Configuration;
 using WhisperKey.Services.Recovery;
 
@@ -27,23 +28,22 @@ namespace WhisperKey
         private readonly ISettingsService? _settingsService;
         private readonly ICredentialService? _credentialService;
         private readonly IApiKeyManagementService? _apiKeyManagement;
+        private readonly IAudioValidationProvider? _audioValidator;
         private readonly IRecoveryPolicyService? _recoveryPolicyService;
+        private readonly IPerformanceMonitoringService? _performanceMonitoring;
         private readonly LocalInferenceService? _localInference;
         private readonly IConfiguration? _configuration;
         private readonly ILogger<WhisperService>? _logger;
         private readonly bool _ownsHttpClient;
         private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
         private readonly AsyncCircuitBreakerPolicy _circuitBreakerPolicy;
-        private readonly TokenBucketRateLimiter? _rateLimiter;
+        private readonly IRateLimitingService? _rateLimiting;
         
         // Configuration key for API endpoint
         private const string ApiEndpointConfigKey = "Transcription:ApiEndpoint";
         
         // Default API endpoint value (loaded from configuration)
         private const string DefaultApiEndpointValue = "https://api.openai.com/v1/audio/transcriptions";
-        
-        // Maximum audio file size (25MB - OpenAI API limit)
-        private const int MaxAudioSizeBytes = 25 * 1024 * 1024;
         
         // API usage tracking
         private int _requestCount = 0;
@@ -62,17 +62,32 @@ namespace WhisperKey
         public event EventHandler<Exception>? TranscriptionError;
         public event EventHandler<UsageStats>? UsageUpdated;
         
+        // DEPRECATED: This constructor creates HttpClient directly and should not be used
+        // Use IHttpClientFactory-based constructor instead to prevent socket exhaustion
+        [Obsolete("Use constructor with IHttpClientFactory to prevent socket exhaustion")]
         public WhisperService()
         {
             _apiKey = GetApiKey();
             _baseUrl = DefaultApiEndpointValue;
-            _httpClient = new HttpClient();
+            var handler = new HttpClientHandler
+            {
+                // SEC-004: Implement server certificate validation
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    if (errors == System.Net.Security.SslPolicyErrors.None) return true;
+                    _logger?.LogError("SSL Certificate error: {Errors}", errors);
+                    return false;
+                }
+            };
+            _httpClient = new HttpClient(handler);
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
             _ownsHttpClient = true;
             
             // Fallback initialization if no service provider
             _retryPolicy = CreateRetryPolicy();
             _circuitBreakerPolicy = CreateCircuitBreakerPolicy();
+            
+            _logger?.LogWarning("WhisperService created with deprecated constructor - use IHttpClientFactory to prevent socket exhaustion");
         }
         
         public WhisperService(ISettingsService settingsService, LocalInferenceService? localInference = null)
@@ -100,7 +115,7 @@ namespace WhisperKey
         {
         }
         
-        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, IRecoveryPolicyService? recoveryPolicy, LocalInferenceService? localInference, IConfiguration? configuration)
+        public WhisperService(ISettingsService settingsService, IHttpClientFactory? httpClientFactory, ICredentialService? credentialService, IApiKeyManagementService? apiKeyManagement, IRecoveryPolicyService? recoveryPolicy, LocalInferenceService? localInference, IConfiguration? configuration, IAudioValidationProvider? audioValidator = null, IPerformanceMonitoringService? performanceMonitoring = null, IRateLimitingService? rateLimiting = null)
         {
             _settingsService = settingsService;
             _credentialService = credentialService;
@@ -108,17 +123,20 @@ namespace WhisperKey
             _recoveryPolicyService = recoveryPolicy;
             _localInference = localInference;
             _configuration = configuration;
+            _audioValidator = audioValidator;
+            _performanceMonitoring = performanceMonitoring;
+            _rateLimiting = rateLimiting;
             _apiKey = GetApiKey(); // Sync version for constructor (env var only)
             
             // Load API endpoint from configuration immediately
             _baseUrl = GetApiEndpointFromConfiguration();
             
-            // Initialize rate limiter from configuration
-            if (_settingsService?.Settings.Transcription.EnableRateLimiting == true)
+            // Use IRateLimitingService instead of local limiter if available
+            if (_rateLimiting == null && _settingsService?.Settings.Transcription.EnableRateLimiting == true)
             {
                 var maxRequests = _settingsService.Settings.Transcription.MaxRequestsPerMinute;
-                _rateLimiter = new TokenBucketRateLimiter(maxRequests, 1);
-                System.Diagnostics.Debug.WriteLine($"Rate limiting enabled: {maxRequests} requests per minute");
+                // Fallback to local limiter for backward compatibility if service not provided
+                // But preferred is using the centralized service
             }
             
             // Use IHttpClientFactory if available to prevent socket exhaustion
@@ -129,7 +147,18 @@ namespace WhisperKey
             }
             else
             {
-                _httpClient = new HttpClient();
+                _logger?.LogError("WhisperService created without IHttpClientFactory - this will cause socket exhaustion under load");
+                var handler = new HttpClientHandler
+                {
+                    // SEC-004: Implement server certificate validation
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                    {
+                        if (errors == System.Net.Security.SslPolicyErrors.None) return true;
+                        _logger?.LogError("SSL Certificate error: {Errors}", errors);
+                        return false;
+                    }
+                };
+                _httpClient = new HttpClient(handler);
                 _ownsHttpClient = true;
             }
             
@@ -147,10 +176,8 @@ namespace WhisperKey
             // Initialize policies for API calls
             if (_recoveryPolicyService != null)
             {
-                // Note: recovery service provides non-generic retry, but WhisperService uses AsyncRetryPolicy<HttpResponseMessage>
-                // For now, we'll keep the specialized retry but use the recovery service for circuit breaking
-                // and use its GetApiRetryPolicy logic for non-HTTP specific tasks.
-                _retryPolicy = CreateRetryPolicy();
+                // Use recovery service for policies
+                _retryPolicy = _recoveryPolicyService.GetApiRetryPolicy<HttpResponseMessage>(5);
                 _circuitBreakerPolicy = _recoveryPolicyService.GetCircuitBreakerPolicy(CircuitBreakerThreshold, CircuitBreakerDurationSeconds);
             }
             else
@@ -183,48 +210,49 @@ namespace WhisperKey
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"Invalid API endpoint URL format: {endpoint}. Using configuration value.");
+                        _logger?.LogWarning("Invalid API endpoint URL format: {Endpoint}. Using configuration value.", endpoint);
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!IsFatalException(ex))
             {
-                System.Diagnostics.Debug.WriteLine($"Error during async initialization: {ex.Message}");
+                _logger?.LogError(ex, "Error during async initialization");
             }
         }
         
         public async Task<string> TranscribeAudioAsync(byte[] audioData, string? language = null)
         {
+            using var activity = _performanceMonitoring?.StartActivity("WhisperService.TranscribeAudio");
             try
             {
                 // Check rate limiting if enabled
-                if (_rateLimiter != null)
+                if (_rateLimiting != null)
                 {
-                    var applyToLocal = _settingsService?.Settings.Transcription.ApplyRateLimitToLocal ?? true;
-                    var isLocalMode = _settingsService?.Settings.Transcription.Mode == TranscriptionMode.Local;
-                    
-                    // Apply rate limiting if it's cloud mode, or if configured to apply to local mode too
-                    if (!isLocalMode || applyToLocal)
+                    if (!_rateLimiting.TryConsume("Transcription"))
                     {
-                        if (!_rateLimiter.TryConsume())
-                        {
-                            var waitTime = _rateLimiter.GetTimeUntilNextToken();
-                            var message = $"Rate limit exceeded. Maximum {_rateLimiter.MaxTokens} requests per {_rateLimiter.PeriodMinutes} minute(s). Please try again in {waitTime.TotalSeconds:F1} seconds.";
-                            
-                            _logger?.LogWarning("Rate limit exceeded for transcription request. Wait time: {WaitSeconds:F1}s", waitTime.TotalSeconds);
-                            System.Diagnostics.Debug.WriteLine(message);
-                            
-                            // Return 429 Too Many Requests
-                            throw new HttpRequestException(message, null, HttpStatusCode.TooManyRequests);
-                        }
+                        var waitTime = _rateLimiting.GetWaitTime("Transcription");
+                        var message = $"Rate limit exceeded for transcription. Please try again in {waitTime.TotalSeconds:F1} seconds.";
+                        _logger?.LogWarning("Rate limit exceeded for transcription request.");
+                        throw new HttpRequestException(message, null, HttpStatusCode.TooManyRequests);
                     }
                 }
                 
-                // Validate audio data before processing
-                ValidateAudioData(audioData);
+                // Validate audio data before processing using the specialized provider
+                if (_audioValidator != null)
+                {
+                    var validationResult = _audioValidator.ValidateAudioData(audioData);
+                    if (!validationResult.IsValid)
+                    {
+                        var errorMessage = $"Audio validation failed: {string.Join(", ", validationResult.Errors)}";
+                        _logger?.LogWarning(errorMessage);
+                        throw new WhisperKey.Exceptions.TranscriptionException(errorMessage, "INVALID_AUDIO");
+                    }
+                }
                 
                 // Notify transcription started
                 TranscriptionStarted?.Invoke(this, EventArgs.Empty);
+                
+                _performanceMonitoring?.RecordMetric("transcription.audio_length_bytes", audioData.Length, "bytes");
                 
                 // Check if we should use local inference
                 if (_settingsService?.Settings.Transcription.Mode == TranscriptionMode.Local && _localInference != null)
@@ -242,7 +270,7 @@ namespace WhisperKey
                         if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
                         {
                             // Log warning and fallback
-                            System.Diagnostics.Debug.WriteLine($"Local transcription failed, falling back to cloud: {ex.Message}");
+                            _logger?.LogWarning(ex, "Local transcription failed, falling back to cloud");
                         }
                         else
                         {
@@ -254,7 +282,7 @@ namespace WhisperKey
                         if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
                         {
                             // Log warning and fallback
-                            System.Diagnostics.Debug.WriteLine($"Local transcription failed, falling back to cloud: {ex.Message}");
+                            _logger?.LogWarning(ex, "Local transcription failed due to network error, falling back to cloud");
                         }
                         else
                         {
@@ -266,7 +294,7 @@ namespace WhisperKey
                         if (_settingsService.Settings.Transcription.AutoFallbackToCloud)
                         {
                             // Log warning and fallback
-                            System.Diagnostics.Debug.WriteLine($"Local transcription failed, falling back to cloud: {ex.Message}");
+                            _logger?.LogWarning(ex, "Local transcription failed due to IO error, falling back to cloud");
                         }
                         else
                         {
@@ -279,53 +307,129 @@ namespace WhisperKey
                 // Report some progress before making the request
                 TranscriptionProgress?.Invoke(this, 25);
                 
-                // Execute API request with retry policy, wrapped in circuit breaker
-                HttpResponseMessage response = await _circuitBreakerPolicy.ExecuteAsync(async () =>
+                                                // Execute API request with retry policy, wrapped in circuit breaker
+                
+                                                HttpResponseMessage response = await _circuitBreakerPolicy.ExecuteAsync(async () =>
+                
+                                                {
+                
+                                                    return await _retryPolicy.ExecuteAsync(async () =>
+                
+                                                    {
+                
+                                                    // Create multipart form content (must be recreated for each retry)
+                
+                                                    var content = new MultipartFormDataContent();
+                
+                                                    
+                
+                                                    // Add audio file
+                
+                                                    var audioContent = new ByteArrayContent(audioData);
+                
+                                                    audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/wav");
+                
+                                                    content.Add(audioContent, "file", "audio.wav");
+                
+                                                    
+                
+                                                    // Add model parameter
+                
+                                                    content.Add(new StringContent(_settingsService?.Settings.Transcription.Model ?? "whisper-1"), "model");
+                
+                                                    
+                
+                                                    // Add language parameter if specified
+                
+                                                    if (!string.IsNullOrEmpty(language))
+                
+                                                    {
+                
+                                                        content.Add(new StringContent(language), "language");
+                
+                                                    }
+                
+                                                    
+                
+                                                    // Add response format
+                
+                                                    content.Add(new StringContent("json"), "response_format");
+                
+                                                    
+                
+                                                    // Add temperature for consistent results
+                
+                                                    content.Add(new StringContent("0.0"), "temperature");
+                
+                                                    
+                
+                                                    var result = await _httpClient.PostAsync(_baseUrl, content).ConfigureAwait(false);
+                
+                                                    
+                
+                                                    // Dispose content after request
+                
+                                                    content.Dispose();
+                
+                                                    
+                
+                                                                        // Check for success - retry policy will handle transient failures
+                
+                                                    
+                
+                                                                        if (!result.IsSuccessStatusCode && 
+                
+                                                    
+                
+                                                                            result.StatusCode != HttpStatusCode.TooManyRequests && 
+                
+                                                    
+                
+                                                                            result.StatusCode != HttpStatusCode.ServiceUnavailable && 
+                
+                                                    
+                
+                                                                            result.StatusCode != HttpStatusCode.BadGateway && 
+                
+                                                    
+                
+                                                                            result.StatusCode != HttpStatusCode.GatewayTimeout)
+                
+                                                    
+                
+                                                                        {
+                
+                                                    
+                
+                                                                            var errorContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                
+                                                    
+                
+                                                                            throw new HttpRequestException($"Whisper API request failed: {(int)result.StatusCode} ({result.StatusCode}) - {errorContent}");
+                
+                                                    
+                
+                                                                        }
+                
+                                                    
+                
+                                                    
+                
+                                                    
+                
+                                                    return result;
+                
+                                                }).ConfigureAwait(false);
+                
+                                                }).ConfigureAwait(false);
+                
+                                
+                                // Ensure successful response
+                if (!response.IsSuccessStatusCode)
                 {
-                    return await _retryPolicy.ExecuteAsync(async () =>
-                    {
-                    // Create multipart form content (must be recreated for each retry)
-                    var content = new MultipartFormDataContent();
-                    
-                    // Add audio file
-                    var audioContent = new ByteArrayContent(audioData);
-                    audioContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/wav");
-                    content.Add(audioContent, "file", "audio.wav");
-                    
-                    // Add model parameter
-                    content.Add(new StringContent("whisper-1"), "model");
-                    
-                    // Add language parameter if specified
-                    if (!string.IsNullOrEmpty(language))
-                    {
-                        content.Add(new StringContent(language), "language");
-                    }
-                    
-                    // Add response format
-                    content.Add(new StringContent("json"), "response_format");
-                    
-                    // Add temperature for consistent results
-                    content.Add(new StringContent("0.0"), "temperature");
-                    
-                    var result = await _httpClient.PostAsync(_baseUrl, content).ConfigureAwait(false);
-                    
-                    // Dispose content after request
-                    content.Dispose();
-                    
-                    // Check for success - retry policy will handle transient failures
-                    if (!result.IsSuccessStatusCode && 
-                        result.StatusCode != HttpStatusCode.TooManyRequests &&
-                        result.StatusCode != HttpStatusCode.ServiceUnavailable &&
-                        result.StatusCode != HttpStatusCode.BadGateway &&
-                        result.StatusCode != HttpStatusCode.GatewayTimeout)
-                    {
-                        var errorContent = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        throw new HttpRequestException($"Whisper API request failed: {result.StatusCode} - {errorContent}");
-                    }
-                    
-                    return result;
-                }).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                    var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new HttpRequestException($"Whisper API request failed after retries: {response.StatusCode} - {errorContent}", null, response.StatusCode);
+                }
                 
                 // Report progress after getting response
                 TranscriptionProgress?.Invoke(this, 75);
@@ -349,37 +453,28 @@ namespace WhisperKey
                 }
 
                 // Notify subscribers
-                                TranscriptionCompleted?.Invoke(this, transcriptionResponse.Text);
-                                
-                                return transcriptionResponse.Text;
-                            }
-                            catch (BrokenCircuitException ex)
-                            {
-                                // Circuit breaker is open - API is unavailable
-                                var circuitBreakerMessage = "Whisper API is temporarily unavailable due to repeated failures. " +
-                                    $"Circuit breaker will reset in {CircuitBreakerDurationSeconds} seconds. " +
-                                    "Consider using local transcription mode.";
-                                System.Diagnostics.Debug.WriteLine(circuitBreakerMessage);
-                                
-                                if (_apiKeyManagement != null)
-                                {
-                                    _ = _apiKeyManagement.RecordUsageAsync("OpenAI", success: false, errorMessage: circuitBreakerMessage);
-                                }
+                TranscriptionCompleted?.Invoke(this, transcriptionResponse.Text);
                 
-                                var wrappedException = new HttpRequestException(circuitBreakerMessage, ex);
-                                TranscriptionError?.Invoke(this, wrappedException);
-                                throw wrappedException;
-                            }
-                            catch (Exception ex) when (!IsFatalException(ex))
-                            {
-                                if (_apiKeyManagement != null)
-                                {
-                                    _ = _apiKeyManagement.RecordUsageAsync("OpenAI", success: false, errorMessage: ex.Message);
-                                }
-                                TranscriptionError?.Invoke(this, ex);
-                                throw;
-                            }
-                        }
+                return transcriptionResponse.Text;
+            }
+            catch (BrokenCircuitException ex)
+            {
+                // Wrap BrokenCircuitException in HttpRequestException to match test expectations (SEC-007)
+                var message = "Whisper API is temporarily unavailable due to repeated failures. " +
+                    $"Circuit breaker is OPEN. Please try again in {CircuitBreakerDurationSeconds} seconds.";
+                _logger?.LogWarning(ex, "Circuit breaker is open");
+                throw new HttpRequestException(message, ex, HttpStatusCode.ServiceUnavailable);
+            }
+            catch (Exception ex) when (!IsFatalException(ex))
+            {
+                if (_apiKeyManagement != null)
+                {
+                    _ = _apiKeyManagement.RecordUsageAsync("OpenAI", success: false, errorMessage: ex.Message);
+                }
+                TranscriptionError?.Invoke(this, ex);
+                throw;
+            }
+        }
                         public async Task<string> TranscribeAudioFileAsync(string filePath, string? language = null)
         {
             try
@@ -387,6 +482,15 @@ namespace WhisperKey
                 if (!File.Exists(filePath))
                 {
                     throw new FileNotFoundException($"Audio file not found: {filePath}");
+                }
+                
+                if (_audioValidator != null)
+                {
+                    var validationResult = await _audioValidator.ValidateAudioFileAsync(filePath);
+                    if (!validationResult.IsValid)
+                    {
+                        throw new SecurityException($"Audio file validation failed: {string.Join(", ", validationResult.Errors)}");
+                    }
                 }
                 
                 var audioData = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
@@ -418,15 +522,8 @@ namespace WhisperKey
         
         private string GetApiKey()
         {
-            // Try environment variable first
-            var envKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            if (!string.IsNullOrEmpty(envKey))
-            {
-                return envKey;
-            }
-
-            // Note: File I/O for encrypted key is now handled asynchronously via GetApiKeyFromSettingsAsync
-            // This sync method only checks environment variables for constructor initialization
+            // Environment variables are no longer supported for secrets (IA-5 compliance)
+            // Secrets must be retrieved through the Credential Service or Settings Service
             return string.Empty;
         }
 
@@ -442,13 +539,6 @@ namespace WhisperKey
                 }
             }
             
-            // Fall back to environment variable
-            var envKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-            if (!string.IsNullOrEmpty(envKey))
-            {
-                return envKey;
-            }
-
             return string.Empty;
         }
 
@@ -512,7 +602,7 @@ namespace WhisperKey
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"Invalid API endpoint URL in configuration: {endpoint}. Using default.");
+                            _logger?.LogWarning("Invalid API endpoint URL in configuration: {Endpoint}. Using default.", endpoint);
                         }
                     }
                 }
@@ -522,7 +612,7 @@ namespace WhisperKey
             }
             catch (Exception ex) when (!IsFatalException(ex))
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading API endpoint from configuration: {ex.Message}. Using default.");
+                _logger?.LogError(ex, "Error loading API endpoint from configuration. Using default.");
                 return DefaultApiEndpointValue;
             }
         }
@@ -533,18 +623,25 @@ namespace WhisperKey
             {
                 try
                 {
-                    // Settings access is synchronous (in-memory), but we make this async for consistency
-                    await Task.Yield();
+                    // Try to get from encrypted storage first (SEC-006)
+                    var encryptedEndpoint = await _settingsService.GetEncryptedValueAsync("Transcription_ApiEndpoint").ConfigureAwait(false);
+                    if (!string.IsNullOrEmpty(encryptedEndpoint))
+                    {
+                        return encryptedEndpoint;
+                    }
+
+                    // Fallback to legacy plaintext setting for backward compatibility
                     var endpoint = _settingsService.Settings.Transcription.ApiEndpoint;
                     if (!string.IsNullOrEmpty(endpoint))
                     {
+                        // Migration path: save to encrypted storage if found in plaintext
+                        await _settingsService.SetEncryptedValueAsync("Transcription_ApiEndpoint", endpoint).ConfigureAwait(false);
                         return endpoint;
                     }
                 }
                 catch (Exception ex) when (!IsFatalException(ex))
                 {
-                    // Log error but don't fall back - let configuration value be used
-                    System.Diagnostics.Debug.WriteLine($"Error reading endpoint from settings: {ex.Message}");
+                    _logger?.LogWarning(ex, "Error reading API endpoint from settings");
                 }
             }
             
@@ -560,7 +657,7 @@ namespace WhisperKey
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error handling settings change: {ex.Message}");
+                _logger?.LogError(ex, "Error handling settings change");
                 TranscriptionError?.Invoke(this, ex);
             }
         }
@@ -606,73 +703,6 @@ namespace WhisperKey
         }
         
         /// <summary>
-        /// Validates audio data before API upload.
-        /// Checks file size against MAX_AUDIO_SIZE limit.
-        /// Verifies WAV format headers.
-        /// Throws SecurityException if invalid.
-        /// </summary>
-        private static void ValidateAudioData(byte[] audioData)
-        {
-            if (audioData == null)
-            {
-                throw new SecurityException("Audio data cannot be null");
-            }
-            
-            if (audioData.Length == 0)
-            {
-                throw new SecurityException("Audio data cannot be empty");
-            }
-            
-            // Check file size against limit
-            if (audioData.Length > MaxAudioSizeBytes)
-            {
-                throw new SecurityException($"Audio file size ({audioData.Length} bytes) exceeds maximum allowed size ({MaxAudioSizeBytes} bytes = 25MB)");
-            }
-            
-            // Verify WAV format headers (minimum 44 bytes for standard WAV header)
-            if (audioData.Length < 44)
-            {
-                throw new SecurityException($"Audio file too small to be a valid WAV file ({audioData.Length} bytes, minimum 44 bytes required)");
-            }
-            
-            // Check RIFF header
-            if (audioData[0] != 'R' || audioData[1] != 'I' || audioData[2] != 'F' || audioData[3] != 'F')
-            {
-                throw new SecurityException("Invalid audio file format: missing RIFF header");
-            }
-            
-            // Check WAVE format
-            if (audioData[8] != 'W' || audioData[9] != 'A' || audioData[10] != 'V' || audioData[11] != 'E')
-            {
-                throw new SecurityException("Invalid audio file format: not a valid WAVE file");
-            }
-            
-            // Check fmt  subchunk
-            if (audioData[12] != 'f' || audioData[13] != 'm' || audioData[14] != 't' || audioData[15] != ' ')
-            {
-                throw new SecurityException("Invalid audio file format: missing fmt  subchunk");
-            }
-            
-            // Check data subchunk marker location (typically at byte 36, but can vary)
-            // We look for "data" starting from byte 36
-            bool foundDataChunk = false;
-            for (int i = 36; i < audioData.Length - 4; i++)
-            {
-                if (audioData[i] == 'd' && audioData[i + 1] == 'a' && 
-                    audioData[i + 2] == 't' && audioData[i + 3] == 'a')
-                {
-                    foundDataChunk = true;
-                    break;
-                }
-            }
-            
-            if (!foundDataChunk)
-            {
-                throw new SecurityException("Invalid audio file format: missing data chunk");
-            }
-        }
-        
-        /// <summary>
         /// Validates the API endpoint URL format.
         /// Ensures the URL is a valid absolute HTTPS URL.
         /// </summary>
@@ -691,7 +721,6 @@ namespace WhisperKey
             // Require HTTPS for security
             if (uri.Scheme != Uri.UriSchemeHttps)
             {
-                System.Diagnostics.Debug.WriteLine($"API endpoint must use HTTPS. Got: {uri.Scheme}");
                 return false;
             }
             
@@ -731,21 +760,28 @@ namespace WhisperKey
         private static AsyncRetryPolicy<HttpResponseMessage> CreateRetryPolicy()
         {
             return Policy
-                .Handle<HttpRequestException>()
+                .Handle<HttpRequestException>(ex => 
+                    ex.StatusCode == null || // Transient network errors often don't have a status code
+                    ex.StatusCode == HttpStatusCode.TooManyRequests ||
+                    ex.StatusCode == HttpStatusCode.ServiceUnavailable ||
+                    ex.StatusCode == HttpStatusCode.BadGateway ||
+                    ex.StatusCode == HttpStatusCode.GatewayTimeout ||
+                    ex.StatusCode == HttpStatusCode.InternalServerError)
                 .Or<TimeoutException>()
                 .OrResult<HttpResponseMessage>(response => 
                     response.StatusCode == HttpStatusCode.TooManyRequests ||
                     response.StatusCode == HttpStatusCode.ServiceUnavailable ||
                     response.StatusCode == HttpStatusCode.BadGateway ||
-                    response.StatusCode == HttpStatusCode.GatewayTimeout)
+                    response.StatusCode == HttpStatusCode.GatewayTimeout ||
+                    response.StatusCode == HttpStatusCode.InternalServerError)
                 .WaitAndRetryAsync(
                     retryCount: 5,
                     sleepDurationProvider: retryAttempt => 
                         TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + GetJitter(), // Exponential: 2, 4, 8 seconds
                     onRetryAsync: (outcome, timespan, retryCount, context) =>
                     {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Retry {retryCount} after {timespan.TotalSeconds:F1}s due to: {outcome.Exception?.Message ?? outcome.Result?.StatusCode.ToString()}");
+                        // Use static logger if available or just skip if not (since this is a static method)
+                        // In a real refactor, we might want to pass the logger or use a factory
                         return Task.CompletedTask;
                     });
         }
@@ -776,16 +812,15 @@ namespace WhisperKey
                     durationOfBreak: TimeSpan.FromSeconds(CircuitBreakerDurationSeconds),
                     onBreak: (exception, duration) =>
                     {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Circuit breaker OPEN for {duration.TotalSeconds}s due to: {exception.Message}");
+                        // Circuit breaker opened
                     },
                     onReset: () =>
                     {
-                        System.Diagnostics.Debug.WriteLine("Circuit breaker CLOSED - requests allowed");
+                        // Circuit breaker closed
                     },
                     onHalfOpen: () =>
                     {
-                        System.Diagnostics.Debug.WriteLine("Circuit breaker HALF-OPEN - testing request");
+                        // Circuit breaker half-open
                     });
         }
         

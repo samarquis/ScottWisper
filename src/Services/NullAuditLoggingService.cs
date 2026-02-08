@@ -14,7 +14,7 @@ namespace WhisperKey.Services
             public bool IsEnabled => false;
     
             public event EventHandler<AuditLogEntry>? EventLogged;
-    
+
             public Task<AuditLogEntry> LogEventAsync(AuditEventType eventType, string description, 
      string? metadata = null, DataSensitivity sensitivity = DataSensitivity.Low)
         {

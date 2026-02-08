@@ -81,6 +81,8 @@ namespace WhisperKey
     {
         private IFeedbackService? _feedbackService;
         private WhisperKey.Services.ISettingsService? _settingsService;
+        private IResponsiveUIService? _responsiveService;
+        private IOnboardingService? _onboardingService;
         private ITextInjection? _textInjectionService;
         private bool _isHidden = false;
         private readonly List<StatusHistoryItem> _displayHistory = new();
@@ -122,6 +124,20 @@ namespace WhisperKey
             if (Application.Current.Properties["SettingsService"] is WhisperKey.Services.ISettingsService settingsService)
             {
                 _settingsService = settingsService;
+            }
+
+            // Get responsive service
+            _responsiveService = (Application.Current as App)?.Properties["ResponsiveService"] as IResponsiveUIService;
+            if (_responsiveService != null)
+            {
+                _responsiveService.RegisterWindow(this);
+            }
+
+            // Get onboarding service
+            _onboardingService = (Application.Current as App)?.Properties["OnboardingService"] as IOnboardingService;
+            if (_onboardingService != null && _onboardingService.IsOnboardingRequired())
+            {
+                await _onboardingService.StartWelcomeAsync();
             }
             
             // Initialize feedback service if needed

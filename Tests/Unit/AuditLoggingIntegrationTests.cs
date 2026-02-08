@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Win32;
 using WhisperKey.Services;
 using WhisperKey.Models;
+using WhisperKey.Services.Database;
 using System.Text.Json;
 using System.Linq;
 
@@ -125,7 +126,7 @@ namespace WhisperKey.Tests.Unit
 
             // Assert
             var securityEvents = _auditService.GetLoggedEvents()
-                .Where(e => e.EventType == AuditEventType.SecurityEvent)
+                .Where(e => e.EventType == AuditEventType.ApiKeyAccessed || e.EventType == AuditEventType.SecurityEvent)
                 .ToList();
 
             // Should have logged delete attempt (success or failure)
@@ -143,7 +144,8 @@ namespace WhisperKey.Tests.Unit
         {
             // Arrange
             var auditService = new AuditLoggingService(
-                NullLogger<AuditLoggingService>.Instance);
+                NullLogger<AuditLoggingService>.Instance,
+                new NullAuditRepository());
             
             // Act
             var securityEvent = await auditService.LogEventAsync(
@@ -162,7 +164,8 @@ namespace WhisperKey.Tests.Unit
         {
             // Arrange
             var auditService = new AuditLoggingService(
-                NullLogger<AuditLoggingService>.Instance);
+                NullLogger<AuditLoggingService>.Instance,
+                new NullAuditRepository());
 
             // Act
             var apiKeyEvent = await auditService.LogEventAsync(
@@ -181,7 +184,8 @@ namespace WhisperKey.Tests.Unit
         {
             // Arrange
             var auditService = new AuditLoggingService(
-                NullLogger<AuditLoggingService>.Instance);
+                NullLogger<AuditLoggingService>.Instance,
+                new NullAuditRepository());
 
             // Act
             var policies = await auditService.GetRetentionPoliciesAsync();

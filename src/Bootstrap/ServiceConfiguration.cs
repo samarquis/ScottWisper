@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
@@ -13,6 +14,9 @@ using WhisperKey.Services.Validation;
 using WhisperKey.Services.Memory;
 using WhisperKey.Services.Database;
 using WhisperKey.Services.Recovery;
+using WhisperKey.Infrastructure.SmokeTesting;
+using WhisperKey.Infrastructure.SmokeTesting.Reporting;
+using WhisperKey.Infrastructure.SmokeTesting.HealthChecks;
 using WhisperKey;
 using Microsoft.Extensions.Logging.Console;
 using Serilog.Extensions.Logging;
@@ -143,6 +147,7 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<ICorrelationService, CorrelationService>();
             services.AddSingleton<IStructuredLoggingService, StructuredLoggingService>();
             services.AddSingleton<IStartupPerformanceService, StartupPerformanceService>();
+            services.AddSingleton<IFileSystemService>(sp => new FileSystemService());
             
             // Core services (immediate initialization - lightweight dependencies)
             services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
@@ -155,14 +160,51 @@ namespace WhisperKey.Bootstrap
             
             // Validation and utility services (lightweight)
             services.AddSingleton<ValidationService>();
+            services.AddSingleton<IInputValidationService, InputValidationService>();
+            services.AddSingleton<IAudioValidationProvider, AudioValidationProvider>();
             services.AddSingleton<VocabularyService>();
             services.AddSingleton<UserErrorService>();
             services.AddSingleton<ApplicationBootstrapper, ApplicationBootstrapper>();
             services.AddSingleton<SystemTrayService, SystemTrayService>();
             
             // Permission and system services (lightweight)
+            services.AddSingleton<IAuditRepository, FileAuditRepository>();
             services.AddSingleton<IAuditLoggingService, AuditLoggingService>();
             services.AddSingleton<ISecurityAlertService, SecurityAlertService>();
+            services.AddSingleton<IIntelligentAlertingService, IntelligentAlertingService>();
+            services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+            services.AddSingleton<IDeploymentRollbackService, DeploymentRollbackService>();
+            services.AddSingleton<IDeploymentRoutingService, DeploymentRoutingService>();
+            services.AddSingleton<IProductionValidationService, ProductionValidationService>();
+            
+            // Smoke Testing Infrastructure
+            services.AddSingleton<SmokeTestConfiguration>();
+            services.AddSingleton<SmokeTestEnvironmentManager>();
+            services.AddSingleton<SmokeTestResultCollector>();
+            services.AddSingleton<SmokeTestReportingService>();
+            services.AddSingleton<ProductionSmokeTestOrchestrator>();
+            services.AddSingleton<ILogAnalysisService, LogAnalysisService>();
+            services.AddSingleton<IBusinessMetricsRepository, JsonBusinessMetricsRepository>();
+            services.AddSingleton<IBusinessMetricsService, BusinessMetricsService>();
+            services.AddSingleton<IConfigurationManagementService, ConfigurationManagementService>();
+            services.AddSingleton<IResponsiveUIService, ResponsiveUIService>();
+            services.AddSingleton<IAccessibilityService, AccessibilityService>();
+            services.AddSingleton<IUITestAutomationService, UITestAutomationService>();
+            services.AddSingleton<ILoadTestingService, LoadTestingService>();
+            services.AddSingleton<IGracefulDegradationService, GracefulDegradationService>();
+            services.AddSingleton<IErrorReportingService, ErrorReportingService>();
+            services.AddSingleton<ILazyInitializationService, LazyInitializationService>();
+            services.AddSingleton<IRateLimitingService, RateLimitingService>();
+            services.AddSingleton<ICentralizedHealthService, CentralizedHealthService>();
+            services.AddSingleton<IAnimationService, AnimationService>();
+            services.AddSingleton<IOnboardingService, OnboardingService>();
+            
+            // Register Health Checkers
+            services.AddSingleton<SystemHealthChecker>();
+            services.AddSingleton<DatabaseHealthChecker>();
+            services.AddSingleton<ExternalServiceHealthChecker>();
+            
+            services.AddSingleton<ICredentialService, WindowsCredentialService>();
             services.AddSingleton<IApiKeyManagementService, ApiKeyManagementService>();
             services.AddSingleton<ApiKeyRotationService>();
             services.AddSingleton<JsonDatabaseService>();
@@ -173,7 +215,6 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton(typeof(IObjectPool<>), typeof(GenericObjectPool<>));
             services.AddSingleton<IPermissionService, PermissionService>();
             services.AddSingleton<IRegistryService, RegistryService>();
-            services.AddSingleton<IFileSystemService>(sp => new FileSystemService()); 
             services.AddSingleton<IFeedbackService, FeedbackService>();
             services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
             
@@ -191,6 +232,23 @@ namespace WhisperKey.Bootstrap
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("User-Agent", "WhisperKey/1.0");
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                // SEC-004: Implement server certificate validation to ensure secure communication
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    if (errors == System.Net.Security.SslPolicyErrors.None)
+                    {
+                        return true;
+                    }
+
+                    // Log certificate validation failures for security auditing
+                    Log.Error("SSL Certificate validation failed for {Url}: {Errors}. Subject: {Subject}", 
+                        message.RequestUri, errors, cert?.Subject);
+                    
+                    return false;
+                }
             });
         }
         

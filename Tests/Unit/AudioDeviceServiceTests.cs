@@ -30,7 +30,7 @@ namespace WhisperKey.Tests.Unit
         {
             _mockEnumerator = new MockAudioDeviceEnumerator();
             // Don't use monitoring constructor in tests to avoid Windows API calls
-            _service = new AudioDeviceService(_mockEnumerator, null, null, null, false);
+            _service = new AudioDeviceService(_mockEnumerator, null, null, null, false, () => new MockWaveIn());
         }
 
         [TestCleanup]
@@ -524,8 +524,8 @@ namespace WhisperKey.Tests.Unit
             _mockEnumerator.AddDevice(MockMMDeviceWrapper.CreateInputDevice("perm-device", "Permission Test Device"));
 
             var result = await _service.SwitchDeviceAsync("device1");
-            // Will fail due to WaveIn not working with mock, but tests the path
-            Assert.IsFalse(result);
+            // Should succeed with mock
+            Assert.IsTrue(result);
         }
 
         [TestMethod]
@@ -817,9 +817,18 @@ namespace WhisperKey.Tests.Unit
             var device = MockMMDeviceWrapper.CreateInputDevice("device1", "Test Mic");
             _mockEnumerator.AddDevice(device);
 
-            var result = await _service.TestDeviceLatencyAsync("device1");
-            // Will return false due to WaveIn, but tests the path
-            Assert.IsFalse(result);
+            // Configure factory to return a MockWaveIn that simulates data
+            var mockWaveIn = new MockWaveIn();
+            var service = new AudioDeviceService(_mockEnumerator, null, null, null, false, () => 
+            {
+                var waveIn = new MockWaveIn();
+                // Simulate data arrival after a short delay
+                _ = Task.Delay(10).ContinueWith(_ => waveIn.SimulateDataAvailable(new byte[100], 100));
+                return waveIn;
+            });
+
+            var result = await service.TestDeviceLatencyAsync("device1");
+            Assert.IsTrue(result);
         }
 
         [TestMethod]
@@ -944,8 +953,8 @@ namespace WhisperKey.Tests.Unit
             _mockEnumerator.AddDevice(device);
 
             var result = await _service.TestDeviceAsync("device1");
-            // Will be false due to WaveIn not working with mock, but tests the path
-            Assert.IsFalse(result);
+            // Should succeed with mock
+            Assert.IsTrue(result);
         }
 
         [TestMethod]

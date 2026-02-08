@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -14,6 +15,7 @@ namespace WhisperKey.Bootstrap
     public class EventCoordinator
     {
         private readonly ApplicationBootstrapper _bootstrapper;
+        private readonly IBusinessMetricsService? _metricsService;
         private readonly Func<Task> _dictationToggleHandler;
         private readonly Func<Task> _startDictationHandler;
         private readonly Func<Task> _stopDictationHandler;
@@ -23,6 +25,7 @@ namespace WhisperKey.Bootstrap
         
         public EventCoordinator(
             ApplicationBootstrapper bootstrapper,
+            IBusinessMetricsService? metricsService,
             Func<Task> dictationToggleHandler,
             Func<Task> startDictationHandler,
             Func<Task> stopDictationHandler,
@@ -31,6 +34,7 @@ namespace WhisperKey.Bootstrap
             Action exitHandler)
         {
             _bootstrapper = bootstrapper ?? throw new ArgumentNullException(nameof(bootstrapper));
+            _metricsService = metricsService;
             _dictationToggleHandler = dictationToggleHandler ?? throw new ArgumentNullException(nameof(dictationToggleHandler));
             _startDictationHandler = startDictationHandler ?? throw new ArgumentNullException(nameof(startDictationHandler));
             _stopDictationHandler = stopDictationHandler ?? throw new ArgumentNullException(nameof(stopDictationHandler));
@@ -129,66 +133,56 @@ namespace WhisperKey.Bootstrap
         
         #region Hotkey Events
         
-        private void OnHotkeyPressed(object? sender, EventArgs e)
+        private async void OnHotkeyPressed(object? sender, EventArgs e)
         {
-            // Use Task.Run to avoid async void and handle exceptions properly
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await _dictationToggleHandler().ConfigureAwait(false);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    await HandleExceptionAsync("Hotkey handling error", ex).ConfigureAwait(false);
-                }
-                catch (System.IO.IOException ex)
-                {
-                    await HandleExceptionAsync("Hotkey I/O error", ex).ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
+                await _dictationToggleHandler().ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                await HandleExceptionAsync("Hotkey handling error", ex).ConfigureAwait(false);
+            }
+            catch (System.IO.IOException ex)
+            {
+                await HandleExceptionAsync("Hotkey I/O error", ex).ConfigureAwait(false);
+            }
         }
         
         #endregion
         
         #region System Tray Events
         
-        private void OnSystemTrayStartDictation(object? sender, EventArgs e)
+        private async void OnSystemTrayStartDictation(object? sender, EventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await _startDictationHandler().ConfigureAwait(false);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    await HandleExceptionAsync("Start dictation error", ex).ConfigureAwait(false);
-                }
-                catch (System.IO.IOException ex)
-                {
-                    await HandleExceptionAsync("Start dictation I/O error", ex).ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
+                await _startDictationHandler().ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                await HandleExceptionAsync("Start dictation error", ex).ConfigureAwait(false);
+            }
+            catch (System.IO.IOException ex)
+            {
+                await HandleExceptionAsync("Start dictation I/O error", ex).ConfigureAwait(false);
+            }
         }
         
-        private void OnSystemTrayStopDictation(object? sender, EventArgs e)
+        private async void OnSystemTrayStopDictation(object? sender, EventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
-                {
-                    await _stopDictationHandler().ConfigureAwait(false);
-                }
-                catch (InvalidOperationException ex)
-                {
-                    await HandleExceptionAsync("Stop dictation error", ex).ConfigureAwait(false);
-                }
-                catch (System.IO.IOException ex)
-                {
-                    await HandleExceptionAsync("Stop dictation I/O error", ex).ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
+                await _stopDictationHandler().ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                await HandleExceptionAsync("Stop dictation error", ex).ConfigureAwait(false);
+            }
+            catch (System.IO.IOException ex)
+            {
+                await HandleExceptionAsync("Stop dictation I/O error", ex).ConfigureAwait(false);
+            }
         }
         
         private void OnSystemTraySettings(object? sender, EventArgs e)
@@ -243,34 +237,39 @@ namespace WhisperKey.Bootstrap
         
         #region Core Service Events
         
-        private void OnTranscriptionError(object? sender, Exception ex)
+        private async void OnTranscriptionError(object? sender, Exception ex)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (_metricsService != null)
                 {
-                    if (_bootstrapper.FeedbackService != null)
-                    {
-                        await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
-                            "Transcription Error",
-                            ex.Message,
-                            IFeedbackService.NotificationType.Error
-                        ).ConfigureAwait(false);
-                    }
+                    await _metricsService.RecordEventAsync("TranscriptionError", new Dictionary<string, object> { ["Error"] = ex.Message });
                 }
-                catch (InvalidOperationException handlerEx)
+
+                if (_bootstrapper.FeedbackService != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error showing transcription error: {handlerEx.Message}");
+                    await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
+                        "Transcription Error",
+                        ex.Message,
+                        IFeedbackService.NotificationType.Error
+                    ).ConfigureAwait(false);
                 }
-            }).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException handlerEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing transcription error: {handlerEx.Message}");
+            }
         }
         
-        private void OnTranscriptionCompleted(object? sender, string transcription)
+        private async void OnTranscriptionCompleted(object? sender, string transcription)
         {
-            Task.Run(async () =>
-            {
                 try
                 {
+                    if (_metricsService != null)
+                    {
+                        await _metricsService.RecordEventAsync("TranscriptionCompleted");
+                    }
+
                     string? textToInject = transcription;
                     
                     // Check if text review is enabled
@@ -313,98 +312,85 @@ namespace WhisperKey.Bootstrap
                 {
                     await HandleExceptionAsync("Text injection I/O error", ex).ConfigureAwait(false);
                 }
-            }).ConfigureAwait(false);
         }
         
-        private void OnFreeTierWarning(object? sender, FreeTierWarning e)
+        private async void OnFreeTierWarning(object? sender, FreeTierWarning e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (_bootstrapper.FeedbackService != null)
                 {
-                    if (_bootstrapper.FeedbackService != null)
-                    {
-                        var message = $"You've used {e.UsagePercentage:F1}% of your ${e.Limit:F2} free tier limit";
-                        await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
-                            "Usage Warning",
-                            message,
-                            IFeedbackService.NotificationType.Warning
-                        ).ConfigureAwait(false);
-                    }
+                    var message = $"You've used {e.UsagePercentage:F1}% of your ${e.Limit:F2} free tier limit";
+                    await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
+                        "Usage Warning",
+                        message,
+                        IFeedbackService.NotificationType.Warning
+                    ).ConfigureAwait(false);
                 }
-                catch (InvalidOperationException ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error showing free tier warning: {ex.Message}");
-                }
-            }).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing free tier warning: {ex.Message}");
+            }
         }
         
-        private void OnFreeTierExceeded(object? sender, FreeTierExceeded e)
+        private async void OnFreeTierExceeded(object? sender, FreeTierExceeded e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (_bootstrapper.FeedbackService != null)
                 {
-                    if (_bootstrapper.FeedbackService != null)
-                    {
-                        var message = $"Free tier limit of ${e.Limit:F2} exceeded. Total cost: ${e.MonthlyUsage.Cost:F2}";
-                        await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
-                            "Usage Limit Exceeded",
-                            message,
-                            IFeedbackService.NotificationType.Error
-                        ).ConfigureAwait(false);
-                    }
+                    var message = $"Free tier limit of ${e.Limit:F2} exceeded. Total cost: ${e.MonthlyUsage.Cost:F2}";
+                    await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
+                        "Usage Limit Exceeded",
+                        message,
+                        IFeedbackService.NotificationType.Error
+                    ).ConfigureAwait(false);
                 }
-                catch (InvalidOperationException ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error showing free tier exceeded: {ex.Message}");
-                }
-            }).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error showing free tier exceeded: {ex.Message}");
+            }
         }
         
-        private void OnAudioDataAvailable(object? sender, byte[] audioData)
+        private async void OnAudioDataAvailable(object? sender, byte[] audioData)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                if (_bootstrapper.WhisperService != null)
                 {
-                    if (_bootstrapper.WhisperService != null)
-                    {
-                        await _bootstrapper.WhisperService.TranscribeAudioAsync(audioData).ConfigureAwait(false);
-                    }
+                    await _bootstrapper.WhisperService.TranscribeAudioAsync(audioData).ConfigureAwait(false);
                 }
-                catch (InvalidOperationException ex)
-                {
-                    await HandleExceptionAsync("Audio transcription error", ex).ConfigureAwait(false);
-                }
-                catch (System.IO.IOException ex)
-                {
-                    await HandleExceptionAsync("Audio transcription I/O error", ex).ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                await HandleExceptionAsync("Audio transcription error", ex).ConfigureAwait(false);
+            }
+            catch (System.IO.IOException ex)
+            {
+                await HandleExceptionAsync("Audio transcription I/O error", ex).ConfigureAwait(false);
+            }
         }
         
-        private void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
+        private async void OnSettingsChanged(object? sender, SettingsChangedEventArgs e)
         {
-            Task.Run(async () =>
+            try
             {
-                try
+                // Handle settings changes
+                if (e.Key == "Hotkeys:ToggleRecording" && _bootstrapper.HotkeyService != null)
                 {
-                    // Handle settings changes
-                    if (e.Key == "Hotkeys:ToggleRecording" && _bootstrapper.HotkeyService != null)
-                    {
-                        // Reinitialize hotkeys when the hotkey configuration changes
-                        _bootstrapper.HotkeyService.Dispose();
-                        _bootstrapper.InitializeHotkeyService();
-                    }
-                    
-                    await Task.CompletedTask.ConfigureAwait(false);
+                    // Reinitialize hotkeys when the hotkey configuration changes
+                    _bootstrapper.HotkeyService.Dispose();
+                    _bootstrapper.InitializeHotkeyService();
                 }
-                catch (InvalidOperationException ex)
-                {
-                    await HandleExceptionAsync("Settings change error", ex).ConfigureAwait(false);
-                }
-            }).ConfigureAwait(false);
+                
+                await Task.CompletedTask.ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                await HandleExceptionAsync("Settings change error", ex).ConfigureAwait(false);
+            }
         }
         
         #endregion
@@ -425,21 +411,17 @@ namespace WhisperKey.Bootstrap
             }
         }
         
-        private void HandleException(string context, Exception ex)
+        private async void HandleException(string context, Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"{context}: {ex.Message}");
             
             if (_bootstrapper.FeedbackService != null)
             {
-                // Fire and forget for void methods
-                Task.Run(async () =>
-                {
-                    await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
-                        "Error",
-                        $"{context}: {ex.Message}",
-                        IFeedbackService.NotificationType.Error
-                    ).ConfigureAwait(false);
-                }).ConfigureAwait(false);
+                await _bootstrapper.FeedbackService.ShowToastNotificationAsync(
+                    "Error",
+                    $"{context}: {ex.Message}",
+                    IFeedbackService.NotificationType.Error
+                ).ConfigureAwait(false);
             }
         }
         

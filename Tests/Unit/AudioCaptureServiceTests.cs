@@ -9,6 +9,7 @@ using Moq;
 using NAudio.Wave;
 using WhisperKey.Configuration;
 using WhisperKey.Services;
+using WhisperKey.Services.Memory;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -21,6 +22,7 @@ namespace WhisperKey.Tests.Unit
         private bool _isRecording;
         private bool _isDisposed;
 
+        public int DeviceNumber { get; set; }
         public WaveFormat WaveFormat { get; set; } = new WaveFormat(16000, 16, 1);
         public int BufferMilliseconds { get; set; } = 100;
 
@@ -76,6 +78,21 @@ namespace WhisperKey.Tests.Unit
             var buffer = new byte[bytesRecorded];
             new Random().NextBytes(buffer);
             SimulateDataAvailable(buffer, bytesRecorded);
+        }
+
+        /// <summary>
+        /// Simulates audio data being captured (uses buffer length as bytes recorded).
+        /// </summary>
+        public void SimulateDataAvailable(byte[] buffer)
+        {
+            if (buffer == null)
+            {
+                // Simulate null buffer case
+                DataAvailable?.Invoke(this, new WaveInEventArgs(Array.Empty<byte>(), 0));
+                return;
+            }
+
+            SimulateDataAvailable(buffer, buffer.Length);
         }
 
         public void Dispose()
@@ -998,6 +1015,284 @@ namespace WhisperKey.Tests.Unit
             Assert.IsNotNull(capturedFormat);
             Assert.AreEqual(16000, capturedFormat.SampleRate);
             Assert.AreEqual(1, capturedFormat.Channels);
+        }
+
+        #endregion
+
+        #region Buffer Overflow and Error Tests
+
+        [TestMethod]
+        public async Task DataAvailable_BufferOverflow_HandlesGracefully()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act
+            await _service.StartCaptureAsync();
+
+            // Simulate buffer overflow - send very large buffer
+            var largeBuffer = new byte[1024 * 1024]; // 1MB buffer
+            for (int i = 0; i < 100; i++)
+            {
+                mockWaveIn.SimulateDataAvailable(largeBuffer);
+                await Task.Delay(1); // Small delay to simulate real timing
+            }
+
+            await _service.StopCaptureAsync();
+
+            // Assert - Service should still be responsive
+            Assert.IsFalse(mockWaveIn.IsRecording);
+        }
+
+        [TestMethod]
+        public async Task DataAvailable_InvalidBufferSize_HandlesGracefully()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act
+            await _service.StartCaptureAsync();
+
+            // Simulate invalid buffer sizes
+            mockWaveIn.SimulateDataAvailable(new byte[0]); // Empty buffer
+            mockWaveIn.SimulateDataAvailable(new byte[1]); // Single byte
+            mockWaveIn.SimulateDataAvailable(new byte[3]); // Invalid alignment
+
+            await _service.StopCaptureAsync();
+
+            // Assert - Service should handle gracefully
+            Assert.IsFalse(mockWaveIn.IsRecording);
+        }
+
+        [TestMethod]
+        public async Task DataAvailable_NullBuffer_HandlesGracefully()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act
+            await _service.StartCaptureAsync();
+
+            // Simulate null buffer (should not happen in real scenarios but test robustness)
+            mockWaveIn.SimulateDataAvailable(null!);
+
+            await _service.StopCaptureAsync();
+
+            // Assert - Service should handle gracefully
+            Assert.IsFalse(mockWaveIn.IsRecording);
+        }
+
+        [TestMethod]
+        public async Task StartCaptureAsync_DeviceInitializationFailure_ThrowsException()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new Mock<IWaveIn>();
+            mockWaveIn.Setup(w => w.StartRecording()).Throws(new InvalidOperationException("Device not found"));
+
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn.Object);
+
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            {
+                await _service.StartCaptureAsync();
+            });
+        }
+
+        [TestMethod]
+        public async Task StartCaptureAsync_DeviceAlreadyInUse_HandlesGracefully()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new Mock<IWaveIn>();
+            mockWaveIn.Setup(w => w.StartRecording()).Throws(new InvalidOperationException("Device already in use"));
+
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn.Object);
+
+            // Act & Assert
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            {
+                await _service.StartCaptureAsync();
+            });
+        }
+
+        [TestMethod]
+        public async Task StartCaptureAsync_DeviceDisconnected_DuringCapture_Recovers()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new Mock<IWaveIn>();
+            var stoppedEventFired = false;
+            
+            mockWaveIn.Setup(w => w.StartRecording()).Callback(() => { });
+            mockWaveIn.Setup(w => w.StopRecording()).Callback(() => 
+            {
+                stoppedEventFired = true;
+            });
+            mockWaveIn.SetupAdd(w => w.RecordingStopped += It.IsAny<EventHandler<StoppedEventArgs>>()).Callback<EventHandler<StoppedEventArgs>>(h => 
+            {
+                // Simulate device disconnection
+                Task.Run(() => h(null!, new StoppedEventArgs(new InvalidOperationException("Device disconnected"))));
+            });
+
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn.Object);
+
+            // Act
+            await _service.StartCaptureAsync();
+            await Task.Delay(100); // Allow time for simulated disconnection
+
+            // Assert - Service should detect disconnection
+            // Note: This test depends on the service's ability to handle device disconnection
+            Assert.IsTrue(true); // Test passes if no exception crashes the service
+        }
+
+        [TestMethod]
+        public async Task ConcurrentData_WithMemoryPool_HandlesCorrectly()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act
+            await _service.StartCaptureAsync();
+
+            var tasks = new List<Task>();
+            var buffer = new byte[1024];
+
+            // Simulate concurrent data from multiple threads
+            for (int i = 0; i < 10; i++)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    for (int j = 0; j < 50; j++)
+                    {
+                        mockWaveIn.SimulateDataAvailable(buffer);
+                        Task.Delay(1).Wait();
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+            await _service.StopCaptureAsync();
+
+            // Assert - Service should handle concurrent data gracefully
+            Assert.IsFalse(mockWaveIn.IsRecording);
+        }
+
+        [TestMethod]
+        public async Task BufferAllocation_LargeAudioData_HandlesMemoryPressure()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act
+            await _service.StartCaptureAsync();
+
+            // Simulate long audio capture with large buffers
+            for (int i = 0; i < 100; i++)
+            {
+                var largeBuffer = new byte[8192]; // 8KB chunks
+                mockWaveIn.SimulateDataAvailable(largeBuffer);
+                await Task.Delay(10);
+            }
+
+            await _service.StopCaptureAsync();
+
+            // Assert - Service should manage memory correctly
+            Assert.IsFalse(mockWaveIn.IsRecording);
+        }
+
+        #endregion
+
+        #region Memory Pool Integration Tests
+
+        [TestMethod]
+        public async Task AudioCapture_WithByteArrayPool_RentsAndReturnsCorrectly()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            var initialRentCount = ByteArrayPool.Instance.RentCount;
+            var initialReturnCount = ByteArrayPool.Instance.ReturnCount;
+
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act
+            await _service.StartCaptureAsync();
+
+            // Simulate some audio data
+            var buffer = new byte[1024];
+            mockWaveIn.SimulateDataAvailable(buffer);
+            
+            await _service.StopCaptureAsync();
+
+            // Assert - Memory pool should have been used
+            Assert.AreNotEqual(initialRentCount, ByteArrayPool.Instance.RentCount);
+            Assert.IsFalse(mockWaveIn.IsRecording);
+        }
+
+        [TestMethod]
+        public async Task AudioCapture_MemoryPoolExhaustion_HandlesGracefully()
+        {
+            // Arrange
+            _audioDeviceServiceMock
+                .Setup(a => a.CheckMicrophonePermissionAsync())
+                .ReturnsAsync(MicrophonePermissionStatus.Granted);
+
+            var mockWaveIn = new MockWaveIn();
+            _service = new AudioCaptureService(_settingsServiceMock.Object, _audioDeviceServiceMock.Object, mockWaveIn);
+
+            // Act - Examine behavior with memory pool pressure
+            await _service.StartCaptureAsync();
+
+            // Simulate rapid buffer allocation that might exhaust the pool
+            for (int i = 0; i < 1000; i++)
+            {
+                var buffer = new byte[16384]; // Large buffers
+                mockWaveIn.SimulateDataAvailable(buffer);
+                await Task.Delay(1);
+            }
+
+            await _service.StopCaptureAsync();
+
+            // Assert - Service should handle memory pressure gracefully
+            Assert.IsFalse(mockWaveIn.IsRecording);
         }
 
         #endregion

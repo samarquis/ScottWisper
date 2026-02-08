@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -5,9 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Serilog;
-using WhisperKey.Tests.Smoke;
+using WhisperKey.Infrastructure.SmokeTesting;
+using WhisperKey.Infrastructure.SmokeTesting.Reporting;
+using WhisperKey.Services;
 
-namespace WhisperKey.Tests.Smoke
+namespace WhisperKey.Infrastructure.SmokeTesting
 {
     /// <summary>
     /// Smoke test runner for production deployment validation
@@ -24,9 +27,9 @@ namespace WhisperKey.Tests.Smoke
                 // Setup logging
                 var logger = SetupLogging(configuration);
                 
-                logger.Information("Starting WhisperKey Production Smoke Test Runner");
-                logger.Information("Environment: {Environment}", Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "Unknown");
-                logger.Information("Build Version: {BuildVersion}", Environment.GetEnvironmentVariable("BUILD_VERSION") ?? "Unknown");
+                logger.LogInformation("Starting WhisperKey Production Smoke Test Runner");
+                logger.LogInformation("Environment: {Environment}", Environment.GetEnvironmentVariable("ENVIRONMENT") ?? "Unknown");
+                logger.LogInformation("Build Version: {BuildVersion}", Environment.GetEnvironmentVariable("BUILD_VERSION") ?? "Unknown");
 
                 // Setup dependency injection
                 var services = new ServiceCollection();
@@ -47,11 +50,11 @@ namespace WhisperKey.Tests.Smoke
                 // Validate production readiness
                 var isProductionReady = orchestrator.IsProductionReady(report);
                 
-                logger.Information("Smoke test execution completed");
-                logger.Information("Results: {PassedTests}/{TotalTests} passed ({SuccessRate:F1}%)", 
+                logger.LogInformation("Smoke test execution completed");
+                logger.LogInformation("Results: {PassedTests}/{TotalTests} passed ({SuccessRate:F1}%)", 
                     report.TestResults.PassedTests, report.TestResults.TotalTests, report.TestResults.SuccessRate);
-                logger.Information("Production Ready: {IsProductionReady}", isProductionReady);
-                logger.Information("Reports exported to: {OutputDirectory}", outputDirectory);
+                logger.LogInformation("Production Ready: {IsProductionReady}", isProductionReady);
+                logger.LogInformation("Reports exported to: {OutputDirectory}", outputDirectory);
 
                 // Return appropriate exit code
                 return isProductionReady ? 0 : 1;
@@ -93,7 +96,8 @@ namespace WhisperKey.Tests.Smoke
 
             // Configure log level from environment
             var logLevel = configuration["Logging:LogLevel:Default"] ?? "Information";
-            logConfig.MinimumLevel = Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true);
+            var level = Enum.Parse<Serilog.Events.LogEventLevel>(logLevel, true);
+            logConfig.MinimumLevel.Is(level);
 
             var serilogLogger = logConfig.CreateLogger();
             Log.Logger = serilogLogger;

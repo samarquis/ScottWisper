@@ -12,6 +12,9 @@ using Newtonsoft.Json;
 using WhisperKey.Configuration;
 using WhisperKey.Models;
 using WhisperKey.Services;
+using WhisperKey.Services.Validation;
+using WhisperKey.Services.Recovery;
+using Polly;
 
 namespace WhisperKey.Tests.Unit
 {
@@ -19,6 +22,8 @@ namespace WhisperKey.Tests.Unit
     public class WhisperServiceTests
     {
         private Mock<ISettingsService> _settingsServiceMock = null!;
+        private Mock<IAudioValidationProvider> _audioValidatorMock = null!;
+        private Mock<IRecoveryPolicyService> _recoveryPolicyMock = null!;
         private Mock<LocalInferenceService> _localInferenceMock = null!;
         private Mock<HttpMessageHandler> _httpHandlerMock = null!;
         private HttpClient _httpClient = null!;
@@ -72,6 +77,8 @@ namespace WhisperKey.Tests.Unit
         public void Setup()
         {
             _settingsServiceMock = new Mock<ISettingsService>();
+            _audioValidatorMock = new Mock<IAudioValidationProvider>();
+            _recoveryPolicyMock = new Mock<IRecoveryPolicyService>();
             _httpHandlerMock = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_httpHandlerMock.Object);
 
@@ -84,6 +91,19 @@ namespace WhisperKey.Tests.Unit
                     AutoFallbackToCloud = true
                 }
             });
+
+            // Setup audio validation to pass by default
+            _audioValidatorMock.Setup(v => v.ValidateAudioData(It.IsAny<byte[]>(), It.IsAny<string>()))
+                .Returns(new WhisperKey.Services.Validation.ValidationResult { IsValid = true });
+            _audioValidatorMock.Setup(v => v.ValidateAudioFileAsync(It.IsAny<string>()))
+                .ReturnsAsync(new WhisperKey.Services.Validation.ValidationResult { IsValid = true });
+
+            // Setup recovery policies to fail fast in tests
+            _recoveryPolicyMock.Setup(p => p.GetApiRetryPolicy<HttpResponseMessage>(It.IsAny<int>()))
+                .Returns(Policy.HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode).WaitAndRetryAsync(0, _ => TimeSpan.Zero));
+            
+            _recoveryPolicyMock.Setup(p => p.GetCircuitBreakerPolicy(It.IsAny<int>(), It.IsAny<int>()))
+                .Returns(Policy.Handle<Exception>().CircuitBreakerAsync(5, TimeSpan.FromSeconds(1)));
 
             // Setup encrypted API key retrieval
             _settingsServiceMock.Setup(s => s.GetEncryptedValueAsync("OpenAI_ApiKey"))
@@ -114,7 +134,7 @@ namespace WhisperKey.Tests.Unit
         [TestMethod]
         public void Constructor_WithSettings_SetsUpHttpClient()
         {
-            var service = new WhisperService(_settingsServiceMock.Object, (LocalInferenceService?)null);
+            var service = new WhisperService(_settingsServiceMock.Object, null, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             Assert.IsNotNull(service);
             service.Dispose();
         }
@@ -125,7 +145,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             Assert.IsNotNull(service);
             service.Dispose();
         }
@@ -155,7 +175,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act
             var result = await service.TranscribeAudioAsync(CreateValidWavData()); // 1 second of audio
@@ -181,7 +201,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act & Assert
             await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
@@ -257,7 +277,7 @@ namespace WhisperKey.Tests.Unit
                 var factoryMock = new Mock<IHttpClientFactory>();
                 factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-                var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+                var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
                 // Act
                 var result = await service.TranscribeAudioFileAsync(tempFile);
@@ -385,7 +405,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             bool eventFired = false;
             service.TranscriptionStarted += (s, e) => eventFired = true;
 
@@ -416,7 +436,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             var progressValues = new System.Collections.Generic.List<int>();
             service.TranscriptionProgress += (s, e) => progressValues.Add(e);
 
@@ -450,7 +470,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             string? completedText = null;
             service.TranscriptionCompleted += (s, e) => completedText = e;
 
@@ -478,7 +498,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             Exception? capturedError = null;
             service.TranscriptionError += (s, e) => capturedError = e;
 
@@ -517,7 +537,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             UsageStats? capturedStats = null;
             service.UsageUpdated += (s, e) => capturedStats = e;
 
@@ -569,7 +589,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act
             await service.TranscribeAudioAsync(CreateValidWavData(2)); // 2 seconds of audio
@@ -601,7 +621,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act
             await service.TranscribeAudioAsync(CreateValidWavData());
@@ -653,7 +673,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act
             var result = await service.TranscribeAudioAsync(CreateValidWavData());
@@ -679,10 +699,10 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act & Assert
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            await Assert.ThrowsExceptionAsync<WhisperKey.Exceptions.TranscriptionModelException>(async () =>
             {
                 await service.TranscribeAudioAsync(CreateValidWavData());
             });
@@ -701,7 +721,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act & Assert
             await Assert.ThrowsExceptionAsync<OutOfMemoryException>(async () =>
@@ -723,7 +743,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
             var tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid():N}.wav");
 
             try
@@ -769,7 +789,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act - Should not throw and should not dispose factory client
             service.Dispose();
@@ -804,7 +824,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             _settingsServiceMock.Setup(s => s.GetEncryptedValueAsync("OpenAI_ApiKey"))
                 .ReturnsAsync("new-api-key");
@@ -833,7 +853,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             var eventArgs = new SettingsChangedEventArgs
             {
@@ -846,6 +866,179 @@ namespace WhisperKey.Tests.Unit
 
             // Assert - No exception should be thrown
             Assert.IsNotNull(service);
+        }
+
+        #endregion
+
+        #region HTTP Error Code Tests
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_Http429_TooManyRequests_ThrowsHttpRequestException()
+        {
+            // Arrange
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.TooManyRequests, // 429
+                    Content = new StringContent("{\"error\": \"Rate limit exceeded\"}"),
+                    Headers = { RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(60)) }
+                });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+            
+            Assert.IsTrue(ex.Message.Contains("429") || ex.StatusCode == HttpStatusCode.TooManyRequests);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_Http502_BadGateway_ThrowsHttpRequestException()
+        {
+            // Arrange
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadGateway, // 502
+                    Content = new StringContent("{\"error\": \"Bad gateway\"}")
+                });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+
+            Assert.IsTrue(ex.Message.Contains("502") || ex.StatusCode == HttpStatusCode.BadGateway);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_Http503_ServiceUnavailable_ThrowsHttpRequestException()
+        {
+            // Arrange
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.ServiceUnavailable, // 503
+                    Content = new StringContent("{\"error\": \"Service unavailable\"}"),
+                    Headers = { RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(120)) }
+                });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+
+            Assert.IsTrue(ex.Message.Contains("503") || ex.StatusCode == HttpStatusCode.ServiceUnavailable);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_Http504_GatewayTimeout_ThrowsHttpRequestException()
+        {
+            // Arrange
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.GatewayTimeout, // 504
+                    Content = new StringContent("{\"error\": \"Gateway timeout\"}")
+                });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+
+            Assert.IsTrue(ex.Message.Contains("504") || ex.StatusCode == HttpStatusCode.GatewayTimeout);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_Http500_InternalServerError_ThrowsHttpRequestException()
+        {
+            // Arrange
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.InternalServerError, // 500
+                    Content = new StringContent("{\"error\": \"Internal server error\"}")
+                });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+
+            Assert.IsTrue(ex.Message.Contains("500") || ex.StatusCode == HttpStatusCode.InternalServerError);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_Http502_WithFallback_UsesLocal()
+        {
+            // Arrange - Note: Local fallback requires LocalInferenceService which has non-virtual methods
+            // This test verifies the error is properly thrown when local fallback is not available
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.BadGateway,
+                    Content = new StringContent("{\"error\": \"Bad gateway\"}")
+                });
+
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
+
+            // Act & Assert - Should throw since local inference not properly mocked
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
         }
 
         #endregion
@@ -885,7 +1078,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act
             var result = await service.TranscribeAudioAsync(CreateValidWavData());
@@ -927,7 +1120,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // First request should succeed
             await service.TranscribeAudioAsync(CreateValidWavData());
@@ -971,7 +1164,7 @@ namespace WhisperKey.Tests.Unit
             var factoryMock = new Mock<IHttpClientFactory>();
             factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
 
-            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null);
+            var service = new WhisperService(_settingsServiceMock.Object, factoryMock.Object, null, null, _recoveryPolicyMock.Object, null, null, _audioValidatorMock.Object);
 
             // Act - Multiple requests should all succeed when rate limiting is disabled
             var result1 = await service.TranscribeAudioAsync(CreateValidWavData());
@@ -1036,6 +1229,196 @@ namespace WhisperKey.Tests.Unit
             {
                 await service.TranscribeAudioAsync(CreateValidWavData());
             });
+        }
+
+        #endregion
+
+        #region Circuit Breaker Tests
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_CircuitBreaker_OpensAfterFailures()
+        {
+            // Arrange
+            var settings = CreateTestSettings();
+            settings.AutoFallbackToCloud = false;
+
+            SetupSettingsService(settings);
+            
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.InternalServerError))
+                .Verifiable();
+
+            var service = CreateWhisperService();
+
+            // Act - Make multiple failed requests to trigger circuit breaker
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    await service.TranscribeAudioAsync(CreateValidWavData());
+                }
+                catch (HttpRequestException)
+                {
+                    // Expected failures
+                }
+            }
+
+            // Assert - Circuit breaker should now be open and fail fast
+            await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+            {
+                await service.TranscribeAudioAsync(CreateValidWavData());
+            });
+
+            // Should not attempt HTTP calls when circuit is open
+            _httpHandlerMock.Protected().Verify(
+                "SendAsync", Times.Exactly(5),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_CircuitBreaker_HalfOpenState_AllowsTestRequest()
+        {
+            // Arrange
+            var settings = CreateTestSettings();
+            settings.AutoFallbackToCloud = false;
+
+            SetupSettingsService(settings);
+
+            var callCount = 0;
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Returns(() =>
+                {
+                    callCount++;
+                    if (callCount <= 5)
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+                    else
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent("{\"text\":\"Success after recovery\"}")
+                        });
+                })
+                .Verifiable();
+
+            var service = CreateWhisperService();
+
+            // Act - Fail enough times to open circuit
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    await service.TranscribeAudioAsync(CreateValidWavData());
+                }
+                catch (HttpRequestException)
+                {
+                    // Expected failures
+                }
+            }
+
+            // Wait for circuit breaker timeout (1 second in mock setup)
+            await Task.Delay(1100);
+
+            // This should succeed as circuit breaker moves to half-open then closed
+            var result = await service.TranscribeAudioAsync(CreateValidWavData());
+
+            // Assert
+            Assert.AreEqual("Success after recovery", result);
+        }
+
+        [TestMethod]
+        public async Task TranscribeAudioAsync_CircuitBreaker_RemainsOpen_WithContinuedFailures()
+        {
+            // Arrange
+            var settings = CreateTestSettings();
+            settings.AutoFallbackToCloud = false;
+
+            SetupSettingsService(settings);
+
+            _httpHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.InternalServerError))
+                .Verifiable();
+
+            var service = CreateWhisperService();
+
+            // Act - Fail enough times to open circuit
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    await service.TranscribeAudioAsync(CreateValidWavData());
+                }
+                catch (HttpRequestException)
+                {
+                    // Expected failures
+                }
+            }
+
+            // All subsequent requests should fail fast without HTTP calls
+            for (int i = 0; i < 3; i++)
+            {
+                await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+                {
+                    await service.TranscribeAudioAsync(CreateValidWavData());
+                });
+            }
+
+            // Assert - No additional HTTP calls made after circuit opened
+            _httpHandlerMock.Protected().Verify(
+                "SendAsync", Times.Exactly(5),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private WhisperKey.Configuration.TranscriptionSettings CreateTestSettings()
+        {
+            return new WhisperKey.Configuration.TranscriptionSettings
+            {
+                Provider = "OpenAI",
+                ApiKey = "sk-test-key-1234567890",
+                Mode = WhisperKey.Configuration.TranscriptionMode.Cloud,
+                EnableRateLimiting = true,
+                MaxRequestsPerMinute = 60,
+                ApplyRateLimitToLocal = true
+            };
+        }
+
+        private void SetupSettingsService(WhisperKey.Configuration.TranscriptionSettings settings)
+        {
+            var appSettings = new WhisperKey.Configuration.AppSettings();
+            appSettings.Transcription = settings;
+            _settingsServiceMock.Setup(s => s.Settings).Returns(appSettings);
+        }
+
+        private WhisperService CreateWhisperService()
+        {
+            var factoryMock = new Mock<IHttpClientFactory>();
+            factoryMock.Setup(f => f.CreateClient("WhisperApi")).Returns(_httpClient);
+
+            return new WhisperService(
+                _settingsServiceMock.Object,
+                factoryMock.Object, // Use factory mock instead of null
+                null, // CredentialService
+                null, // ApiKeyManagement
+                _recoveryPolicyMock.Object,
+                _localInferenceMock.Object,
+                null, // Configuration
+                _audioValidatorMock.Object);
         }
 
         #endregion

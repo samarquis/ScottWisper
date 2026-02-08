@@ -11,6 +11,7 @@ using NAudio.CoreAudioApi;
 using WhisperKey.Services;
 using WhisperKey.Exceptions;
 
+using Microsoft.Extensions.Logging;
 using WhisperKey.Services.Memory;
 
 namespace WhisperKey
@@ -23,8 +24,11 @@ namespace WhisperKey
         private readonly ISettingsService? _settingsService;
         private readonly IAudioDeviceService? _audioDeviceService;
         private readonly IByteArrayPool? _memoryPool;
+        private readonly IPerformanceMonitoringService? _performanceMonitoring;
         private readonly IWaveIn? _waveInInstance;
         private readonly Func<IWaveIn>? _waveInFactory;
+        private readonly ILogger<AudioCaptureService>? _logger;
+        private TokenBucketRateLimiter? _rateLimiter;
         
         // Audio format specifications (will be loaded from settings)
         private int _sampleRate = 16000; // 16kHz default
@@ -54,20 +58,26 @@ namespace WhisperKey
         public AudioCaptureService()
         {
             // Use default values and create WaveIn internally
+            InitializeRateLimiter();
         }
         
-        public AudioCaptureService(ISettingsService settingsService)
+        public AudioCaptureService(ISettingsService settingsService, ILogger<AudioCaptureService>? logger = null)
         {
             _settingsService = settingsService;
+            _logger = logger;
             LoadAudioSettingsFromSettings();
+            InitializeRateLimiter();
         }
         
-        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IByteArrayPool? memoryPool = null)
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IByteArrayPool? memoryPool = null, ILogger<AudioCaptureService>? logger = null, IPerformanceMonitoringService? performanceMonitoring = null)
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
             _memoryPool = memoryPool;
+            _logger = logger;
+            _performanceMonitoring = performanceMonitoring;
             LoadAudioSettingsFromSettings();
+            InitializeRateLimiter();
             
             // Subscribe to permission events from AudioDeviceService
             if (_audioDeviceService != null)
@@ -81,13 +91,15 @@ namespace WhisperKey
         /// <summary>
         /// Constructor that accepts an IWaveIn instance for dependency injection and testing.
         /// </summary>
-        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IWaveIn waveIn, IByteArrayPool? memoryPool = null)
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IWaveIn waveIn, IByteArrayPool? memoryPool = null, ILogger<AudioCaptureService>? logger = null)
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
             _waveInInstance = waveIn;
             _memoryPool = memoryPool;
+            _logger = logger;
             LoadAudioSettingsFromSettings();
+            InitializeRateLimiter();
             
             // Subscribe to permission events from AudioDeviceService
             if (_audioDeviceService != null)
@@ -102,13 +114,15 @@ namespace WhisperKey
         /// Constructor that accepts a factory function for creating IWaveIn instances.
         /// Useful for scenarios where multiple instances might be needed.
         /// </summary>
-        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, Func<IWaveIn> waveInFactory, IByteArrayPool? memoryPool = null)
+        public AudioCaptureService(ISettingsService settingsService, IAudioDeviceService audioDeviceService, Func<IWaveIn> waveInFactory, IByteArrayPool? memoryPool = null, ILogger<AudioCaptureService>? logger = null)
         {
             _settingsService = settingsService;
             _audioDeviceService = audioDeviceService;
             _waveInFactory = waveInFactory;
             _memoryPool = memoryPool;
+            _logger = logger;
             LoadAudioSettingsFromSettings();
+            InitializeRateLimiter();
             
             // Subscribe to permission events from AudioDeviceService
             if (_audioDeviceService != null)
@@ -116,6 +130,16 @@ namespace WhisperKey
                 _audioDeviceService.PermissionDenied += OnPermissionDenied;
                 _audioDeviceService.PermissionGranted += OnPermissionGranted;
                 _audioDeviceService.PermissionRequestFailed += OnPermissionRequestFailed;
+            }
+        }
+
+        private void InitializeRateLimiter()
+        {
+            if (_settingsService?.Settings?.Audio?.EnableCaptureRateLimiting == true)
+            {
+                var maxCaptures = _settingsService.Settings.Audio.MaxCapturesPerMinute;
+                _rateLimiter = new TokenBucketRateLimiter(maxCaptures, 1);
+                _logger?.LogInformation("Audio capture rate limiting enabled: {MaxCaptures} per minute", maxCaptures);
             }
         }
 
@@ -159,11 +183,29 @@ namespace WhisperKey
 
         public async Task<bool> StartCaptureAsync()
         {
+            using var activity = _performanceMonitoring?.StartActivity("AudioCaptureService.StartCapture");
             try
             {
                 if (_isCapturing)
                 {
                     return false; // Already capturing
+                }
+
+                // Check rate limiting if enabled
+                if (_rateLimiter != null)
+                {
+                    if (!_rateLimiter.TryConsume())
+                    {
+                        var waitTime = _rateLimiter.GetTimeUntilNextToken();
+                        var message = $"Capture trigger rate limit exceeded. Maximum {_rateLimiter.MaxTokens} captures per {_rateLimiter.PeriodMinutes} minute(s). Please try again in {waitTime.TotalSeconds:F1} seconds.";
+                        
+                        _logger?.LogWarning("Rate limit exceeded for audio capture trigger. Wait time: {WaitSeconds:F1}s", waitTime.TotalSeconds);
+                        System.Diagnostics.Debug.WriteLine(message);
+                        
+                        // Notify error via event
+                        CaptureError?.Invoke(this, new InvalidOperationException(message));
+                        return false;
+                    }
                 }
                 
                 // Check microphone permission first if AudioDeviceService is available
@@ -226,10 +268,9 @@ namespace WhisperKey
 
         public async Task StopCaptureAsync()
         {
-            await Task.Run(() => {
-                _waveIn?.StopRecording();
-                _isCapturing = false;
-            });
+            _waveIn?.StopRecording();
+            _isCapturing = false;
+            await Task.CompletedTask;
         }
 
         private void ShowPermissionErrorMessage()

@@ -38,11 +38,10 @@ namespace WhisperKey
                 var exception = args.ExceptionObject as Exception;
                 if (exception != null && !IsFatalException(exception))
                 {
-                    // Log technical details for debugging
-                    System.Diagnostics.Debug.WriteLine($"Unhandled AppDomain exception: {exception}");
+                    // Log technical details
                     LogException(exception, "AppDomain.UnhandledException");
                     
-                    // Show user-friendly message (technical details are in the log)
+                    // Show user-friendly message
                     Dispatcher.InvokeAsync(() =>
                     {
                         MessageBox.Show(
@@ -60,8 +59,7 @@ namespace WhisperKey
             TaskScheduler.UnobservedTaskException += (sender, args) =>
             {
                 var exception = args.Exception;
-                // Log technical details only (no user message for background task failures)
-                System.Diagnostics.Debug.WriteLine($"Unobserved task exception: {exception}");
+                // Log technical details only
                 LogException(exception, "TaskScheduler.UnobservedTaskException");
                 
                 // Mark as observed to prevent process termination
@@ -74,11 +72,10 @@ namespace WhisperKey
                 var exception = args.Exception;
                 if (!IsFatalException(exception))
                 {
-                    // Log technical details for debugging
-                    System.Diagnostics.Debug.WriteLine($"Dispatcher unhandled exception: {exception}");
+                    // Log technical details
                     LogException(exception, "DispatcherUnhandledException");
                     
-                    // Show user-friendly message without technical details
+                    // Show user-friendly message
                     MessageBox.Show(
                         "An error occurred while processing your request.\n\n" +
                         "The application will continue running. If the problem persists, please restart WhisperKey.\n\n" +
@@ -94,24 +91,22 @@ namespace WhisperKey
         
         private void LogException(Exception exception, string source)
         {
+            // Use Serilog's static Log class for structured logging
+            Serilog.Log.Error(exception, "Unhandled exception in {Source}", source);
+
+            // Use ErrorReportingService for intelligent grouping and classification
             try
             {
-                var logPath = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "WhisperKey",
-                    "logs");
-                
-                System.IO.Directory.CreateDirectory(logPath);
-                
-                var logFile = System.IO.Path.Combine(logPath, $"error_{DateTime.Now:yyyyMMdd}.log");
-                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [{source}] {exception.GetType().Name}: {exception.Message}\n{exception.StackTrace}\n\n";
-                
-                System.IO.File.AppendAllText(logFile, logEntry);
+                var errorService = _serviceProvider?.GetService<IErrorReportingService>();
+                if (errorService != null)
+                {
+                    var severity = errorService.ClassifyError(exception);
+                    _ = errorService.ReportExceptionAsync(exception, source, severity);
+                }
             }
             catch
             {
-                // If logging fails, we can't do much about it
-                System.Diagnostics.Debug.WriteLine("Failed to log exception");
+                // Fallback if ErrorReportingService fails
             }
         }
         
@@ -141,9 +136,13 @@ namespace WhisperKey
                 // Create dictation manager
                 _dictationManager = new DictationManager(_bootstrapper);
                 
+                // Get metrics service
+                var metricsService = _serviceProvider.GetRequiredService<IBusinessMetricsService>();
+                
                 // Setup event coordinator
                 _eventCoordinator = new EventCoordinator(
                     _bootstrapper,
+                    metricsService,
                     () => _dictationManager.ToggleAsync(),
                     () => _dictationManager.StartAsync(),
                     () => _dictationManager.StopAsync(),
@@ -157,11 +156,20 @@ namespace WhisperKey
                 // Batch all UI initialization into a single dispatcher call with Background priority
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    // Register text injection service in Application properties for access from SettingsWindow
+                    // Register services in Application properties
                     if (_bootstrapper?.TextInjectionService != null)
                     {
                         Application.Current.Properties["TextInjectionService"] = _bootstrapper.TextInjectionService;
                     }
+
+                    var responsiveService = _serviceProvider.GetRequiredService<IResponsiveUIService>();
+                    Application.Current.Properties["ResponsiveService"] = responsiveService;
+
+                    var accessibilityService = _serviceProvider.GetRequiredService<IAccessibilityService>();
+                    Application.Current.Properties["AccessibilityService"] = accessibilityService;
+
+                    var onboardingService = _serviceProvider.GetRequiredService<IOnboardingService>();
+                    Application.Current.Properties["OnboardingService"] = onboardingService;
                     
                     // Create and show main window
                     _mainWindow = new MainWindow();
@@ -169,7 +177,7 @@ namespace WhisperKey
                     _mainWindow.Show();
                     
                     // Show startup notification on the bootstrapper
-                    _ = _bootstrapper.ShowStartupNotificationAsync();
+                    _ = _bootstrapper?.ShowStartupNotificationAsync();
                 }, System.Windows.Threading.DispatcherPriority.Background);
             }
             catch (InvalidOperationException ex)
@@ -193,6 +201,13 @@ namespace WhisperKey
                     "WhisperKey's settings file is damaged.",
                     "Your settings will be reset to defaults. The application will create a new settings file on restart.");
             }
+            catch (Exception ex) when (!IsFatalException(ex))
+            {
+                LogException(ex, "InitializeAsync.General");
+                await ShowErrorAndShutdownAsync(
+                    "WhisperKey encountered an unexpected error during startup.",
+                    "Please check the logs for more information or try reinstalling the application.");
+            }
         }
         
         private async Task ShowFirstTimeSetupIfNeededAsync()
@@ -208,7 +223,8 @@ namespace WhisperKey
                 var result = await Dispatcher.InvokeAsync(() =>
                 {
                     var audioDeviceService = _serviceProvider!.GetRequiredService<IAudioDeviceService>();
-                    var wizard = new FirstTimeSetupWizard(settingsService, audioDeviceService);
+                    var apiKeyManagement = _serviceProvider!.GetRequiredService<IApiKeyManagementService>();
+                    var wizard = new FirstTimeSetupWizard(settingsService, audioDeviceService, apiKeyManagement);
                     return wizard.ShowDialog() ?? false;
                 }, System.Windows.Threading.DispatcherPriority.Background);
                 
@@ -278,7 +294,8 @@ namespace WhisperKey
                     // Open settings window with dependencies from service provider
                     var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
                     var audioDeviceService = _serviceProvider.GetRequiredService<IAudioDeviceService>();
-                    var settingsWindow = new SettingsWindow(settingsService, audioDeviceService);
+                    var apiKeyManagement = _serviceProvider.GetRequiredService<IApiKeyManagementService>();
+                    var settingsWindow = new SettingsWindow(settingsService, audioDeviceService, apiKeyManagement);
                     settingsWindow.Show();
                 }
             }, System.Windows.Threading.DispatcherPriority.Background);

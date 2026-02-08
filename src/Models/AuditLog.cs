@@ -150,6 +150,11 @@ namespace WhisperKey.Models
         PasswordChanged,
         
         /// <summary>
+        /// System-level event
+        /// </summary>
+        SystemEvent,
+        
+        /// <summary>
         /// Authentication token generated
         /// </summary>
         TokenGenerated,
@@ -586,6 +591,16 @@ namespace WhisperKey.Models
         /// Event occurs from unusual location
         /// </summary>
         UnusualLocation,
+        
+        /// <summary>
+        /// Predictive analytics detected an anomaly
+        /// </summary>
+        PredictiveAnomaly,
+        
+        /// <summary>
+        /// Dynamic threshold exceeded based on historical data
+        /// </summary>
+        DynamicThreshold,
         
         /// <summary>
         /// Custom condition script
