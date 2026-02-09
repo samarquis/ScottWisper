@@ -251,7 +251,10 @@ namespace WhisperKey.Services
                 // Calculate integrity hash
                 entry.IntegrityHash = CalculateHash(entry);
                 
-                // Save to repository
+                // Save to immutable file storage with hash chaining for SOC 2 compliance
+                await SaveLogEntryAsync(entry);
+                
+                // Save to repository (e.g. database for quick searching)
                 await _repository.AddAsync(entry);
                 
                 // Raise event for real-time alerting
@@ -637,11 +640,33 @@ namespace WhisperKey.Services
                 if (targetEntry == null)
                     return false;
                 
-                // Verify individual entry hash
-                var calculatedHash = CalculateHash(targetEntry);
+                // Extract previous hash from metadata if it exists for chain verification
+                string? previousHash = null;
+                if (!string.IsNullOrEmpty(targetEntry.Metadata))
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(targetEntry.Metadata);
+                        if (doc.RootElement.TryGetProperty("previousHash", out var prop))
+                        {
+                            previousHash = prop.GetString();
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore parsing errors
+                    }
+                }
+
+                // Verify individual entry hash, taking into account if it was chained
+                var calculatedHash = previousHash != null
+                    ? CalculateHashWithChain(targetEntry, previousHash)
+                    : CalculateHash(targetEntry);
+
                 if (targetEntry.IntegrityHash != calculatedHash)
                 {
-                    _logger.LogWarning("Log integrity check failed for {LogId}: hash mismatch", logId);
+                    _logger.LogWarning("Log integrity check failed for {LogId}: hash mismatch. Expected: {Expected}, Actual: {Actual}", 
+                        logId, targetEntry.IntegrityHash, calculatedHash);
                     return false;
                 }
                 

@@ -39,7 +39,7 @@ namespace WhisperKey.Services
                 if (!IsValidFormat(combination))
                 {
                     result.IsValid = false;
-                    result.ErrorMessage = "Invalid hotkey format. Use format like 'Ctrl+Alt+V'";
+                    result.ErrorMessage = "Invalid hotkey format. Use format like 'Alt+Space'";
                     return result;
                 }
 

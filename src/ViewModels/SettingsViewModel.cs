@@ -453,7 +453,7 @@ namespace WhisperKey.ViewModels
         }
 
         // Properties for Hotkey Settings
-        private string _toggleRecordingHotkey = "Ctrl+Alt+V";
+        private string _toggleRecordingHotkey = "Alt+Space";
         public string ToggleRecordingHotkey
         {
             get => _toggleRecordingHotkey;

@@ -147,7 +147,7 @@ WhisperKey provides a comprehensive settings management system that allows you t
 
 **Valid Combinations**:
 - Single modifier + key: `Ctrl+V`, `Alt+F1`
-- Double modifier + key: `Ctrl+Alt+V`, `Ctrl+Shift+Space`
+- Double modifier + key: `Alt+Space`, `Ctrl+Shift+Space`
 - Triple modifier: `Ctrl+Alt+Shift+V` (rarely needed)
 
 ### Conflict Resolution
@@ -163,7 +163,7 @@ WhisperKey provides a comprehensive settings management system that allows you t
 - **Warnings**: Optional notifications about potential conflicts
 
 **Common Resolutions**:
-- `Ctrl+V` → `Ctrl+Alt+V` (avoid clipboard conflict)
+- `Ctrl+V` → `Alt+Space` (avoid clipboard conflict)
 - `Alt+Tab` → `Alt+`+` (avoid Windows switching)
 - `Win+R` → `Ctrl+Win+R` (avoid Run dialog)
 

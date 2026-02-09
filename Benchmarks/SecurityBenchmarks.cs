@@ -4,6 +4,7 @@ using System.Text;
 using BenchmarkDotNet.Attributes;
 using WhisperKey.Models;
 using WhisperKey.Services;
+using WhisperKey.Services.Database;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace WhisperKey.Benchmarks
@@ -19,7 +20,7 @@ namespace WhisperKey.Benchmarks
         {
             _testLogDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WhisperKeyBenchmarks_" + Guid.NewGuid().ToString());
             System.IO.Directory.CreateDirectory(_testLogDir);
-            _auditService = new AuditLoggingService(NullLogger<AuditLoggingService>.Instance, _testLogDir);
+            _auditService = new AuditLoggingService(NullLogger<AuditLoggingService>.Instance, new NullAuditRepository(), _testLogDir);
         }
 
         [GlobalCleanup]

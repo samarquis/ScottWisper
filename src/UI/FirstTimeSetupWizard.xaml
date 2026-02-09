@@ -5,7 +5,8 @@
         Height="500" Width="600"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
-        Background="White">
+        Background="White"
+        Loaded="Window_Loaded">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -118,7 +119,7 @@
                 
                 <TextBlock Text="Quick Start Guide:" FontWeight="SemiBold" Margin="0,0,0,8"/>
                 <TextBlock TextWrapping="Wrap" Margin="0,0,0,4">
-                    <Run Text="• Press "/><Run Text="Ctrl+Alt+V" FontWeight="Bold"/><Run Text=" to start/stop dictation"/>
+                    <Run Text="• Press "/><Run Text="Alt+Space" FontWeight="Bold"/><Run Text=" to start/stop dictation"/>
                 </TextBlock>
                 <TextBlock TextWrapping="Wrap" Margin="0,0,0,4">
                     <Run Text="• Click the "/><Run Text="tray icon" FontWeight="Bold"/><Run Text=" to access settings"/>

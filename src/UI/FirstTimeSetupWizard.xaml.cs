@@ -32,15 +32,19 @@ namespace WhisperKey.UI
             _apiKeyManagement = apiKeyManagement ?? throw new ArgumentNullException(nameof(apiKeyManagement));
             
             InitializeComponent();
-            LoadMicrophones();
             UpdateStepIndicators();
         }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadMicrophonesAsync();
+        }
         
-        private void LoadMicrophones()
+        private async Task LoadMicrophonesAsync()
         {
             try
             {
-                var devices = _audioDeviceService.GetInputDevicesAsync().Result;
+                var devices = await _audioDeviceService.GetInputDevicesAsync();
                 foreach (var device in devices)
                 {
                     MicrophoneComboBox.Items.Add(device);
@@ -91,14 +95,14 @@ namespace WhisperKey.UI
             }
         }
 
-        private void SkipButton_Click(object sender, RoutedEventArgs e)
+        private async void SkipButton_Click(object sender, RoutedEventArgs e)
         {
             // Mark as completed so it doesn't show again
             try
             {
                 var settings = _settingsService.Settings;
                 settings.FirstTimeSetupCompleted = true;
-                _settingsService.SaveAsync().Wait();
+                await _settingsService.SaveAsync();
             }
             catch (Exception ex)
             {
@@ -243,7 +247,7 @@ namespace WhisperKey.UI
             AudioLevelProgressBar.Value = 0;
         }
         
-        private void FinishButton_Click(object sender, RoutedEventArgs e)
+        private async void FinishButton_Click(object sender, RoutedEventArgs e)
         {
             // Save the "show on startup" preference
             try
@@ -251,7 +255,7 @@ namespace WhisperKey.UI
                 var settings = _settingsService.Settings;
                 settings.FirstTimeSetupCompleted = true;
                 settings.ShowSetupWizardOnStartup = ShowOnStartupCheckBox.IsChecked ?? false;
-                _settingsService.SaveAsync().Wait();
+                await _settingsService.SaveAsync();
             }
             catch (Exception ex)
             {

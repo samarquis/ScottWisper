@@ -32,7 +32,7 @@
    - Click "Continue" to finish setup
 
 4. **Start Dictating**
-   - Press default hotkey: `Ctrl + Win + Shift + V`
+   - Press default hotkey: `Alt + Space`
    - WhisperKey is ready to use in any application
 
 ## System Tray Operation
@@ -225,8 +225,8 @@
 ### Hotkey Management System
 
 **Default Hotkeys:**
-- `Ctrl + Win + Shift + V` - Toggle dictation
-- `Ctrl + Win + Shift + S` - Open settings
+- `Alt + Space` - Toggle dictation
+- `Ctrl + Alt + S` - Open settings
 - `Escape` - Stop recording/close window
 - `Ctrl + C` - Copy transcribed text
 

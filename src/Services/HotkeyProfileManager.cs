@@ -308,7 +308,7 @@ namespace WhisperKey.Services
                     {
                         Id = "toggle_recording",
                         Name = "Toggle Recording",
-                        Combination = "Ctrl+Alt+V",
+                        Combination = "Alt+Space",
                         Action = "toggle_recording",
                         IsEnabled = true
                     },

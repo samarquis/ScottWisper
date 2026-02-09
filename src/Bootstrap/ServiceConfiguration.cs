@@ -17,7 +17,6 @@ using WhisperKey.Services.Recovery;
 using WhisperKey.Infrastructure.SmokeTesting;
 using WhisperKey.Infrastructure.SmokeTesting.Reporting;
 using WhisperKey.Infrastructure.SmokeTesting.HealthChecks;
-using WhisperKey;
 using Microsoft.Extensions.Logging.Console;
 using Serilog.Extensions.Logging;
 using Serilog.Core;

@@ -224,13 +224,13 @@ namespace WhisperKey.Bootstrap
             {
                 await FeedbackService.ShowToastNotificationAsync(
                     "Application Started", 
-                    "WhisperKey is ready. Press Ctrl+Alt+V to start dictation.", 
+                    "WhisperKey is ready. Press Alt+Space to start dictation.", 
                     IFeedbackService.NotificationType.Completion
                 ).ConfigureAwait(false);
             }
             else if (SystemTrayService != null)
             {
-                SystemTrayService.ShowNotification("WhisperKey is ready. Press Ctrl+Alt+V to start dictation.", "Application Started");
+                SystemTrayService.ShowNotification("WhisperKey is ready. Press Alt+Space to start dictation.", "Application Started");
             }
         }
         

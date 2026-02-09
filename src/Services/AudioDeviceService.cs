@@ -910,25 +910,27 @@ namespace WhisperKey.Services
                             return new List<AudioDevice>();
                         }
 
+                        List<IMMDeviceWrapper> devices;
                         lock (_lockObject)
                         {
                             if (_disposed) 
                                 return new List<AudioDevice>();
 
-                            var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                            var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
-
-                            // Filter devices based on permission status
-                            if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
-                            {
-                                audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
-                            }
-
-                            _logger.LogDebug("Enumerated {Count} input devices with permission status {PermissionStatus}", 
-                                audioDevices.Count, permissionStatus);
-
-                            return audioDevices;
+                            devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).ToList();
                         }
+
+                        var audioDevices = devices.Select(CreateAudioDevice).Where(d => d != null).ToList()!;
+
+                        // Filter devices based on permission status
+                        if (!permissionStatus.Equals(MicrophonePermissionStatus.Granted))
+                        {
+                            audioDevices = audioDevices.Where(d => d.PermissionStatus != MicrophonePermissionStatus.Denied).ToList();
+                        }
+
+                        _logger.LogDebug("Enumerated {Count} input devices with permission status {PermissionStatus}", 
+                            audioDevices.Count, permissionStatus);
+
+                        return audioDevices;
                     }
                     catch (UnauthorizedAccessException ex)
                     {
@@ -1985,7 +1987,7 @@ namespace WhisperKey.Services
                 // Check permission status for input devices
                 if (audioDevice.DataFlow == AudioDataFlow.Capture)
                 {
-                    audioDevice.PermissionStatus = CheckMicrophonePermissionForDevice(device.ID).Result;
+                    audioDevice.PermissionStatus = CheckMicrophonePermissionForDevice(device.ID).GetAwaiter().GetResult();
                 }
 
                 return audioDevice;
@@ -2068,83 +2070,85 @@ namespace WhisperKey.Services
             }
         }
 
-        public Task<bool> RequestMicrophonePermissionAsync()
+        public async Task<bool> RequestMicrophonePermissionAsync()
         {
-            lock (_lockObject)
-            {
-                if (_disposed) return Task.FromResult(false);
+            if (_disposed) return false;
 
+            try
+            {
+                // On Windows, we trigger the permission request by attempting to access the microphone
+                // This will show the Windows permission dialog if not already granted
+                var currentStatus = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
+                
+                if (currentStatus == MicrophonePermissionStatus.Granted)
+                {
+                    PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission already granted"));
+                    return true;
+                }
+
+                // Try to trigger permission dialog by attempting device access
                 try
                 {
-                    // On Windows, we trigger the permission request by attempting to access the microphone
-                    // This will show the Windows permission dialog if not already granted
-                    var currentStatus = CheckMicrophonePermissionAsync().Result;
-                    
-                    if (currentStatus == MicrophonePermissionStatus.Granted)
+                    List<IMMDeviceWrapper> devices;
+                    lock (_lockObject)
                     {
-                        PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission already granted"));
-                        return Task.FromResult(true);
+                        devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).ToList();
                     }
 
-                    // Try to trigger permission dialog by attempting device access
-                    try
+                    if (!devices.Any())
                     {
-                        var devices = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active);
-                        if (!devices.Any())
-                        {
-                            PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "No audio input devices available"));
-                            return Task.FromResult(false);
-                        }
-
-                        // Attempt to access device to trigger permission dialog
-                        var testDevice = devices.First();
-                        using (var waveIn = _waveInFactory())
-                        {
-                            waveIn.DeviceNumber = GetDeviceNumber(testDevice.ID);
-                            waveIn.WaveFormat = new WaveFormat(16000, 1);
-                            
-                            // This should trigger the permission dialog if needed
-                            waveIn.StartRecording();
-                            Thread.Sleep(100);
-                            waveIn.StopRecording();
-                        }
-
-                        // Check if permission was granted
-                        var newStatus = CheckMicrophonePermissionForDevice(testDevice.ID).Result;
-                        if (newStatus == MicrophonePermissionStatus.Granted)
-                        {
-                            PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission granted successfully", testDevice.ID));
-                            return Task.FromResult(true);
-                        }
-                        else
-                        {
-                            PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Microphone permission was denied", testDevice.ID));
-                            return Task.FromResult(false);
-                        }
+                        PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "No audio input devices available"));
+                        return false;
                     }
-                    catch (UnauthorizedAccessException)
+
+                    // Attempt to access device to trigger permission dialog
+                    var testDevice = devices.First();
+                    using (var waveIn = _waveInFactory())
                     {
-                        PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Access to microphone was denied. Please enable microphone access in Windows Settings.", ""));
-                        return Task.FromResult(false);
+                        waveIn.DeviceNumber = GetDeviceNumber(testDevice.ID);
+                        waveIn.WaveFormat = new WaveFormat(16000, 1);
+                        
+                        // This should trigger the permission dialog if needed
+                        waveIn.StartRecording();
+                        await Task.Delay(100).ConfigureAwait(false);
+                        waveIn.StopRecording();
                     }
-                    catch (SecurityException)
+
+                    // Check if permission was granted
+                    var newStatus = await CheckMicrophonePermissionForDevice(testDevice.ID).ConfigureAwait(false);
+                    if (newStatus == MicrophonePermissionStatus.Granted)
                     {
-                        PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Security error accessing microphone. Please check Windows Privacy Settings.", ""));
-                        return Task.FromResult(false);
+                        PermissionGranted?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Granted, "Microphone permission granted successfully", testDevice.ID));
+                        return true;
+                    }
+                    else
+                    {
+                        PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Microphone permission was denied", testDevice.ID));
+                        return false;
                     }
                 }
-                catch (InvalidOperationException ex)
+                catch (UnauthorizedAccessException)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
-                    PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
-                    return Task.FromResult(false);
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Access to microphone was denied. Please enable microphone access in Windows Settings.", ""));
+                    return false;
                 }
-                catch (COMException ex)
+                catch (SecurityException)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
-                    PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
-                    return Task.FromResult(false);
+                    PermissionDenied?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.Denied, "Security error accessing microphone. Please check Windows Privacy Settings.", ""));
+                    return false;
                 }
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
+                PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
+                return false;
+            }
+            catch (COMException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
+                PermissionRequestFailed?.Invoke(this, new PermissionEventArgs(MicrophonePermissionStatus.SystemError, $"System error requesting permission: {ex.Message}"));
+                return false;
             }
         }
 
@@ -2797,99 +2801,100 @@ namespace WhisperKey.Services
         /// <summary>
         /// Switches to the specified audio device with validation and error handling
         /// </summary>
-        public Task<bool> SwitchDeviceAsync(string deviceId)
+        public async Task<bool> SwitchDeviceAsync(string deviceId)
         {
-            if (_disposed) return Task.FromResult(false);
+            if (_disposed) return false;
             
-            lock (_lockObject)
+            try
             {
-                try
+                IMMDeviceWrapper? device;
+                lock (_lockObject)
                 {
                     // Get the target device
-                    var device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                    device = _enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
                         .FirstOrDefault(d => d.ID == deviceId);
+                }
+                
+                if (device == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Device with ID {deviceId} not found");
+                    return false;
+                }
+
+                // Test device compatibility
+                if (!IsDeviceCompatible(deviceId))
+                {
+                    System.Diagnostics.Debug.WriteLine($"Device {deviceId} is not compatible");
+                    return false;
+                }
+
+                // Test device functionality
+                using (var waveIn = _waveInFactory())
+                {
+                    waveIn.DeviceNumber = GetDeviceNumber(device.ID);
+                    waveIn.WaveFormat = new WaveFormat(16000, 1);
                     
-                    if (device == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Device with ID {deviceId} not found");
-                        return Task.FromResult(false);
-                    }
-
-                    // Test device compatibility
-                    if (!IsDeviceCompatible(deviceId))
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Device {deviceId} is not compatible");
-                        return Task.FromResult(false);
-                    }
-
-                    // Test device functionality
-                    using (var waveIn = _waveInFactory())
-                    {
-                        waveIn.DeviceNumber = GetDeviceNumber(device.ID);
-                        waveIn.WaveFormat = new WaveFormat(16000, 1);
-                        
-                        // Test if device can be configured and started
-                        waveIn.StartRecording();
-                        Thread.Sleep(100); // Brief test
-                        waveIn.StopRecording();
-                    }
-
-                    // Check microphone permission for the device
-                    var permissionStatus = CheckMicrophonePermissionForDevice(deviceId).Result;
-                    if (permissionStatus != MicrophonePermissionStatus.Granted)
-                    {
-                        // Try to request permission
-                        var permissionGranted = RequestMicrophonePermissionAsync().Result;
-                        if (!permissionGranted)
-                        {
-                            PermissionDenied?.Invoke(this, new PermissionEventArgs(
-                                MicrophonePermissionStatus.Denied, 
-                                "Cannot switch to device - microphone permission denied", 
-                                deviceId));
-                            return Task.FromResult(false);
-                        }
-                    }
-
-                    // Device switch successful
-                    System.Diagnostics.Debug.WriteLine($"Successfully switched to device: {device.FriendlyName}");
-                    
-                    // Raise device connected event for UI updates
-                    var audioDevice = CreateAudioDevice(device);
-                    if (audioDevice != null)
-                    {
-                        DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(audioDevice));
-                    }
-
-                    return Task.FromResult(true);
+                    // Test if device can be configured and started
+                    waveIn.StartRecording();
+                    await Task.Delay(100).ConfigureAwait(false);
+                    waveIn.StopRecording();
                 }
-                catch (UnauthorizedAccessException ex)
+
+                // Check microphone permission for the device
+                var permissionStatus = await CheckMicrophonePermissionForDevice(deviceId).ConfigureAwait(false);
+                if (permissionStatus != MicrophonePermissionStatus.Granted)
                 {
-                    PermissionDenied?.Invoke(this, new PermissionEventArgs(
-                        MicrophonePermissionStatus.Denied, 
-                        "Access to device denied - check Windows Privacy Settings", 
-                        deviceId, ex));
-                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
-                    return Task.FromResult(false);
+                    // Try to request permission
+                    var permissionGranted = await RequestMicrophonePermissionAsync().ConfigureAwait(false);
+                    if (!permissionGranted)
+                    {
+                        PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                            MicrophonePermissionStatus.Denied, 
+                            "Cannot switch to device - microphone permission denied", 
+                            deviceId));
+                        return false;
+                    }
                 }
-                catch (SecurityException ex)
+
+                // Device switch successful
+                System.Diagnostics.Debug.WriteLine($"Successfully switched to device: {device.FriendlyName}");
+                
+                // Raise device connected event for UI updates
+                var audioDevice = CreateAudioDevice(device);
+                if (audioDevice != null)
                 {
-                    PermissionDenied?.Invoke(this, new PermissionEventArgs(
-                        MicrophonePermissionStatus.Denied, 
-                        "Security error accessing device - check Windows Privacy Settings", 
-                        deviceId, ex));
-                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
-                    return Task.FromResult(false);
+                    DeviceConnected?.Invoke(this, new AudioDeviceEventArgs(audioDevice));
                 }
-                catch (InvalidOperationException ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
-                    return Task.FromResult(false);
-                }
-                catch (IOException ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
-                    return Task.FromResult(false);
-                }
+
+                return true;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                    MicrophonePermissionStatus.Denied, 
+                    "Access to device denied - check Windows Privacy Settings", 
+                    deviceId, ex));
+                System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                return false;
+            }
+            catch (SecurityException ex)
+            {
+                PermissionDenied?.Invoke(this, new PermissionEventArgs(
+                    MicrophonePermissionStatus.Denied, 
+                    "Security error accessing device - check Windows Privacy Settings", 
+                    deviceId, ex));
+                System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                return false;
+            }
+            catch (InvalidOperationException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                return false;
+            }
+            catch (IOException ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error switching to device {deviceId}: {ex.Message}");
+                return false;
             }
         }
 

@@ -21,6 +21,8 @@ namespace WhisperKey.Configuration
         public Dictionary<string, DeviceSpecificSettings> DeviceSettings { get; set; } = new Dictionary<string, DeviceSpecificSettings>();
         public bool EnableRealTimeMonitoring { get; set; } = true;
         public int DeviceTestDuration { get; set; } = 1000; // ms
+        public bool EnableCaptureRateLimiting { get; set; } = true;
+        public int MaxCapturesPerMinute { get; set; } = 20;
     }
 
     public class DeviceSpecificSettings
@@ -86,7 +88,7 @@ namespace WhisperKey.Configuration
 
     public class HotkeySettings
     {
-        public string ToggleRecording { get; set; } = "Ctrl+Alt+V";
+        public string ToggleRecording { get; set; } = "Alt+Space";
         public string ShowSettings { get; set; } = "Ctrl+Alt+S";
         public bool EnableRecording { get; set; } = true;
         public string EmergencyStop { get; set; } = "Ctrl+Alt+Shift+X";

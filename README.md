@@ -60,7 +60,7 @@ WhisperKey enables secure, accurate voice-to-text conversion that works across *
 
 ### Basic Dictation
 
-1. **Activate Dictation** - Press `Ctrl + Win + Shift + V` in any application
+1. **Activate Dictation** - Press `Alt + Space` in any application
 2. **See Interface** - Professional status window appears with real-time feedback
 3. **Start Speaking** - Visual and audio indicators show recording status
 4. **See Results** - Text appears automatically at cursor position in real-time
@@ -120,7 +120,7 @@ WhisperKey enables secure, accurate voice-to-text conversion that works across *
 ### Keyboard Shortcuts and Hotkeys
 
 **Default Hotkeys:**
-- `Ctrl + Win + Shift + V` - Toggle dictation on/off
+- `Alt + Space` - Toggle dictation on/off
 - `Escape` - Stop recording and close window
 - `Ctrl + C` - Copy transcribed text to clipboard
 

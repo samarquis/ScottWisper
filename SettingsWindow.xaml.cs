@@ -830,8 +830,8 @@ namespace WhisperKey
         private void SetToggleRecordingHotkey_Click(object sender, RoutedEventArgs e) => StartHotkeyCapture("ToggleRecording");
         private async void ResetToggleRecordingHotkey_Click(object sender, RoutedEventArgs e)
         {
-            _settingsService.Settings.Hotkeys.ToggleRecording = "Ctrl+Alt+V";
-            ToggleRecordingHotkeyTextBox.Text = "Ctrl+Alt+V";
+            _settingsService.Settings.Hotkeys.ToggleRecording = "Alt+Space";
+            ToggleRecordingHotkeyTextBox.Text = "Alt+Space";
             await _settingsService.SaveAsync();
         }
 

@@ -693,7 +693,7 @@
                             
                             <Label Grid.Row="0" Grid.Column="0" Content="Toggle Recording:" VerticalAlignment="Center"/>
                             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
-                                <TextBox x:Name="ToggleRecordingHotkeyTextBox" Text="Ctrl+Alt+V" 
+                                <TextBox x:Name="ToggleRecordingHotkeyTextBox" Text="Alt+Space" 
                                          IsReadOnly="True" Width="150" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <Button x:Name="SetToggleRecordingHotkeyButton" Content="Set" Width="60" 
                                         Margin="0,0,8,0" Click="SetToggleRecordingHotkey_Click"/>

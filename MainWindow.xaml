@@ -172,7 +172,7 @@
                         Background="#FF28A745" Foreground="White"
                         BorderThickness="0" Cursor="Hand"
                         AutomationProperties.Name="Start Dictation"
-                        AutomationProperties.HelpText="Click to begin voice dictation. Use Ctrl Alt V shortcut to toggle.">
+                        AutomationProperties.HelpText="Click to begin voice dictation. Use Alt+Space shortcut to toggle.">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🎤" FontSize="24" Margin="0,0,10,0"/>
                         <TextBlock Text="Start Dictation" VerticalAlignment="Center"/>

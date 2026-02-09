@@ -101,63 +101,60 @@ namespace WhisperKey.Services
             });
         }
 
-         /// <summary>
+        /// <summary>
         /// Checks microphone permission status with detailed analysis
         /// </summary>
         public async Task<MicrophonePermissionStatus> CheckMicrophonePermissionAsync()
         {
-            return await Task.Run(async () =>
+            try
             {
-                try
+                // Check system-level permission settings
+                var systemPermission = CheckSystemMicrophonePermission();
+                
+                if (systemPermission == MicrophonePermissionStatus.Denied)
                 {
-                    // Check system-level permission settings
-                    var systemPermission = CheckSystemMicrophonePermission();
-                    
-                    if (systemPermission == MicrophonePermissionStatus.Denied)
-                    {
-                        await _auditService.LogEventAsync(
-                            AuditEventType.SecurityEvent,
-                            "Microphone permission check failed - system denied",
-                            JsonSerializer.Serialize(new { 
-                                SystemPermission = systemPermission.ToString(),
-                                UserId = Environment.UserName,
-                                MachineName = Environment.MachineName
-                            }),
-                            DataSensitivity.Medium);
-                        
-                        return MicrophonePermissionStatus.Denied;
-                    }
-
-                    // Test actual access to microphone
-                    var testResult = await TestMicrophoneAccessAsync();
-                    
                     await _auditService.LogEventAsync(
                         AuditEventType.SecurityEvent,
-                        $"Microphone permission check completed: {testResult}",
+                        "Microphone permission check failed - system denied",
                         JsonSerializer.Serialize(new { 
-                            Result = testResult.ToString(),
                             SystemPermission = systemPermission.ToString(),
-                            UserId = Environment.UserName
+                            UserId = Environment.UserName,
+                            MachineName = Environment.MachineName
                         }),
-                        DataSensitivity.Low);
+                        DataSensitivity.Medium).ConfigureAwait(false);
                     
-                    return testResult;
+                    return MicrophonePermissionStatus.Denied;
                 }
-                catch (Exception ex)
-                {
-                    await _auditService.LogEventAsync(
-                        AuditEventType.Error,
-                        "Microphone permission check error",
-                        JsonSerializer.Serialize(new { 
-                            Error = ex.Message,
-                            StackTrace = ex.StackTrace
-                        }),
-                        DataSensitivity.Medium);
-                    
-                    System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
-                    return MicrophonePermissionStatus.SystemError;
-                }
-            });
+
+                // Test actual access to microphone
+                var testResult = await TestMicrophoneAccessAsync().ConfigureAwait(false);
+                
+                await _auditService.LogEventAsync(
+                    AuditEventType.SecurityEvent,
+                    $"Microphone permission check completed: {testResult}",
+                    JsonSerializer.Serialize(new { 
+                        Result = testResult.ToString(),
+                        SystemPermission = systemPermission.ToString(),
+                        UserId = Environment.UserName
+                    }),
+                    DataSensitivity.Low).ConfigureAwait(false);
+                
+                return testResult;
+            }
+            catch (Exception ex)
+            {
+                await _auditService.LogEventAsync(
+                    AuditEventType.Error,
+                    "Microphone permission check error",
+                    JsonSerializer.Serialize(new { 
+                        Error = ex.Message,
+                        StackTrace = ex.StackTrace
+                    }),
+                    DataSensitivity.Medium).ConfigureAwait(false);
+                
+                System.Diagnostics.Debug.WriteLine($"Error checking microphone permission: {ex.Message}");
+                return MicrophonePermissionStatus.SystemError;
+            }
         }
 
         /// <summary>
@@ -165,85 +162,82 @@ namespace WhisperKey.Services
         /// </summary>
         public async Task<bool> RequestMicrophonePermissionAsync()
         {
-            return await Task.Run(async () =>
+            try
             {
-                try
+                var currentStatus = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
+                
+                if (currentStatus == MicrophonePermissionStatus.Granted)
                 {
-                    var currentStatus = await CheckMicrophonePermissionAsync();
-                    
-                    if (currentStatus == MicrophonePermissionStatus.Granted)
-                    {
-                        await _auditService.LogEventAsync(
-                            AuditEventType.SecurityEvent,
-                            "Microphone permission requested - already granted",
-                            JsonSerializer.Serialize(new { 
-                                PreviousStatus = currentStatus.ToString(),
-                                UserId = Environment.UserName
-                            }),
-                            DataSensitivity.Low);
-                        
-                        return true; // Already granted
-                    }
-
-                    // Attempt to trigger Windows permission dialog
-                    var success = await TriggerWindowsPermissionDialogAsync();
-                    
-                    if (success)
-                    {
-                        // Verify permission was actually granted
-                        var newStatus = await CheckMicrophonePermissionAsync();
-                        if (newStatus == MicrophonePermissionStatus.Granted)
-                        {
-                            RecordPermissionRequest(true, "Windows permission dialog");
-                            
-                            await _auditService.LogEventAsync(
-                                AuditEventType.SecurityEvent,
-                                "Microphone permission granted via dialog",
-                                JsonSerializer.Serialize(new { 
-                                    PreviousStatus = currentStatus.ToString(),
-                                    NewStatus = newStatus.ToString(),
-                                    Method = "Windows permission dialog",
-                                    UserId = Environment.UserName
-                                }),
-                                DataSensitivity.Medium);
-                            
-                            return true;
-                        }
-                    }
-
-                    // Fallback: open privacy settings
-                    await OpenWindowsPrivacySettingsAsync();
-                    RecordPermissionRequest(false, "Windows permission dialog failed - opened settings");
-                    
                     await _auditService.LogEventAsync(
                         AuditEventType.SecurityEvent,
-                        "Microphone permission request failed - opened settings",
+                        "Microphone permission requested - already granted",
                         JsonSerializer.Serialize(new { 
                             PreviousStatus = currentStatus.ToString(),
-                            Method = "Opened privacy settings",
                             UserId = Environment.UserName
                         }),
-                        DataSensitivity.Medium);
+                        DataSensitivity.Low).ConfigureAwait(false);
                     
-                    return false;
+                    return true; // Already granted
                 }
-                catch (Exception ex)
+
+                // Attempt to trigger Windows permission dialog
+                var success = await TriggerWindowsPermissionDialogAsync().ConfigureAwait(false);
+                
+                if (success)
                 {
-                    await _auditService.LogEventAsync(
-                        AuditEventType.Error,
-                        "Microphone permission request error",
-                        JsonSerializer.Serialize(new { 
-                            Error = ex.Message,
-                            StackTrace = ex.StackTrace,
-                            UserId = Environment.UserName
-                        }),
-                        DataSensitivity.Medium);
-                    
-                    System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
-                    RecordPermissionRequest(false, $"Exception: {ex.Message}");
-                    return false;
+                    // Verify permission was actually granted
+                    var newStatus = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
+                    if (newStatus == MicrophonePermissionStatus.Granted)
+                    {
+                        RecordPermissionRequest(true, "Windows permission dialog");
+                        
+                        await _auditService.LogEventAsync(
+                            AuditEventType.SecurityEvent,
+                            "Microphone permission granted via dialog",
+                            JsonSerializer.Serialize(new { 
+                                PreviousStatus = currentStatus.ToString(),
+                                NewStatus = newStatus.ToString(),
+                                Method = "Windows permission dialog",
+                                UserId = Environment.UserName
+                            }),
+                            DataSensitivity.Medium).ConfigureAwait(false);
+                        
+                        return true;
+                    }
                 }
-            });
+
+                // Fallback: open privacy settings
+                await OpenWindowsPrivacySettingsAsync().ConfigureAwait(false);
+                RecordPermissionRequest(false, "Windows permission dialog failed - opened settings");
+                
+                await _auditService.LogEventAsync(
+                    AuditEventType.SecurityEvent,
+                    "Microphone permission request failed - opened settings",
+                    JsonSerializer.Serialize(new { 
+                        PreviousStatus = currentStatus.ToString(),
+                        Method = "Opened privacy settings",
+                        UserId = Environment.UserName
+                    }),
+                    DataSensitivity.Medium).ConfigureAwait(false);
+                
+                return false;
+            }
+            catch (Exception ex)
+            {
+                await _auditService.LogEventAsync(
+                    AuditEventType.Error,
+                    "Microphone permission request error",
+                    JsonSerializer.Serialize(new { 
+                        Error = ex.Message,
+                        StackTrace = ex.StackTrace,
+                        UserId = Environment.UserName
+                    }),
+                    DataSensitivity.Medium).ConfigureAwait(false);
+                
+                System.Diagnostics.Debug.WriteLine($"Error requesting microphone permission: {ex.Message}");
+                RecordPermissionRequest(false, $"Exception: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
@@ -251,7 +245,7 @@ namespace WhisperKey.Services
         /// </summary>
         public async Task<string> GetPermissionStatusAsync()
         {
-            var status = await CheckMicrophonePermissionAsync();
+            var status = await CheckMicrophonePermissionAsync().ConfigureAwait(false);
             
             return status switch
             {
@@ -269,29 +263,26 @@ namespace WhisperKey.Services
         /// </summary>
         public async Task<bool> OpenWindowsPrivacySettingsAsync()
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                var result = ShellExecute(IntPtr.Zero, "open", MICROPHONE_SETTINGS_PATH, null, null, SW_SHOW);
+                
+                if (result.ToInt32() > 32) // ShellExecute success
                 {
-                    var result = ShellExecute(IntPtr.Zero, "open", MICROPHONE_SETTINGS_PATH, null, null, SW_SHOW);
-                    
-                    if (result.ToInt32() > 32) // ShellExecute success
-                    {
-                        System.Diagnostics.Debug.WriteLine("Opened Windows microphone privacy settings successfully");
-                        return true;
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Failed to open Windows microphone privacy settings");
-                        return false;
-                    }
+                    System.Diagnostics.Debug.WriteLine("Opened Windows microphone privacy settings successfully");
+                    return true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error opening privacy settings: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine("Failed to open Windows microphone privacy settings");
                     return false;
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error opening privacy settings: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
@@ -347,18 +338,18 @@ namespace WhisperKey.Services
         /// </summary>
         public async Task<List<PermissionRequestRecord>> GetPermissionRequestHistoryAsync()
         {
-            return await Task.Run(async () =>
+            try
             {
-                try
+                lock (_requestHistory)
                 {
                     return new List<PermissionRequestRecord>(_requestHistory);
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error getting permission request history: {ex.Message}");
-                    return new List<PermissionRequestRecord>();
-                }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting permission request history: {ex.Message}");
+                return new List<PermissionRequestRecord>();
+            }
         }
 
         /// <summary>
@@ -453,33 +444,30 @@ namespace WhisperKey.Services
         /// </summary>
         private async Task<bool> TriggerWindowsPermissionDialogAsync()
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                // Try to access microphone to trigger permission dialog
+                // This is a simplified approach - in production you would use
+                // Windows AppContainer APIs or similar mechanisms
+                
+                var result = ShellExecute(IntPtr.Zero, "open", PRIVACY_SETTINGS_PATH, null, null, SW_SHOW);
+                
+                if (result.ToInt32() > 32)
                 {
-                    // Try to access microphone to trigger permission dialog
-                    // This is a simplified approach - in production you would use
-                    // Windows AppContainer APIs or similar mechanisms
-                    
-                    var result = ShellExecute(IntPtr.Zero, "open", PRIVACY_SETTINGS_PATH, null, null, SW_SHOW);
-                    
-                    if (result.ToInt32() > 32)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Triggered Windows permission dialog successfully");
-                        return true;
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("Failed to trigger Windows permission dialog");
-                        return false;
-                    }
+                    System.Diagnostics.Debug.WriteLine("Triggered Windows permission dialog successfully");
+                    return true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error triggering permission dialog: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine("Failed to trigger Windows permission dialog");
                     return false;
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error triggering permission dialog: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
