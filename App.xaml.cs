@@ -117,6 +117,14 @@ namespace WhisperKey
                 // Configure services using ServiceConfiguration
                 _serviceProvider = ServiceConfiguration.ConfigureServices();
                 
+                // Apply saved theme on startup
+                var themeService = _serviceProvider?.GetService<IThemeService>();
+                if (themeService != null)
+                {
+                    themeService.Initialize();
+                    Properties["ThemeService"] = themeService;
+                }
+                
                 // Initialize bootstrapper
                 _bootstrapper = new ApplicationBootstrapper(_serviceProvider);
                 

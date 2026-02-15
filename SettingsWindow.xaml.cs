@@ -1024,8 +1024,12 @@ namespace WhisperKey
             if (IsLoading) return;
             if (ThemeComboBox?.SelectedItem is ComboBoxItem item)
             {
-                _settingsService.Settings.UI.Theme = item.Tag?.ToString() ?? "system";
+                var theme = item.Tag?.ToString() ?? "light";
+                _settingsService.Settings.UI.Theme = theme;
                 _ = _settingsService.SaveAsync();
+                
+                var themeService = (Application.Current as App)?.Properties["ThemeService"] as IThemeService;
+                themeService?.ApplyTheme(theme);
             }
         }
 

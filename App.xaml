@@ -38,6 +38,19 @@
         <SolidColorBrush x:Key="TextMutedBrush" Color="#FFADB5BD"/>
         <SolidColorBrush x:Key="WhiteBrush" Color="White"/>
         
+        <!-- Dark Theme Colors -->
+        <SolidColorBrush x:Key="DarkPrimaryBackgroundBrush" Color="#FF1E1E1E"/>
+        <SolidColorBrush x:Key="DarkSecondaryBackgroundBrush" Color="#FF252526"/>
+        <SolidColorBrush x:Key="DarkTertiaryBackgroundBrush" Color="#FF2D2D30"/>
+        <SolidColorBrush x:Key="DarkBorderBrush" Color="#FF3E3E42"/>
+        <SolidColorBrush x:Key="DarkTextPrimaryBrush" Color="#FFE0E0E0"/>
+        <SolidColorBrush x:Key="DarkTextSecondaryBrush" Color="#FFABABAB"/>
+        <SolidColorBrush x:Key="DarkTextMutedBrush" Color="#FF6E6E6E"/>
+        <SolidColorBrush x:Key="DarkSuccessBrush" Color="#FF4CAF50"/>
+        <SolidColorBrush x:Key="DarkInfoBrush" Color="#FF2196F3"/>
+        <SolidColorBrush x:Key="DarkWarningBrush" Color="#FFFFC107"/>
+        <SolidColorBrush x:Key="DarkDangerBrush" Color="#FFF44336"/>
+        
         <!-- Common border styles -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
             <Setter Property="Background" Value="White"/>

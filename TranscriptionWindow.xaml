@@ -9,7 +9,7 @@
         Height="400" Width="600"
         WindowStyle="None" 
         AllowsTransparency="True"
-        Background="#E6FFFFFF"
+        Background="{DynamicResource PrimaryBackgroundBrush}"
         Topmost="True"
         ShowInTaskbar="False">
     <Grid>
@@ -20,7 +20,7 @@
         </Grid.RowDefinitions>
         
         <!-- Header with status and controls -->
-        <Border Grid.Row="0" Background="#F0F0F0" Padding="10,5">
+        <Border Grid.Row="0" Background="{DynamicResource DarkBackgroundBrush}" Padding="10,5">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>

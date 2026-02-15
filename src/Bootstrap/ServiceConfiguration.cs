@@ -153,6 +153,7 @@ namespace WhisperKey.Bootstrap
             // Core services (immediate initialization - lightweight dependencies)
             services.AddSingleton<ISettingsRepository, FileSettingsRepository>();
             services.AddSingleton<ISettingsService, SettingsService>();
+            services.AddSingleton<IThemeService, ThemeService>();
             services.AddSingleton<ITextInjection, TextInjectionService>();
             
             // Lazy-loaded heavy services to improve startup performance
