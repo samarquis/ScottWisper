@@ -63,12 +63,12 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal">
                     <Button x:Name="SettingsButton" Content="⚙️" Background="Transparent" Foreground="White"
                             BorderThickness="0" FontSize="14" Width="25" Height="25" Margin="0,0,5,0"
-                            ToolTip="Application Settings" Click="SettingsButton_Click"
+                            ToolTip="Application Settings" Command="{Binding SettingsCommand}"
                             AutomationProperties.Name="Settings"
                             AutomationProperties.HelpText="Open settings to configure audio, hotkeys, and transcription options"/>
                     <Button x:Name="HelpButton" Content="❓" Background="Transparent" Foreground="White"
                             BorderThickness="0" FontSize="14" Width="25" Height="25"
-                            ToolTip="Help and Documentation" Click="HelpButton_Click"
+                            ToolTip="Help and Documentation" Command="{Binding HelpCommand}"
                             AutomationProperties.Name="Help"
                             AutomationProperties.HelpText="Open user guide and documentation"/>
                 </StackPanel>
@@ -167,7 +167,7 @@
             <!-- Primary Action: Start Dictation Button -->
             <Border Grid.Row="2" Background="#FFF8F9FA" Padding="20,15" Margin="10,5"
                    CornerRadius="8" BorderBrush="#FF28A745" BorderThickness="2" x:Name="StartDictationBorder">
-                <Button x:Name="StartDictationButton" Click="StartDictationButton_Click"
+                <Button x:Name="StartDictationButton" Command="{Binding StartDictationCommand}"
                         Height="60" FontSize="18" FontWeight="Bold"
                         Background="#FF28A745" Foreground="White"
                         BorderThickness="0" Cursor="Hand"
@@ -231,10 +231,10 @@
                             
                             <TextBlock Grid.Column="0" Text="Recent Status Changes" FontWeight="SemiBold" FontSize="11"/>
                              <Button Grid.Column="1" x:Name="ClearHistoryButton" Content="Clear" Background="Transparent"
-                                    BorderThickness="0" FontSize="10" Foreground="#FF6C757D" Padding="5,0"
-                                    Click="ClearHistoryButton_Click"
-                                    AutomationProperties.Name="Clear History"
-                                    AutomationProperties.HelpText="Clear all status history items"/>
+                                     BorderThickness="0" FontSize="10" Foreground="#FF6C757D" Padding="5,0"
+                                     Command="{Binding ClearHistoryCommand}"
+                                     AutomationProperties.Name="Clear History"
+                                     AutomationProperties.HelpText="Clear all status history items"/>
                              <TextBlock Grid.Column="2" x:Name="HistoryCount" Text="0 items"
                                        FontSize="10" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"
                                        AutomationProperties.Name="History Count"/>

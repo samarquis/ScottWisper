@@ -30,10 +30,10 @@
                 
                 <!-- Status indicator -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse Name="StatusIndicator" Width="12" Height="12" Fill="#90EE90" Margin="0,0,8,0"
+                    <Ellipse Name="StatusIndicator" Width="12" Height="12" Fill="{Binding StatusIndicatorFill}" Margin="0,0,8,0"
                              AutomationProperties.Name="Recording Status Indicator"
                              AutomationProperties.HelpText="Visual indicator showing recording status. Green indicates ready/listening state."/>
-                    <TextBlock Name="StatusText" Text="Ready" VerticalAlignment="Center" FontSize="12"
+                    <TextBlock Name="StatusText" Text="{Binding StatusText}" VerticalAlignment="Center" FontSize="12"
                                AutomationProperties.Name="Recording Status Text"/>
                 </StackPanel>
                 
@@ -43,7 +43,7 @@
                 <!-- Close button -->
                 <Button Grid.Column="2" Name="CloseButton" Content="✕" Width="24" Height="24"
                         Background="Transparent" BorderThickness="0"
-                        Click="CloseButton_Click" FontSize="14" Cursor="Hand"
+                        Command="{Binding CloseCommand}" FontSize="14" Cursor="Hand"
                         AutomationProperties.Name="Close Window"
                         AutomationProperties.HelpText="Close transcription window and return to main interface"/>
             </Grid>
@@ -54,11 +54,11 @@
                       HorizontalScrollBarVisibility="Disabled" Padding="15,10"
                       AutomationProperties.Name="Transcription Text Area">
             <TextBlock Name="TranscriptionText"
+                       Text="{Binding TranscriptionText}"
                        TextWrapping="Wrap"
                        FontFamily="Segoe UI"
                        FontSize="14"
                        LineHeight="20"
-                       Text="Listening for your voice..."
                        Foreground="#333333"
                        AutomationProperties.Name="Transcribed Text"
                        AutomationProperties.LiveSetting="Assertive"/>
@@ -74,7 +74,7 @@
                 
                 <!-- Usage info -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Name="UsageText" Text="0 requests | $0.0000" FontSize="10" Foreground="#666666"/>
+                    <TextBlock Name="UsageText" Text="{Binding UsageText}" FontSize="10" Foreground="#666666"/>
                 </StackPanel>
                 
                 <!-- Settings hint -->

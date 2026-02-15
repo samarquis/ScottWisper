@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using WhisperKey.Services;
+using WhisperKey.ViewModels;
 
 namespace WhisperKey.UI
 {
@@ -50,7 +51,10 @@ namespace WhisperKey.UI
         
         public Window CreateMainWindow()
         {
-            return new MainWindow();
+            var window = new MainWindow();
+            var viewModel = _serviceProvider.GetRequiredService<MainViewModel>();
+            window.SetViewModel(viewModel);
+            return window;
         }
         
         public Window CreateSettingsWindow(ISettingsService settingsService, IAudioDeviceService audioDeviceService, IApiKeyManagementService apiKeyManagement)
@@ -61,8 +65,9 @@ namespace WhisperKey.UI
         public Window CreateTranscriptionWindow()
         {
             var window = new TranscriptionWindow();
+            var viewModel = _serviceProvider.GetRequiredService<TranscriptionViewModel>();
+            window.SetViewModel(viewModel);
             
-            // Initialize services if available
             var whisperService = _serviceProvider.GetService<IWhisperService>();
             var costService = _serviceProvider.GetService<CostTrackingService>();
             

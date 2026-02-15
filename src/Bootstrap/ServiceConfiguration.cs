@@ -17,6 +17,8 @@ using WhisperKey.Services.Recovery;
 using WhisperKey.Infrastructure.SmokeTesting;
 using WhisperKey.Infrastructure.SmokeTesting.Reporting;
 using WhisperKey.Infrastructure.SmokeTesting.HealthChecks;
+using WhisperKey.ViewModels;
+using WhisperKey.UI;
 using Microsoft.Extensions.Logging.Console;
 using Serilog.Extensions.Logging;
 using Serilog.Core;
@@ -213,9 +215,17 @@ namespace WhisperKey.Bootstrap
             services.AddSingleton<IByteArrayPool, ByteArrayPool>();
             services.AddSingleton(typeof(IObjectPool<>), typeof(GenericObjectPool<>));
             services.AddSingleton<IPermissionService, PermissionService>();
+            services.AddSingleton<IAudioPermissionService, AudioPermissionService>();
             services.AddSingleton<IRegistryService, RegistryService>();
             services.AddSingleton<IFeedbackService, FeedbackService>();
             services.AddSingleton<ICommandProcessingService, CommandProcessingService>();
+
+            // Register ViewModels
+            services.AddTransient<MainViewModel>();
+            services.AddTransient<TranscriptionViewModel>();
+
+            // Register Window Factory
+            services.AddSingleton<IWindowFactory, WindowFactory>();
             
             // Lazy-loaded specialized services (heavy initialization)
             services.AddLazy<CostTrackingService, CostTrackingService>();
