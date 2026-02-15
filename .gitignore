@@ -32,3 +32,12 @@ Phase04ValidationReport.md
 CrossApplicationValidationReport.md
 CompatibilityTestReport.md
 COMPILATION_PROGRESS.md
+# Test results
+Tests/TestResults/
+publish_test/
+
+# Build outputs
+bin/
+obj/
+Benchmarks/bin/
+Benchmarks/obj/
