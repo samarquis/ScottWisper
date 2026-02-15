@@ -1,254 +1,37 @@
 # WhisperKey Voice Dictation Roadmap
 
-## Overview
+## Milestones
 
-WhisperKey is a **privacy-focused professional voice dictation application** that provides secure voice-to-text conversion with offline-first architecture and enterprise compliance capabilities. Unlike cloud-only solutions, WhisperKey prioritizes data privacy, professional workflows, and air-gapped operation for medical, legal, and enterprise environments.
-
-This roadmap delivers a professional dictation platform in 3 phases, starting with core technology validation and progressing through enterprise integration to compliance features.
+- ✅ **v1.0 Core Voice Dictation Platform** — Phases 1-6 (50 plans) — shipped 2026-02-15
 
 ## Phases
 
-### Phase 1: Core Technology Validation
+<details>
+<summary>✅ v1.0 Core Voice Dictation Platform (Phases 1-6) — SHIPPED 2026-02-15</summary>
 
-**Goal:** Establish working speech-to-text pipeline with real-time transcription capability and sustainable cost model.
+- [x] Phase 1: Core Technology Validation (4/4 plans) — completed 2026-01-26
+- [x] Phase 2: Windows Integration & User Experience (23/23 plans) — completed 2026-01-27
+- [x] Phase 3: Integration Layer Repair (8/8 plans) — completed 2026-01-28
+- [x] Phase 4: Missing Implementation (4/4 plans) — completed 2026-01-29
+- [x] Phase 5: End-to-End Validation (5/5 plans) — completed 2026-01-30
+- [x] Phase 6: Professional Features & Compliance (6/6 plans) — completed 2026-02-15
 
-**Dependencies:** None - Foundation phase
+[Full milestone details archived to .planning/milestones/v1-ROADMAP.md]
 
-**Requirements:**
-- CORE-01: System-wide hotkey activation
-- CORE-02: Speech-to-text conversion using free cloud APIs  
-- CORE-04: High transcription accuracy (95%+)
-- CORE-05: Windows compatibility
-- CORE-06: Free tier usage within API limits
-- UX-01: Real-time text output
+</details>
 
-**Success Criteria:**
-1. User can activate dictation using a global hotkey combination while any Windows application is active
-2. User sees real-time transcription appearing on screen within 100ms of speaking
-3. Transcription accuracy exceeds 95% for clear English speech in quiet environments
-4. Application runs stably on Windows 10/11 without crashes during continuous dictation sessions
-5. API usage stays within free tier limits for moderate daily usage (2-3 hours)
+## Progress
 
-**Plans:** 22 plans in 4 waves
-
-**Plan List:**
-- [x] 01-01-PLAN.md — Foundation setup with WPF and global hotkey registration ✓
-- [x] 01-02-PLAN.md — OpenAI Whisper API integration with real-time audio capture ✓
-- [x] 01-03-PLAN.md — Real-time transcription display and cost tracking implementation ✓
-- [x] 01-04-PLAN.md — Comprehensive validation and performance testing ✓
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Core Technology Validation | v1.0 | 4/4 | Complete | 2026-01-26 |
+| 2. Windows Integration & UX | v1.0 | 23/23 | Complete | 2026-01-27 |
+| 3. Integration Layer Repair | v1.0 | 8/8 | Complete | 2026-01-28 |
+| 4. Missing Implementation | v1.0 | 4/4 | Complete | 2026-01-29 |
+| 5. End-to-End Validation | v1.0 | 5/5 | Complete | 2026-01-30 |
+| 6. Professional Features | v1.0 | 6/6 | Complete | 2026-02-15 |
 
 ---
 
-### Phase 2: Windows Integration & User Experience
-
-**Goal:** Deliver universally compatible text injection and system-level integration for seamless use across all Windows applications.
-
-**Dependencies:** Phase 1 completion - Requires working transcription pipeline
-
-**Requirements:**
-- CORE-03: Automatic text injection into active window
-- UX-02: Text insertion at cursor
-- UX-04: Audio/visual feedback
-- SYS-01: Background process management
-- SYS-02: Settings management
-- SYS-03: Audio device selection
-
-**Success Criteria:**
-1. Transcribed text appears at exact cursor position in any Windows application (browser, IDE, document editor)
-2. User receives clear visual and audio feedback indicating dictation status (ready, recording, processing, complete)
-3. Application runs as background system tray process with minimal CPU/memory usage
-4. User can configure hotkey, API settings, and audio device preferences through settings interface
-5. Application gracefully handles microphone permission requests and device changes
-6. Text injection works reliably across target applications (web browsers, Visual Studio, Office, Notepad++, terminal)
-
-**Plan List:**
-- [x] 01-01-PLAN.md — Foundation setup with WPF and global hotkey registration ✓
-- [x] 01-02-PLAN.md — OpenAI Whisper API integration with real-time audio capture ✓
-- [x] 01-03-PLAN.md — Real-time transcription display and cost tracking implementation ✓
-- [x] 01-04-PLAN.md — Comprehensive validation and performance testing ✓
-- [x] 02-01-PLAN.md — Text injection packages and service foundation ✓
-- [x] 02-02-PLAN.md — Core system tray integration ✓
-- [x] 02-03-PLAN.md — Universal text injection integration ✓
-- [x] 02-04-PLAN.md — System tray icon enhancement ✓
-- [x] 02-05-PLAN.md — Core feedback service creation ✓
-- [x] 02-06-PLAN.md — Audio and visual feedback implementation ✓
-- [x] 02-07-PLAN.md — Window configuration for system tray ✓
-- [x] 02-08-PLAN.md — System tray integration and lifecycle ✓
-- [x] 02-09-PLAN.md — Settings service creation and persistence ✓
-- [x] 02-10-PLAN.md — Settings window basic structure ✓
-- [x] 02-11-PLAN.md — Audio device management integration ✓
-- [x] 02-12-PLAN.md — Hotkey configuration interface ✓
-- [x] 02-13-PLAN.md — Audio visualization implementation ✓
-- [x] 02-14-PLAN.md — Enhanced feedback and indicators ✓
-- [x] 02-15-PLAN.md — Settings window complete interface ✓
-- [x] 02-16-PLAN.md — Device and hotkey management ✓
-- [x] 02-17-PLAN.md — Integration testing framework ✓
-- [x] 02-18-PLAN.md — Cross-application compatibility testing ✓
-- [x] 02-19-PLAN.md — System tray validation testing ✓
-- [x] 02-20-PLAN.md — Settings validation testing ✓
-- [x] 02-21-PLAN.md — Validation and performance testing ✓
-- [x] 02-22-PLAN.md — Documentation and Phase 2 summary ✓
-- [x] 02-23-PLAN.md — Microphone permission handling gap closure ✓
-
----
-
-### Phase 3: Integration Layer Repair
-
-**Goal:** Fix critical integration failures that prevent universal text injection and complete user experience.
-
-**Dependencies:** Phase 2 completion - Requires existing integration code to repair
-
-**Gap Closure:** Closes Phase 02 verification gaps for cross-application validation, permission handling, settings UI, and integration testing
-
-**Requirements:** None (gap closure phase)
-
-**Success Criteria:**
-1. **Cross-Application Validation**: Text injection validated across browsers, Visual Studio, Office, Notepad++, terminal
-2. **Permission Handling**: Microphone permission requests handled gracefully with device change detection
-3. **Settings UI Complete**: Full hotkey and audio device configuration interface operational
-4. **Integration Testing**: Systematic testing framework validates cross-application compatibility
-5. **Gap Closure**: All Phase 02 verification gaps resolved with human validation
-
-**Plans:** 8 plans (gap closure)
-
-**Wave Structure:**
-- **Wave 1:** Critical compilation error fixes (plan 03-04)
-- **Wave 2:** Missing testing framework implementation (plan 03-05)
-- **Wave 3:** Advanced features and missing functionality (plan 03-06)
-- **Wave 4:** Integration and comprehensive validation (plan 03-07)
-
-**Gap Closure Plans:**
-- [x] 03-01-PLAN.md — Cross-application text injection validation and microphone permission handling
-- [x] 03-02-PLAN.md — Complete settings UI implementation and integration testing framework
-- [x] 03-03-PLAN.md — Integration of gap closure fixes and comprehensive validation
-- [x] 03-04-PLAN.md — Critical compilation error resolution (40+ errors)
-- [x] 03-05-PLAN.md — Missing IntegrationTestFramework and ValidationTestRunner creation
-- [x] 03-06-PLAN.md — Advanced features: device monitoring, app validation, settings UI completion
-- [x] 03-07-PLAN.md — Final integration and comprehensive validation report generation
-- [x] 03-08-PLAN.md — Fix orphaned code blocks in SettingsWindow.xaml.cs preventing compilation
-
-**Status:** ✅ Complete - All Phase 02 verification gaps successfully closed
-
----
-
-### Phase 4: Missing Implementation
-
-**Goal:** Complete blocked requirements and missing functionality identified in audit.
-
-**Dependencies:** Phase 3 completion - Requires working integration layer
-
-**Gap Closure:** Closes CORE-03, SYS-02, and SYS-03 requirement gaps
-
-**Requirements:**
-- CORE-03: Automatic text injection into active window (validation)
-- SYS-02: Settings management (complete UI)
-- SYS-03: Audio device selection (permission handling)
-
-**Success Criteria:**
-1. **Text Injection Validation**: Cross-application compatibility verified
-2. **Settings UI Complete**: Full hotkey and audio device configuration interface
-3. **Permission Handling**: Microphone permissions properly requested and handled
-4. **Device Selection**: Audio device switching works reliably
-
-**Plans:** 4 plans in 3 waves
-
-**Plan List:**
-- [x] 04-01-PLAN.md — Cross-application text injection validation (CORE-03) ✓
-- [x] 04-02-PLAN.md — Complete settings management UI (SYS-02) ✓
-- [x] 04-03-PLAN.md — Audio device selection and permission handling (SYS-03) ✓
-- [x] 04-04-PLAN.md — Phase 04 comprehensive validation and gap closure ✓
-
----
-
-### Phase 5: End-to-End Validation
-
-**Goal:** Validate all user workflows and ensure system works end-to-end.
-
-**Dependencies:** Phase 4 completion - Requires all implementation complete
-
-**Gap Closure:** Closes all broken end-to-end flows identified in audit
-
-**Requirements:** None (validation phase)
-
-**Success Criteria:**
-1. **Dictation Activation Flow**: Hotkey → transcription → text injection works
-2. **Settings Persistence Flow**: Configuration changes save and restore correctly
-3. **Cross-Application Compatibility**: Text injection works in target applications
-4. **Performance Validation**: System meets latency and accuracy requirements
-
-**Plan List:**
-- [x] 05-01-PLAN.md — Dictation Activation Flow Validation ✓
-- [x] 05-02-PLAN.md — Settings Persistence Validation ✓
-- [x] 05-03-PLAN.md — Cross-Application Compatibility Validation ✓
-- [x] 05-04-PLAN.md — Performance and Resource Validation ✓
-- [x] 05-05-PLAN.md — Phase 05 Comprehensive Validation Report ✓
-
----
-
-### Phase 6: Professional Features & Compliance
-
-**Goal:** Deliver enterprise-ready privacy features and professional workflow integrations that differentiate from consumer-focused alternatives.
-
-**Dependencies:** Phase 5 completion - Requires validated end-to-end workflows
-
-**Requirements:**
-- UX-03: Basic punctuation commands
-- UX-05: Error correction commands  
-- UX-06: Automatic punctuation
-- PRIV-01: Local-first processing with cloud fallback
-- PRIV-02: Enterprise deployment options
-- PRIV-03: Industry-specific vocabulary packs
-- PRIV-04: Compliance reporting (HIPAA/GDPR)
-
-**Success Criteria:**
-1. **Offline capability**: Full functionality without internet connection using local Whisper models
-2. **Professional compliance**: HIPAA/GDPR-ready features for medical/legal enterprises
-3. **Industry vocabulary**: Specialized terminology for medical, legal, and technical fields
-4. **Enterprise deployment**: Silent install, group policy, and network configurations
-5. **Privacy controls**: User controls over data processing and retention
-6. **Workflow integration**: EHR, case management, and professional software hooks
-7. **Audit logging**: Professional audit trails for compliance requirements
-
-**Plan List:**
-- [x] 06-01-PLAN.md — Voice Commands and Auto-Punctuation ✓
-- [x] 06-02-PLAN.md — Local Whisper Integration ✓
-- [x] 06-03-PLAN.md — Compliance and Privacy Framework ✓
-- [x] 06-04-PLAN.md — Industry Vocabulary and Custom Terms ✓
-- [x] 06-05-PLAN.md — Enterprise Deployment and Integration ✓
-- [x] 06-06-PLAN.md — Phase 06 Final Validation ✓
-
----
-
-## Progress Tracking
-
-| Phase | Status | Completion | Notes |
-|-------|--------|------------|-------|
-| Phase 1: Core Technology Validation | ✅ Complete | 100% | All 4 plans executed, Phase goal verified ✓ |
-| Phase 2: Windows Integration & User Experience | ✅ Complete | 100% | All 23 plans executed, Phase goal verified ✓ |
-| Phase 3: Integration Layer Repair | ✅ Complete | 100% | All 8 gap closure plans executed, Phase goal verified ✓ |
-| Phase 4: Missing Implementation | ✅ Complete | 100% | All 4 plans executed, requirements validated ✓ |
-| Phase 5: End-to-End Validation | ✅ Complete | 100% | All 5 validation plans executed, workflows verified ✓ |
-| Phase 6: Professional Features & Compliance | ✅ Complete | 100% | All 6 plans executed, enterprise features ready ✓ |
-
-
-**Overall Project Progress:** [██████████] 100% - All phases complete, production ready
-
-## Milestone Timeline
-
-- **Phase 1:** Foundation - Core transcription pipeline with real-time capabilities
-- **Phase 2:** Integration - Universal Windows compatibility and user experience
-- **Phase 3:** Polish - Competitive differentiators and production readiness
-
-## Critical Path Focus
-
-The critical path focuses on:
-1. **Real-time latency optimization** - Sub-100ms end-to-end performance
-2. **Universal text injection reliability** - Compatibility across Windows applications  
-3. **Sustainable cost model** - API usage optimization for free tier viability
-
-These risks are addressed early in Phase 1 and validated throughout Phase 2 before adding competitive features in Phase 3.
-
----
-*Roadmap created: January 26, 2026*
-*Depth: Comprehensive (3 phases for 15 requirements)*
-*Coverage: 100% - All v1 requirements mapped*
+*Roadmap archived: February 15, 2026*
+*See .planning/milestones/v1-ROADMAP.md for complete milestone details*

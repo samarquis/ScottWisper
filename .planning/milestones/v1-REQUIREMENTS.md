@@ -1,3 +1,12 @@
+# Requirements Archive: v1 Core Voice Dictation Platform
+
+**Archived:** 2026-02-15
+**Status:** SHIPPED
+
+For current requirements, see `.planning/REQUIREMENTS.md`.
+
+---
+
 # WhisperKey Voice Dictation Requirements
 
 ## v1 Requirements
