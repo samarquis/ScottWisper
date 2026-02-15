@@ -414,7 +414,7 @@ namespace WhisperKey
         public bool IsWindowHidden => _isHidden;
 
         // Public method for external components to update status
-        private void OnStatusHistoryUpdated(object? sender, WhisperKey.StatusHistoryEntry entry)
+        private void OnStatusHistoryUpdated(object? sender, WhisperKey.Services.StatusHistoryEntry entry)
         {
             Dispatcher.Invoke(() =>
             {
@@ -438,7 +438,7 @@ namespace WhisperKey
             });
         }
 
-        private void OnProgressUpdated(object? sender, WhisperKey.ProgressState progress)
+        private void OnProgressUpdated(object? sender, WhisperKey.Services.ProgressState progress)
         {
             Dispatcher.Invoke(() =>
             {

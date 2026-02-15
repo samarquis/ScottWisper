@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.ComponentModel;
+using WhisperKey.Services;
 
 namespace WhisperKey
 {

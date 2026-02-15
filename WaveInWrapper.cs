@@ -9,50 +9,87 @@ namespace WhisperKey
     /// </summary>
     public class WaveInWrapper : IWaveIn
     {
-        private readonly WaveInEvent _waveIn;
+        private WaveInEvent? _waveIn;
+        private int _deviceNumber;
 
         public WaveFormat WaveFormat
         {
-            get => _waveIn.WaveFormat;
-            set => _waveIn.WaveFormat = value;
+            get => _waveIn?.WaveFormat ?? new WaveFormat(16000, 1);
+            set
+            {
+                if (_waveIn != null)
+                    _waveIn.WaveFormat = value;
+            }
         }
 
         public int BufferMilliseconds
         {
-            get => _waveIn.BufferMilliseconds;
-            set => _waveIn.BufferMilliseconds = value;
+            get => _waveIn?.BufferMilliseconds ?? 100;
+            set
+            {
+                if (_waveIn != null)
+                    _waveIn.BufferMilliseconds = value;
+            }
+        }
+
+        public int DeviceNumber
+        {
+            get => _deviceNumber;
+            set
+            {
+                _deviceNumber = value;
+                if (_waveIn != null)
+                {
+                    _waveIn.Dispose();
+                    _waveIn = new WaveInEvent { DeviceNumber = value };
+                }
+            }
         }
 
         public event EventHandler<WaveInEventArgs>? DataAvailable
         {
-            add => _waveIn.DataAvailable += value;
-            remove => _waveIn.DataAvailable -= value;
+            add
+            {
+                if (_waveIn != null) _waveIn.DataAvailable += value;
+            }
+            remove
+            {
+                if (_waveIn != null) _waveIn.DataAvailable -= value;
+            }
         }
 
         public event EventHandler<StoppedEventArgs>? RecordingStopped
         {
-            add => _waveIn.RecordingStopped += value;
-            remove => _waveIn.RecordingStopped -= value;
+            add
+            {
+                if (_waveIn != null) _waveIn.RecordingStopped += value;
+            }
+            remove
+            {
+                if (_waveIn != null) _waveIn.RecordingStopped -= value;
+            }
         }
 
-        public WaveInWrapper()
+        public WaveInWrapper(int deviceNumber = 0)
         {
-            _waveIn = new WaveInEvent();
+            _deviceNumber = deviceNumber;
+            _waveIn = new WaveInEvent { DeviceNumber = deviceNumber };
         }
 
         public void StartRecording()
         {
-            _waveIn.StartRecording();
+            _waveIn?.StartRecording();
         }
 
         public void StopRecording()
         {
-            _waveIn.StopRecording();
+            _waveIn?.StopRecording();
         }
 
         public void Dispose()
         {
             _waveIn?.Dispose();
+            _waveIn = null;
         }
     }
 }

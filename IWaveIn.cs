@@ -20,6 +20,11 @@ namespace WhisperKey
         int BufferMilliseconds { get; set; }
 
         /// <summary>
+        /// The device number to use for recording.
+        /// </summary>
+        int DeviceNumber { get; set; }
+
+        /// <summary>
         /// Event raised when audio data is available.
         /// </summary>
         event EventHandler<WaveInEventArgs>? DataAvailable;
