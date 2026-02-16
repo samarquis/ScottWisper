@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- Product Information -->
+  <?define ProductVersion = "1.1.0" ?>
+  <?define ProductName = "WhisperKey Voice Dictation" ?>
+  <?define ProductShortName = "WhisperKey" ?>
+  <?define Manufacturer = "WhisperKey" ?>
+  
+  <!-- Product Codes -->
+  <!-- UpgradeCode must remain constant for all versions to enable upgrades -->
+  <?define UpgradeCode = "A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D" ?>
+  <!-- ProductCode is set to * in the main wxs to auto-generate per build -->
+  
+  <!-- Build Information -->
+  <?ifdef env.BUILD_NUMBER ?>
+    <?define BuildNumber = "$(env.BUILD_NUMBER)" ?>
+  <?else?>
+    <?define BuildNumber = "0" ?>
+  <?endif?>
+  <?ifdef env.BUILD_BRANCH ?>
+    <?define BuildBranch = "$(env.BUILD_BRANCH)" ?>
+  <?else?>
+    <?define BuildBranch = "local" ?>
+  <?endif?>
+  <?ifdef env.BUILD_COMMIT ?>
+    <?define BuildCommit = "$(env.BUILD_COMMIT)" ?>
+  <?else?>
+    <?define BuildCommit = "unknown" ?>
+  <?endif?>
+  
+  <!-- Installation Paths -->
+  <?define DefaultInstallDir = "ProgramFiles64Folder" ?>
+  <?define CompanyKey = "Software\WhisperKey" ?>
+  <?define ProductKey = "Software\WhisperKey\WhisperKey" ?>
+  
+  <!-- Feature Flags -->
+  <?define IncludeDesktopShortcut = "1" ?>
+  <?define IncludeStartMenuShortcut = "1" ?>
+  <?define RegisterFileAssociations = "1" ?>
+  
+  <!-- Logging Configuration -->
+  <?define DefaultLogLevel = "voicewarmupx" ?>
+  <?define LogRetentionDays = "30" ?>
+  
+  <!-- Version Information -->
+  <?define MajorVersion = "1" ?>
+  <?define MinorVersion = "1" ?>
+  <?define PatchVersion = "0" ?>
+</Include>

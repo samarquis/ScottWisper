@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- Build Configuration -->
+  <?ifdef DEBUG ?>
+    <?define Configuration = "Debug" ?>
+    <?define Optimize = "no" ?>
+    <?define DefineConstants = "DEBUG;TRACE" ?>
+  <?else?>
+    <?define Configuration = "Release" ?>
+    <?define Optimize = "yes" ?>
+    <?define DefineConstants = "TRACE" ?>
+  <?endif?>
+  
+  <!-- Architecture Settings -->
+  <!-- Platform is defined in the .wixproj file -->
+  <?define PlatformCondition = "VersionNT64" ?>
+  <?define ProgramFilesFolder = "ProgramFiles64Folder" ?>
+  
+  <!-- Installer Features -->
+  <?define EnableLogging = "yes" ?>
+  <?define LogLevel = "voicewarmupx" ?>
+  <?define PreserveLogsOnFailure = "yes" ?>
+  
+  <!-- UI Configuration -->
+  <?define ShowLicense = "yes" ?>
+  <?define AllowInstallDirChange = "yes" ?>
+  <?define ShowFeatureTree = "no" ?>
+  
+  <!-- Upgrade Behavior -->
+  <?define AllowSameVersionUpgrades = "no" ?>
+  <?define AllowDowngrades = "no" ?>
+  <?define RemoveExistingProducts = "afterInstallInitialize" ?>
+  
+  <!-- ICE Validation -->
+  <?define SuppressICE69 = "yes" ?>
+  <?define RunICEValidation = "yes" ?>
+</Include>

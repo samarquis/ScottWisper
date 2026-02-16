@@ -1,0 +1,40 @@
+<Project Sdk="WixToolset.Sdk/4.0.6">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platforms>x64</Platforms>
+    <Configurations>Debug;Release</Configurations>
+    <ProductVersion>1.1.0</ProductVersion>
+    <ProductName>WhisperKey Voice Dictation</ProductName>
+    <Manufacturer>WhisperKey</Manufacturer>
+    <Copyright>Copyright © 2026 WhisperKey. All rights reserved.</Copyright>
+    <OutputName>WhisperKey-$(ProductVersion)</OutputName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DefineConstants>DEBUG;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DefineConstants>RELEASE;$(DefineConstants)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="4.0.6" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="4.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WhisperKey.csproj" />
+  </ItemGroup>
+
+
+
+
+
+
+
+  <PropertyGroup>
+    <SuppressIces>ICE69</SuppressIces>
+    <SuppressValidation>False</SuppressValidation>
+  </PropertyGroup>
+</Project>

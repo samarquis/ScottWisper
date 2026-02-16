@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <?define ProductVersion = "1.1.0" ?>
+  <?define ProductName = "WhisperKey Voice Dictation" ?>
+  <?define ProductShortName = "WhisperKey" ?>
+  <?define Manufacturer = "WhisperKey" ?>
+  <?define UpgradeCode = "A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D" ?>
+
+  <Package Name="$(var.ProductName)"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="$(var.Manufacturer)"
+           UpgradeCode="$(var.UpgradeCode)"
+           Scope="perMachine"
+           InstallerVersion="500"
+           Compressed="yes">
+
+    <SummaryInformation Description="$(var.ProductName) - Voice Dictation for Windows"
+                        Manufacturer="$(var.Manufacturer)" />
+
+    <MajorUpgrade Schedule="afterInstallInitialize"
+                  AllowSameVersionUpgrades="no"
+                  DowngradeErrorMessage="A newer version of $(var.ProductName) is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="ProductFeature"
+             Title="$(var.ProductName)"
+             Level="1"
+             AllowAdvertise="no">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="Shortcuts" />
+    </Feature>
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="$(var.Manufacturer)\$(var.ProductShortName)">
+        <Component Id="InstallFolderComponent" Guid="B4A5C6D7-E8F9-4A0B-8C1D-2E3F4A5B6C7D">
+          <CreateFolder />
+          <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
+          <RegistryValue Root="HKLM" 
+                         Key="Software\$(var.Manufacturer)\$(var.ProductShortName)"
+                         Name="InstallDir" 
+                         Type="string" 
+                         Value="[INSTALLFOLDER]" 
+                         KeyPath="yes" />
+        </Component>
+        
+        <!-- Application files will be harvested using Heat in a later task -->
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductShortName)">
+        <Component Id="ApplicationShortcut" Guid="A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D">
+          <Shortcut Id="ApplicationStartMenuShortcut"
+                    Name="$(var.ProductName)"
+                    Description="Voice dictation for Windows"
+                    Target="[INSTALLFOLDER]WhisperKey.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="ProductIcon.exe" />
+          <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKCU" 
+                         Key="Software\$(var.Manufacturer)\$(var.ProductShortName)"
+                         Name="installed" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="C2D3E4F5-A6B7-4C8D-9E0F-1A2B3C4D5E6F">
+        <Shortcut Id="DesktopShortcut"
+                  Name="$(var.ProductName)"
+                  Description="Voice dictation for Windows"
+                  Target="[INSTALLFOLDER]WhisperKey.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="ProductIcon.exe" />
+        <RegistryValue Root="HKCU" 
+                       Key="Software\$(var.Manufacturer)\$(var.ProductShortName)"
+                       Name="desktopshortcut" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <Icon Id="ProductIcon.exe" SourceFile="..\Resources\WhisperKey.ico" />
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" />
+    
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon.exe" />
+    <Property Id="ARPURLINFOABOUT" Value="https://whisperkey.app" />
+    <Property Id="ARPHELPLINK" Value="https://whisperkey.app/support" />
+
+    <!-- UI will be added in a later task -->
+    <!--
+    <UIRef Id="WixUI_InstallDir" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="Banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="Dialog.bmp" />
+    -->
+
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <ComponentRef Id="InstallFolderComponent" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="Shortcuts" Directory="ApplicationProgramsFolder">
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </ComponentGroup>
+
+  </Package>
+</Wix>
