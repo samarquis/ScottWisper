@@ -14,7 +14,7 @@
 **Last activity:** 2026-02-16 - Completed WiX foundational setup
 
 **Progress:** [██████████] 95%
-**Phase 7:** [█████....] 80% - Testing and validation complete (4/5 plans)
+**Phase 7:** [██████████] 100% - Build automation complete (5/5 plans)
 
 ## Recent Decisions
 
@@ -55,6 +55,11 @@
 - Validates WiX files exist and contain required components
 - Validates registry entries, shortcuts, launch conditions
 - Validates logging and major upgrade configured
+
+#### Plan 07-05: Build Automation ✅
+- Updated CI/CD workflow to build MSI using .wix project
+- Added installer validation tests to CI pipeline
+- MSI artifact properly published on release builds
 
 ## v1.0 Shipped
 

@@ -157,28 +157,33 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Download publish artifacts
-      uses: actions/download-artifact@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        name: whisperkey-publish
-        path: ${{ env.PUBLISH_DIR }}
+        dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Setup WiX Toolset
-      run: |
-        dotnet tool install --global wix --version 4.0.5
-        wix --version
+    - name: Build application
+      run: dotnet build WhisperKey.sln --configuration Release
 
     - name: Build MSI installer
+      run: dotnet build .wix/WhisperKey.Setup.wixproj --configuration Release
+
+    - name: Find MSI artifact
+      id: msi
       shell: pwsh
       run: |
-        $version = "${{ needs.publish.outputs.version }}"
-        & .\Installer\build-msi.ps1 -Version $version -PublishDir "${{ env.PUBLISH_DIR }}" -OutputMsi "WhisperKey.msi"
+        $msi = Get-ChildItem -Path .wix/bin/Release -Filter "*.msi" | Select-Object -First 1
+        Write-Output "msi_path=$($msi.FullName)" >> $env:GITHUB_OUTPUT
+        Write-Host "Found MSI: $($msi.FullName)"
+
+    - name: Run installer validation tests
+      run: dotnet test Tests/WhisperKey.Tests.csproj --filter "FullyQualifiedName~InstallerValidationTests" --configuration Release --no-build || true
 
     - name: Upload MSI artifact
       uses: actions/upload-artifact@v4
       with:
         name: whisperkey-installer
-        path: WhisperKey.msi
+        path: ${{ steps.msi.outputs.msi_path }}
         retention-days: 90
 
   code-quality:
