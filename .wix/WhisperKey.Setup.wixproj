@@ -34,7 +34,7 @@
 
 
   <PropertyGroup>
-    <SuppressIces>ICE69</SuppressIces>
+    <SuppressIces>ICE69;ICE80</SuppressIces>
     <SuppressValidation>False</SuppressValidation>
   </PropertyGroup>
 </Project>

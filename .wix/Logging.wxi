@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <!-- 
+    Logging.wxs - MSI Logging Configuration
+    Enables verbose logging for debugging installation issues
+  -->
+
+  <Fragment>
+    <!-- 
+      MSI Logging Property
+      v=verbose, o=out-of-disk-space, i=information messages
+      w=non-fatal warnings, e=all error messages, a=action startup
+      u=user requests, c=initial UI parameters, m=memory info
+      p=terminal properties, +=append to log, !=flush each line
+      x=extra debugging info (only works with Windows Installer 4.0)
+    -->
+    <Property Id="MsiLogging" Value="voicewarmupx" />
+
+  </Fragment>
+
+</Include>

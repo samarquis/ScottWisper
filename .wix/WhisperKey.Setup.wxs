@@ -9,6 +9,7 @@
   <!-- Include fragment files -->
   <?include Variables.wxi ?>
   <?include Config.wxi ?>
+  <?include Logging.wxi ?>
 
   <Package Name="$(var.ProductName)"
            Language="1033"

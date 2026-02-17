@@ -154,36 +154,6 @@
     </StandardDirectory>
 
     <!-- 
-      Quick Launch Shortcut (Windows 10/11 compatibility)
-      Optional - controlled by INSTALLQUICKLAUNCH property
-    -->
-    <DirectoryRef Id="INSTALLFOLDER">
-      <Directory Id="QuickLaunchFolder" Name="Quick Launch">
-        <Component Id="QuickLaunchShortcut" Guid="B8C9D0E1-F2A3-4B4C-5D6E-7F8A9B0C1D2E" Condition="INSTALLQUICKLAUNCH=&quot;1&quot;">
-          
-          <Shortcut Id="ApplicationQuickLaunchShortcut"
-                    Name="WhisperKey Voice Dictation"
-                    Description="Universal voice dictation for Windows"
-                    Target="[INSTALLFOLDER]WhisperKey.exe"
-                    WorkingDirectory="INSTALLFOLDER"
-                    Icon="QuickLaunchIcon.exe"
-                    Show="normal">
-            <Icon Id="QuickLaunchIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
-          </Shortcut>
-          
-          <RegistryValue Root="HKCU" 
-                         Key="Software\WhisperKey\WhisperKey"
-                         Name="QuickLaunchShortcut" 
-                         Type="integer" 
-                         Value="1" 
-                         KeyPath="yes" />
-          
-          <RemoveFolder Id="RemoveQuickLaunchFolder" Directory="QuickLaunchFolder" On="uninstall" />
-        </Component>
-      </Directory>
-    </DirectoryRef>
-
-    <!-- 
       Component Groups for Easy Referencing
     -->
     <ComponentGroup Id="StartMenuShortcuts" Directory="WhisperKeyProgramMenuFolder">
@@ -201,16 +171,9 @@
       <ComponentRef Id="StartupShortcut" />
     </ComponentGroup>
 
-    <ComponentGroup Id="QuickLaunchShortcuts" Directory="QuickLaunchFolder">
-      <ComponentRef Id="QuickLaunchShortcut" />
-    </ComponentGroup>
-
     <!-- 
       Properties for Shortcut Control
     -->
-    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" />
-    <Property Id="AUTOSTART" Value="0" />
-    <Property Id="INSTALLQUICKLAUNCH" Value="0" />
 
   </Fragment>
 </Wix>

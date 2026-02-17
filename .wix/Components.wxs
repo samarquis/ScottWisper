@@ -52,6 +52,14 @@
                Level="2">
         <ComponentGroupRef Id="StartupShortcuts" />
       </Feature>
+
+      <!-- Optional: Quick Launch -->
+      <Feature Id="QuickLaunchFeature"
+               Title="Quick Launch Shortcut"
+               Description="Create a shortcut in the Quick Launch bar"
+               Level="2">
+        <ComponentGroupRef Id="QuickLaunchShortcuts" />
+      </Feature>
       
     </Feature>
 
@@ -59,8 +67,6 @@
       Feature Conditions
       Control installation based on properties
     -->
-    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" />
-    <Property Id="AUTOSTART" Value="0" />
 
   </Fragment>
 
