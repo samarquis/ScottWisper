@@ -14,7 +14,7 @@
 **Last activity:** 2026-02-16 - Completed WiX foundational setup
 
 **Progress:** [██████████] 95%
-**Phase 7:** [████.....] 60% - Logging infrastructure complete (3/5 plans)
+**Phase 7:** [█████....] 80% - Testing and validation complete (4/5 plans)
 
 ## Recent Decisions
 
@@ -49,6 +49,12 @@
 #### Plan 07-03: Logging Infrastructure ✅
 - Logging.wxi: MsiLogging property configured for verbose output
 - MSI builds successfully with logging enabled
+
+#### Plan 07-04: Testing and Validation ✅
+- InstallerValidationTests.cs: Validates MSI exists, size, version
+- Validates WiX files exist and contain required components
+- Validates registry entries, shortcuts, launch conditions
+- Validates logging and major upgrade configured
 
 ## v1.0 Shipped
 
