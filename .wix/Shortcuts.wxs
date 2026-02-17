@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <!-- 
+    Shortcuts.wxs - Application shortcuts
+    Defines Start Menu, Desktop, and other shortcuts
+  -->
+
+  <Fragment>
+    <!-- 
+      Start Menu Shortcuts
+      Located in Programs\WhisperKey folder
+    -->
+    <DirectoryRef Id="WhisperKeyProgramMenuFolder">
+        
+        <!-- Main Application Shortcut -->
+        <Component Id="StartMenuShortcut" Guid="B2C3D4E5-F6A7-4B8C-9D0E-1F2A3B4C5D6E">
+          <Shortcut Id="ApplicationStartMenuShortcut"
+                    Name="WhisperKey Voice Dictation"
+                    Description="Universal voice dictation for Windows"
+                    Target="[INSTALLFOLDER]WhisperKey.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="ApplicationIcon.exe"
+                    Show="normal">
+            <Icon Id="ApplicationIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+          </Shortcut>
+          
+          <!-- Remove folder on uninstall -->
+          <RemoveFolder Id="RemoveStartMenuFolder" Directory="WhisperKeyProgramMenuFolder" On="uninstall" />
+          
+          <!-- Registry key for this component -->
+          <RegistryValue Root="HKCU" 
+                         Key="Software\WhisperKey\WhisperKey"
+                         Name="StartMenuShortcut" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+        </Component>
+
+        <!-- Documentation Shortcut -->
+        <Component Id="DocumentationShortcut" Guid="C3D4E5F6-A7B8-4C9D-0E1F-2A3B4C5D6E7F">
+          <Shortcut Id="DocumentationStartMenuShortcut"
+                    Name="Documentation"
+                    Description="View WhisperKey documentation"
+                    Target="[INSTALLFOLDER]WhisperKey.exe"
+                    Arguments="--documentation"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="DocIcon.exe"
+                    Show="normal">
+            <Icon Id="DocIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+          </Shortcut>
+          
+          <RegistryValue Root="HKCU" 
+                         Key="Software\WhisperKey\WhisperKey"
+                         Name="DocumentationShortcut" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+        </Component>
+
+        <!-- Settings Shortcut -->
+        <Component Id="SettingsShortcut" Guid="D4E5F6A7-B8C9-4D0E-1F2A-3B4C5D6E7F8A">
+          <Shortcut Id="SettingsStartMenuShortcut"
+                    Name="Settings"
+                    Description="Open WhisperKey settings"
+                    Target="[INSTALLFOLDER]WhisperKey.exe"
+                    Arguments="--settings"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="SettingsIcon.exe"
+                    Show="normal">
+            <Icon Id="SettingsIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+          </Shortcut>
+          
+          <RegistryValue Root="HKCU" 
+                         Key="Software\WhisperKey\WhisperKey"
+                         Name="SettingsShortcut" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+        </Component>
+
+        <!-- Uninstall Shortcut -->
+        <Component Id="UninstallShortcut" Guid="E5F6A7B8-C9D0-4E1F-2A3B-4C5D6E7F8A9B">
+          <Shortcut Id="UninstallStartMenuShortcut"
+                    Name="Uninstall WhisperKey"
+                    Description="Remove WhisperKey from your computer"
+                    Target="[System64Folder]msiexec.exe"
+                    Arguments="/x [ProductCode]"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="UninstallIcon.exe"
+                    Show="normal">
+            <Icon Id="UninstallIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+          </Shortcut>
+          
+          <RegistryValue Root="HKCU" 
+                         Key="Software\WhisperKey\WhisperKey"
+                         Name="UninstallShortcut" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+        </Component>
+
+    </DirectoryRef>
+
+    <!-- 
+      Desktop Shortcut
+      Optional - controlled by INSTALLDESKTOPSHORTCUT property
+    -->
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="F6A7B8C9-D0E1-4F2A-3B4C-5D6E7F8A9B0C" Condition="INSTALLDESKTOPSHORTCUT=&quot;1&quot;">
+        <Shortcut Id="ApplicationDesktopShortcut"
+                  Name="WhisperKey Voice Dictation"
+                  Description="Universal voice dictation for Windows"
+                  Target="[INSTALLFOLDER]WhisperKey.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="DesktopIcon.exe"
+                  Show="normal">
+          <Icon Id="DesktopIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+        </Shortcut>
+        
+        <RegistryValue Root="HKCU"
+                       Key="Software\WhisperKey\WhisperKey"
+                       Name="DesktopShortcut"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!-- 
+      Startup Folder Shortcut
+      Optional auto-start - controlled by AUTOSTART property
+    -->
+    <StandardDirectory Id="StartupFolder">
+      <Component Id="StartupShortcut" Guid="A7B8C9D0-E1F2-4A3B-4C5D-6E7F8A9B0C1D" Condition="AUTOSTART=&quot;1&quot;">
+        <Shortcut Id="ApplicationStartupShortcut"
+                  Name="WhisperKey Voice Dictation"
+                  Description="Universal voice dictation for Windows"
+                  Target="[INSTALLFOLDER]WhisperKey.exe"
+                  Arguments="--minimized"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="StartupIcon.exe"
+                  Show="minimized">
+          <Icon Id="StartupIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+        </Shortcut>
+        
+        <RegistryValue Root="HKCU" 
+                       Key="Software\WhisperKey\WhisperKey"
+                       Name="StartupShortcut" 
+                       Type="integer" 
+                       Value="1" 
+                       KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+
+    <!-- 
+      Quick Launch Shortcut (Windows 10/11 compatibility)
+      Optional - controlled by INSTALLQUICKLAUNCH property
+    -->
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Directory Id="QuickLaunchFolder" Name="Quick Launch">
+        <Component Id="QuickLaunchShortcut" Guid="B8C9D0E1-F2A3-4B4C-5D6E-7F8A9B0C1D2E" Condition="INSTALLQUICKLAUNCH=&quot;1&quot;">
+          
+          <Shortcut Id="ApplicationQuickLaunchShortcut"
+                    Name="WhisperKey Voice Dictation"
+                    Description="Universal voice dictation for Windows"
+                    Target="[INSTALLFOLDER]WhisperKey.exe"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="QuickLaunchIcon.exe"
+                    Show="normal">
+            <Icon Id="QuickLaunchIcon.exe" SourceFile="$(var.WhisperKey.TargetDir)WhisperKey.exe" />
+          </Shortcut>
+          
+          <RegistryValue Root="HKCU" 
+                         Key="Software\WhisperKey\WhisperKey"
+                         Name="QuickLaunchShortcut" 
+                         Type="integer" 
+                         Value="1" 
+                         KeyPath="yes" />
+          
+          <RemoveFolder Id="RemoveQuickLaunchFolder" Directory="QuickLaunchFolder" On="uninstall" />
+        </Component>
+      </Directory>
+    </DirectoryRef>
+
+    <!-- 
+      Component Groups for Easy Referencing
+    -->
+    <ComponentGroup Id="StartMenuShortcuts" Directory="WhisperKeyProgramMenuFolder">
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DocumentationShortcut" />
+      <ComponentRef Id="SettingsShortcut" />
+      <ComponentRef Id="UninstallShortcut" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
+      <ComponentRef Id="DesktopShortcut" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="StartupShortcuts" Directory="StartupFolder">
+      <ComponentRef Id="StartupShortcut" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="QuickLaunchShortcuts" Directory="QuickLaunchFolder">
+      <ComponentRef Id="QuickLaunchShortcut" />
+    </ComponentGroup>
+
+    <!-- 
+      Properties for Shortcut Control
+    -->
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" />
+    <Property Id="AUTOSTART" Value="0" />
+    <Property Id="INSTALLQUICKLAUNCH" Value="0" />
+
+  </Fragment>
+</Wix>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <!-- 
+    Components.wxs - Master component orchestration
+    Ties together all file, registry, and shortcut components
+  -->
+
+  <Fragment>
+    <!-- 
+      Main Product Feature
+      Core application - always installed
+    -->
+    <Feature Id="ProductFeature"
+             Title="WhisperKey Voice Dictation"
+             Description="Core application files and components"
+             Level="1"
+             ConfigurableDirectory="INSTALLFOLDER"
+             AllowAdvertise="no"
+             Display="expand">
+      
+      <!-- Required: Application Files -->
+      <ComponentGroupRef Id="ApplicationFiles" />
+      
+      <!-- Required: Resources -->
+      <ComponentGroupRef Id="ResourcesComponents" />
+      
+      <!-- Required: Registry Entries -->
+      <ComponentGroupRef Id="RegistryComponents" />
+      
+      <!-- Required: System Registry -->
+      <ComponentGroupRef Id="UserRegistryComponents" />
+      
+      <!-- Required: Uninstall Registry -->
+      <ComponentGroupRef Id="UninstallRegistryComponents" />
+      
+      <!-- Required: Start Menu Shortcuts -->
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+      
+      <!-- Optional: Desktop Shortcut -->
+      <Feature Id="DesktopShortcutFeature"
+               Title="Desktop Shortcut"
+               Description="Create a shortcut on the desktop"
+               Level="1">
+        <ComponentGroupRef Id="DesktopShortcuts" />
+      </Feature>
+      
+      <!-- Optional: Auto-start -->
+      <Feature Id="AutoStartFeature"
+               Title="Start with Windows"
+               Description="Automatically start WhisperKey when Windows starts"
+               Level="2">
+        <ComponentGroupRef Id="StartupShortcuts" />
+      </Feature>
+      
+    </Feature>
+
+    <!-- 
+      Feature Conditions
+      Control installation based on properties
+    -->
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" />
+    <Property Id="AUTOSTART" Value="0" />
+
+  </Fragment>
+
+  <!-- 
+    Directory Structure is defined in individual fragment files
+    Files.wxs: INSTALLFOLDER, ResourcesFolder
+    Shortcuts.wxs: WhisperKeyProgramMenuFolder, DesktopFolder, StartupFolder
+  -->
+
+</Wix>

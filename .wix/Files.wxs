@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <!-- 
+    Files.wxs - Application file components
+    Defines all files to be installed from the build output
+  -->
+
+  <Fragment>
+    <!-- Main Component Group that references all file components -->
+    <ComponentGroup Id="ApplicationFiles" Directory="INSTALLFOLDER">
+      
+      <!-- Main Executable -->
+      <Component Id="WhisperKeyExe" Guid="D1E2F3A4-B5C6-4D7E-8F9A-0B1C2D3E4F5A">
+        <File Id="WhisperKey.exe" 
+              Name="WhisperKey.exe" 
+              Source="$(var.WhisperKey.TargetDir)WhisperKey.exe"
+              KeyPath="yes"
+              Vital="yes" />
+      </Component>
+
+      <!-- Configuration Files -->
+      <Component Id="AppSettings" Guid="E2F3A4B5-C6D7-4E8F-9A0B-1C2D3E4F5A6B">
+        <File Id="appsettings.json" 
+              Name="appsettings.json" 
+              Source="$(var.WhisperKey.TargetDir)appsettings.json"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="RuntimeConfig" Guid="F3A4B5C6-D7E8-4F9A-0B1C-2D3E4F5A6B7C">
+        <File Id="WhisperKey.runtimeconfig.json" 
+              Name="WhisperKey.runtimeconfig.json" 
+              Source="$(var.WhisperKey.TargetDir)WhisperKey.runtimeconfig.json"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="DepsJson" Guid="A4B5C6D7-E8F9-4A0B-1C2D-3E4F5A6B7C8D">
+        <File Id="WhisperKey.deps.json" 
+              Name="WhisperKey.deps.json" 
+              Source="$(var.WhisperKey.TargetDir)WhisperKey.deps.json"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- Core Application DLL -->
+      <Component Id="WhisperKeyDll" Guid="B5C6D7E8-F9A0-4B1C-2D3E-4F5A6B7C8D9E">
+        <File Id="WhisperKey.dll" 
+              Name="WhisperKey.dll" 
+              Source="$(var.WhisperKey.TargetDir)WhisperKey.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- NAudio Audio Libraries -->
+      <Component Id="NAudioDll" Guid="C6D7E8F9-A0B1-4C2D-3E4F-5A6B7C8D9E0F">
+        <File Id="NAudio.dll" 
+              Name="NAudio.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="NAudioCoreDll" Guid="D7E8F9A0-B1C2-4D3E-4F5A-6B7C8D9E0F1A">
+        <File Id="NAudio.Core.dll" 
+              Name="NAudio.Core.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.Core.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="NAudioWasapiDll" Guid="E8F9A0B1-C2D3-4E4F-5A6B-7C8D9E0F1A2B">
+        <File Id="NAudio.Wasapi.dll" 
+              Name="NAudio.Wasapi.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.Wasapi.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="NAudioWinMMDll" Guid="F9A0B1C2-D3E4-4F5A-6B7C-8D9E0F1A2B3C">
+        <File Id="NAudio.WinMM.dll" 
+              Name="NAudio.WinMM.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.WinMM.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="NAudioAsioDll" Guid="A0B1C2D3-E4F5-4A6B-7C8D-9E0F1A2B3C4D">
+        <File Id="NAudio.Asio.dll" 
+              Name="NAudio.Asio.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.Asio.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="NAudioMidiDll" Guid="B1C2D3E4-F5A6-4B7C-8D9E-0F1A2B3C4D5E">
+        <File Id="NAudio.Midi.dll" 
+              Name="NAudio.Midi.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.Midi.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="NAudioWinFormsDll" Guid="C2D3E4F5-A6B7-4C8D-9E0F-1A2B3C4D5E6F">
+        <File Id="NAudio.WinForms.dll" 
+              Name="NAudio.WinForms.dll" 
+              Source="$(var.WhisperKey.TargetDir)NAudio.WinForms.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- Notification Icon Libraries -->
+      <Component Id="HNotifyIconDll" Guid="D3E4F5A6-B7C8-4D9E-0F1A-2B3C4D5E6F7A">
+        <File Id="H.NotifyIcon.dll" 
+              Name="H.NotifyIcon.dll" 
+              Source="$(var.WhisperKey.TargetDir)H.NotifyIcon.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="HNotifyIconWpfDll" Guid="E4F5A6B7-C8D9-4E0F-1A2B-3C4D5E6F7A8B">
+        <File Id="H.NotifyIcon.Wpf.dll" 
+              Name="H.NotifyIcon.Wpf.dll" 
+              Source="$(var.WhisperKey.TargetDir)H.NotifyIcon.Wpf.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="HGeneratedIconsDll" Guid="F5A6B7C8-D9E0-4F1A-2B3C-4D5E6F7A8B9C">
+        <File Id="H.GeneratedIcons.System.Drawing.dll" 
+              Name="H.GeneratedIcons.System.Drawing.dll" 
+              Source="$(var.WhisperKey.TargetDir)H.GeneratedIcons.System.Drawing.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- Input Simulation -->
+      <Component Id="HInputSimulatorDll" Guid="A6B7C8D9-E0F1-4A2B-3C4D-5E6F7A8B9C0D">
+        <File Id="H.InputSimulator.dll" 
+              Name="H.InputSimulator.dll" 
+              Source="$(var.WhisperKey.TargetDir)H.InputSimulator.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- JSON Serialization -->
+      <Component Id="NewtonsoftJsonDll" Guid="B7C8D9E0-F1A2-4B3C-4D5E-6F7A8B9C0D1E">
+        <File Id="Newtonsoft.Json.dll" 
+              Name="Newtonsoft.Json.dll" 
+              Source="$(var.WhisperKey.TargetDir)Newtonsoft.Json.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- HTTP and Web -->
+      <Component Id="SystemNetHttpDll" Guid="C8D9E0F1-A2B3-4C4D-5E6F-7A8B9C0D1E2F">
+        <File Id="System.Net.Http.Json.dll" 
+              Name="System.Net.Http.Json.dll" 
+              Source="$(var.WhisperKey.TargetDir)System.Net.Http.Json.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- Polly Resilience -->
+      <Component Id="PollyDll" Guid="D9E0F1A2-B3C4-4D5E-6F7A-8B9C0D1E2F3A">
+        <File Id="Polly.dll" 
+              Name="Polly.dll" 
+              Source="$(var.WhisperKey.TargetDir)Polly.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="PollyCoreDll" Guid="E0F1A2B3-C4D5-4E6F-7A8B-9C0D1E2F3A4B">
+        <File Id="Polly.Core.dll" 
+              Name="Polly.Core.dll" 
+              Source="$(var.WhisperKey.TargetDir)Polly.Core.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- Serilog Logging -->
+      <Component Id="SerilogDll" Guid="F1A2B3C4-D5E6-4F7A-8B9C-0D1E2F3A4B5C">
+        <File Id="Serilog.dll" 
+              Name="Serilog.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogExtensionsHostingDll" Guid="A2B3C4D5-E6F7-4A8B-9C0D-1E2F3A4B5C6D">
+        <File Id="Serilog.Extensions.Hosting.dll" 
+              Name="Serilog.Extensions.Hosting.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Extensions.Hosting.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogExtensionsLoggingDll" Guid="B3C4D5E6-F7A8-4B9C-0D1E-2F3A4B5C6D7E">
+        <File Id="Serilog.Extensions.Logging.dll" 
+              Name="Serilog.Extensions.Logging.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Extensions.Logging.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogSinksConsoleDll" Guid="C4D5E6F7-A8B9-4C0D-1E2F-3A4B5C6D7E8F">
+        <File Id="Serilog.Sinks.Console.dll" 
+              Name="Serilog.Sinks.Console.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Sinks.Console.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogSinksFileDll" Guid="D5E6F7A8-B9C0-4D1E-2F3A-4B5C6D7E8F9A">
+        <File Id="Serilog.Sinks.File.dll" 
+              Name="Serilog.Sinks.File.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Sinks.File.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogEnrichersEnvironmentDll" Guid="E6F7A8B9-C0D1-4E2F-3A4B-5C6D7E8F9A0B">
+        <File Id="Serilog.Enrichers.Environment.dll" 
+              Name="Serilog.Enrichers.Environment.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Enrichers.Environment.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogEnrichersProcessDll" Guid="F7A8B9C0-D1E2-4F3A-4B5C-6D7E8F9A0B1C">
+        <File Id="Serilog.Enrichers.Process.dll" 
+              Name="Serilog.Enrichers.Process.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Enrichers.Process.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="SerilogEnrichersCorrelationIdDll" Guid="A8B9C0D1-E2F3-4A4B-5C6D-7E8F9A0B1C2D">
+        <File Id="Serilog.Enrichers.CorrelationId.dll" 
+              Name="Serilog.Enrichers.CorrelationId.dll" 
+              Source="$(var.WhisperKey.TargetDir)Serilog.Enrichers.CorrelationId.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- Microsoft Extensions -->
+      <Component Id="MicrosoftExtensionsConfigurationDll" Guid="B9C0D1E2-F3A4-4B5C-6D7E-8F9A0B1C2D3E">
+        <File Id="Microsoft.Extensions.Configuration.dll" 
+              Name="Microsoft.Extensions.Configuration.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Configuration.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsConfigurationAbstractionsDll" Guid="C0D1E2F3-A4B5-4C6D-7E8F-9A0B1C2D3E4F">
+        <File Id="Microsoft.Extensions.Configuration.Abstractions.dll" 
+              Name="Microsoft.Extensions.Configuration.Abstractions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Configuration.Abstractions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsConfigurationJsonDll" Guid="D1E2F3A4-B5C6-4D7E-8F9A-0B1C2D3E4F5A">
+        <File Id="Microsoft.Extensions.Configuration.Json.dll" 
+              Name="Microsoft.Extensions.Configuration.Json.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Configuration.Json.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsConfigurationFileExtensionsDll" Guid="E2F3A4B5-C6D7-4E8F-9A0B-1C2D3E4F5A6B">
+        <File Id="Microsoft.Extensions.Configuration.FileExtensions.dll" 
+              Name="Microsoft.Extensions.Configuration.FileExtensions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Configuration.FileExtensions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsDependencyInjectionDll" Guid="F3A4B5C6-D7E8-4F9A-0B1C-2D3E4F5A6B7C">
+        <File Id="Microsoft.Extensions.DependencyInjection.dll" 
+              Name="Microsoft.Extensions.DependencyInjection.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.DependencyInjection.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsDependencyInjectionAbstractionsDll" Guid="A4B5C6D7-E8F9-4A0B-1C2D-3E4F5A6B7C8D">
+        <File Id="Microsoft.Extensions.DependencyInjection.Abstractions.dll" 
+              Name="Microsoft.Extensions.DependencyInjection.Abstractions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.DependencyInjection.Abstractions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsHostingAbstractionsDll" Guid="B5C6D7E8-F9A0-4B1C-2D3E-4F5A6B7C8D9E">
+        <File Id="Microsoft.Extensions.Hosting.Abstractions.dll" 
+              Name="Microsoft.Extensions.Hosting.Abstractions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Hosting.Abstractions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsHttpDll" Guid="C6D7E8F9-A0B1-4C2D-3E4F-5A6B7C8D9E0F">
+        <File Id="Microsoft.Extensions.Http.dll" 
+              Name="Microsoft.Extensions.Http.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Http.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsLoggingDll" Guid="D7E8F9A0-B1C2-4D3E-4F5A-6B7C8D9E0F1A">
+        <File Id="Microsoft.Extensions.Logging.dll" 
+              Name="Microsoft.Extensions.Logging.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Logging.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsLoggingAbstractionsDll" Guid="E8F9A0B1-C2D3-4E4F-5A6B-7C8D9E0F1A2B">
+        <File Id="Microsoft.Extensions.Logging.Abstractions.dll" 
+              Name="Microsoft.Extensions.Logging.Abstractions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Logging.Abstractions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsLoggingConfigurationDll" Guid="F9A0B1C2-D3E4-4F5A-6B7C-8D9E0F1A2B3C">
+        <File Id="Microsoft.Extensions.Logging.Configuration.dll" 
+              Name="Microsoft.Extensions.Logging.Configuration.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Logging.Configuration.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsLoggingConsoleDll" Guid="A0B1C2D3-E4F5-4A6B-7C8D-9E0F1A2B3C4D">
+        <File Id="Microsoft.Extensions.Logging.Console.dll" 
+              Name="Microsoft.Extensions.Logging.Console.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Logging.Console.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsOptionsDll" Guid="B1C2D3E4-F5A6-4B7C-8D9E-0F1A2B3C4D5E">
+        <File Id="Microsoft.Extensions.Options.dll" 
+              Name="Microsoft.Extensions.Options.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Options.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsOptionsConfigurationExtensionsDll" Guid="C2D3E4F5-A6B7-4C8D-9E0F-1A2B3C4D5E6F">
+        <File Id="Microsoft.Extensions.Options.ConfigurationExtensions.dll" 
+              Name="Microsoft.Extensions.Options.ConfigurationExtensions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Options.ConfigurationExtensions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsPrimitivesDll" Guid="D3E4F5A6-B7C8-4D9E-0F1A-2B3C4D5E6F7A">
+        <File Id="Microsoft.Extensions.Primitives.dll" 
+              Name="Microsoft.Extensions.Primitives.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Primitives.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsFileProvidersAbstractionsDll" Guid="E4F5A6B7-C8D9-4E0F-1A2B-3C4D5E6F7A8B">
+        <File Id="Microsoft.Extensions.FileProviders.Abstractions.dll" 
+              Name="Microsoft.Extensions.FileProviders.Abstractions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.FileProviders.Abstractions.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsFileProvidersPhysicalDll" Guid="F5A6B7C8-D9E0-4F1A-2B3C-4D5E6F7A8B9C">
+        <File Id="Microsoft.Extensions.FileProviders.Physical.dll" 
+              Name="Microsoft.Extensions.FileProviders.Physical.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.FileProviders.Physical.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsFileSystemGlobbingDll" Guid="A6B7C8D9-E0F1-4A2B-3C4D-5E6F7A8B9C0D">
+        <File Id="Microsoft.Extensions.FileSystemGlobbing.dll" 
+              Name="Microsoft.Extensions.FileSystemGlobbing.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.FileSystemGlobbing.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsDiagnosticsDll" Guid="B7C8D9E0-F1A2-4B3C-4D5E-6F7A8B9C0D1E">
+        <File Id="Microsoft.Extensions.Diagnostics.dll" 
+              Name="Microsoft.Extensions.Diagnostics.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Diagnostics.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Id="MicrosoftExtensionsDiagnosticsAbstractionsDll" Guid="C8D9E0F1-A2B3-4C4D-5E6F-7A8B9C0D1E2F">
+        <File Id="Microsoft.Extensions.Diagnostics.Abstractions.dll" 
+              Name="Microsoft.Extensions.Diagnostics.Abstractions.dll" 
+              Source="$(var.WhisperKey.TargetDir)Microsoft.Extensions.Diagnostics.Abstractions.dll"
+              KeyPath="yes" />
+      </Component>
+
+    </ComponentGroup>
+
+    <!-- Resources Directory - defined in main .wxs -->
+    <ComponentGroup Id="ResourcesComponents" Directory="ResourcesFolder">
+      <Component Id="ResourcesComponent" Guid="D9E0F1A2-B3C4-4D5E-6F7A-8B9C0D1E2F3A">
+        <File Id="WhisperKey.ico" 
+              Name="WhisperKey.ico" 
+              Source="$(var.WhisperKey.TargetDir)Resources\WhisperKey.ico"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+  </Fragment>
+</Wix>

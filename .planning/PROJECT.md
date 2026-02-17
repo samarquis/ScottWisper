@@ -12,6 +12,8 @@ Accurate, instantaneous voice-to-text conversion that seamlessly integrates with
 
 **Shipped Version:** v1.0 Core Voice Dictation Platform (2026-02-15)
 
+**Current Milestone:** v1.1 - User Feedback & Optimization (Planning)
+
 A fully functional voice dictation application with:
 - Global hotkey activation (Ctrl+Win+Shift+V)
 - Real-time speech-to-text with OpenAI Whisper API

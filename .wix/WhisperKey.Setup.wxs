@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <!-- 
+    WhisperKey.Setup.wxs - Main WiX source file
+    Orchestrates the entire MSI package
+  -->
 
-  <?define ProductVersion = "1.1.0" ?>
-  <?define ProductName = "WhisperKey Voice Dictation" ?>
-  <?define ProductShortName = "WhisperKey" ?>
-  <?define Manufacturer = "WhisperKey" ?>
-  <?define UpgradeCode = "A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D" ?>
+  <!-- Include fragment files -->
+  <?include Variables.wxi ?>
+  <?include Config.wxi ?>
 
   <Package Name="$(var.ProductName)"
            Language="1033"
@@ -26,93 +28,68 @@
 
     <MediaTemplate EmbedCab="yes" />
 
+    <!-- 
+      Main Feature - references Components.wxs
+    -->
     <Feature Id="ProductFeature"
              Title="$(var.ProductName)"
              Level="1"
              AllowAdvertise="no">
-      <ComponentGroupRef Id="ProductComponents" />
-      <ComponentGroupRef Id="Shortcuts" />
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentGroupRef Id="ResourcesComponents" />
+      <ComponentGroupRef Id="RegistryComponents" />
+      <ComponentGroupRef Id="UserRegistryComponents" />
+      <ComponentGroupRef Id="UninstallRegistryComponents" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+      <ComponentGroupRef Id="DesktopShortcuts" />
+      <ComponentGroupRef Id="StartupShortcuts" />
     </Feature>
 
+    <!-- 
+      Directory Structure
+    -->
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="$(var.Manufacturer)\$(var.ProductShortName)">
-        <Component Id="InstallFolderComponent" Guid="B4A5C6D7-E8F9-4A0B-8C1D-2E3F4A5B6C7D">
-          <CreateFolder />
-          <RemoveFolder Id="RemoveInstallFolder" On="uninstall" />
-          <RegistryValue Root="HKLM" 
-                         Key="Software\$(var.Manufacturer)\$(var.ProductShortName)"
-                         Name="InstallDir" 
-                         Type="string" 
-                         Value="[INSTALLFOLDER]" 
-                         KeyPath="yes" />
-        </Component>
-        
-        <!-- Application files will be harvested using Heat in a later task -->
+      <Directory Id="INSTALLFOLDER" Name="WhisperKey\WhisperKey">
+        <Directory Id="ResourcesFolder" Name="Resources" />
       </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductShortName)">
-        <Component Id="ApplicationShortcut" Guid="A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D">
-          <Shortcut Id="ApplicationStartMenuShortcut"
-                    Name="$(var.ProductName)"
-                    Description="Voice dictation for Windows"
-                    Target="[INSTALLFOLDER]WhisperKey.exe"
-                    WorkingDirectory="INSTALLFOLDER"
-                    Icon="ProductIcon.exe" />
-          <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
-          <RegistryValue Root="HKCU" 
-                         Key="Software\$(var.Manufacturer)\$(var.ProductShortName)"
-                         Name="installed" 
-                         Type="integer" 
-                         Value="1" 
-                         KeyPath="yes" />
-        </Component>
-      </Directory>
+      <Directory Id="WhisperKeyProgramMenuFolder" Name="WhisperKey" />
     </StandardDirectory>
 
-    <StandardDirectory Id="DesktopFolder">
-      <Component Id="DesktopShortcut" Guid="C2D3E4F5-A6B7-4C8D-9E0F-1A2B3C4D5E6F">
-        <Shortcut Id="DesktopShortcut"
-                  Name="$(var.ProductName)"
-                  Description="Voice dictation for Windows"
-                  Target="[INSTALLFOLDER]WhisperKey.exe"
-                  WorkingDirectory="INSTALLFOLDER"
-                  Icon="ProductIcon.exe" />
-        <RegistryValue Root="HKCU" 
-                       Key="Software\$(var.Manufacturer)\$(var.ProductShortName)"
-                       Name="desktopshortcut" 
-                       Type="integer" 
-                       Value="1" 
-                       KeyPath="yes" />
-      </Component>
-    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="StartupFolder" />
 
-    <Icon Id="ProductIcon.exe" SourceFile="..\Resources\WhisperKey.ico" />
-
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <!-- 
+      Properties
+    -->
     <Property Id="INSTALLDESKTOPSHORTCUT" Value="1" />
+    <Property Id="AUTOSTART" Value="0" />
+    <Property Id="INSTALLQUICKLAUNCH" Value="0" />
     
     <Property Id="ARPPRODUCTICON" Value="ProductIcon.exe" />
     <Property Id="ARPURLINFOABOUT" Value="https://whisperkey.app" />
     <Property Id="ARPHELPLINK" Value="https://whisperkey.app/support" />
 
-    <!-- UI will be added in a later task -->
-    <!--
-    <UIRef Id="WixUI_InstallDir" />
-    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
-    <WixVariable Id="WixUIBannerBmp" Value="Banner.bmp" />
-    <WixVariable Id="WixUIDialogBmp" Value="Dialog.bmp" />
+    <!-- 
+      Icon
     -->
-
-    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <ComponentRef Id="InstallFolderComponent" />
-    </ComponentGroup>
-
-    <ComponentGroup Id="Shortcuts" Directory="ApplicationProgramsFolder">
-      <ComponentRef Id="ApplicationShortcut" />
-      <ComponentRef Id="DesktopShortcut" />
-    </ComponentGroup>
+    <Icon Id="ProductIcon.exe" SourceFile="..\Resources\WhisperKey.ico" />
 
   </Package>
+
+  <!-- 
+    System Checks
+    Launch conditions must be outside Package in WiX v4
+  -->
+  <Fragment>
+    <Launch Condition="Installed OR (VersionNT >= 603)" 
+            Message="This application requires Windows 10 or later." />
+    <Launch Condition="Installed OR VersionNT64" 
+            Message="This application requires 64-bit Windows." />
+    <Launch Condition="Installed OR Privileged" 
+            Message="You must be an administrator to install this application." />
+  </Fragment>
+
 </Wix>

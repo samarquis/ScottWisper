@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  
+  <!-- 
+    Registry.wxs - System registry entries
+    Defines all registry keys and values for Windows integration
+  -->
+
+  <Fragment>
+    <!-- 
+      Application Registry (HKLM) 
+      System-wide settings and registration
+    -->
+    <ComponentGroup Id="RegistryComponents" Directory="INSTALLFOLDER">
+      
+      <!-- Main Application Registry Key -->
+      <Component Id="AppRegistry" Guid="F2A3B4C5-D6E7-4F8A-9B0C-1D2E3F4A5B6C">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey">
+          <RegistryValue Type="string" Name="InstallDir" Value="[INSTALLFOLDER]" />
+          <RegistryValue Type="string" Name="Version" Value="1.1.0" />
+          <RegistryValue Type="string" Name="InstallDate" Value="[Date]" />
+          <RegistryValue Type="string" Name="InstallSource" Value="[SourceDir]" />
+          <RegistryValue Type="integer" Name="Installed" Value="1" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Application Capabilities for Windows Search/Indexing -->
+      <Component Id="AppCapabilities" Guid="A3B4C5D6-E7F8-4A9B-0C1D-2E3F4A5B6C7D">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\Capabilities">
+          <RegistryValue Type="string" Name="ApplicationName" Value="WhisperKey Voice Dictation" />
+          <RegistryValue Type="string" Name="ApplicationDescription" Value="Universal voice dictation for Windows" />
+          <RegistryValue Type="string" Name="ApplicationIcon" Value="[INSTALLFOLDER]WhisperKey.exe,0" />
+        </RegistryKey>
+        
+        <!-- Register as a Windows application -->
+        <RegistryKey Root="HKLM" Key="Software\RegisteredApplications">
+          <RegistryValue Type="string" Name="WhisperKey" Value="Software\WhisperKey\WhisperKey\Capabilities" />
+        </RegistryKey>
+      </Component>
+
+      <!-- File Association: .whisperkey (custom config files) -->
+      <Component Id="FileAssociation" Guid="B4C5D6E7-F8A9-4B0C-1D2E-3F4A5B6C7D8E">
+        <!-- File extension -->
+        <RegistryKey Root="HKLM" Key="Software\Classes\.whisperkey">
+          <RegistryValue Type="string" Value="WhisperKey.Config" />
+          <RegistryValue Type="string" Name="Content Type" Value="application/json" />
+          <RegistryValue Type="string" Name="PerceivedType" Value="text" />
+        </RegistryKey>
+        
+        <!-- ProgID -->
+        <RegistryKey Root="HKLM" Key="Software\Classes\WhisperKey.Config">
+          <RegistryValue Type="string" Value="WhisperKey Configuration" />
+          <RegistryValue Type="string" Name="FriendlyTypeName" Value="WhisperKey Configuration" />
+          
+          <!-- Default icon -->
+          <RegistryKey Key="DefaultIcon">
+            <RegistryValue Type="string" Value="[INSTALLFOLDER]WhisperKey.exe,1" />
+          </RegistryKey>
+          
+          <!-- Shell commands -->
+          <RegistryKey Key="shell\open\command">
+            <RegistryValue Type="string" Value='"[INSTALLFOLDER]WhisperKey.exe" --config "%1"' />
+          </RegistryKey>
+        </RegistryKey>
+      </Component>
+
+      <!-- Protocol Handler: whisperkey:// -->
+      <Component Id="ProtocolHandler" Guid="C5D6E7F8-A9B0-4C1D-2E3F-4A5B6C7D8E9F">
+        <RegistryKey Root="HKLM" Key="Software\Classes\whisperkey">
+          <RegistryValue Type="string" Value="URL:WhisperKey Protocol" />
+          <RegistryValue Type="string" Name="URL Protocol" Value="" />
+          
+          <!-- Default icon -->
+          <RegistryKey Key="DefaultIcon">
+            <RegistryValue Type="string" Value="[INSTALLFOLDER]WhisperKey.exe,0" />
+          </RegistryKey>
+          
+          <!-- Shell command -->
+          <RegistryKey Key="shell\open\command">
+            <RegistryValue Type="string" Value='"[INSTALLFOLDER]WhisperKey.exe" --protocol "%1"' />
+          </RegistryKey>
+        </RegistryKey>
+      </Component>
+
+      <!-- Settings Storage Location -->
+      <Component Id="SettingsRegistry" Guid="D6E7F8A9-B0C1-4D2E-3F4A-5B6C7D8E9F0A">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\Settings">
+          <RegistryValue Type="string" Name="ConfigPath" Value="[LocalAppDataFolder]WhisperKey\config.json" />
+          <RegistryValue Type="string" Name="LogsPath" Value="[LocalAppDataFolder]WhisperKey\logs\" />
+          <RegistryValue Type="string" Name="CachePath" Value="[LocalAppDataFolder]WhisperKey\cache\" />
+          <RegistryValue Type="string" Name="ModelsPath" Value="[LocalAppDataFolder]WhisperKey\models\" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Audio Device Preferences (Default) -->
+      <Component Id="AudioDefaultsRegistry" Guid="E7F8A9B0-C1D2-4E3F-4A5B-6C7D8E9F0A1B">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\AudioDefaults">
+          <RegistryValue Type="string" Name="SampleRate" Value="16000" />
+          <RegistryValue Type="string" Name="Channels" Value="1" />
+          <RegistryValue Type="string" Name="BitDepth" Value="16" />
+          <RegistryValue Type="integer" Name="BufferMs" Value="100" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Compliance and Licensing -->
+      <Component Id="ComplianceRegistry" Guid="F8A9B0C1-D2E3-4F4A-5B6C-7D8E9F0A1B2C">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\Compliance">
+          <RegistryValue Type="integer" Name="AuditLoggingEnabled" Value="1" />
+          <RegistryValue Type="string" Name="DataRetentionDays" Value="90" />
+          <RegistryValue Type="integer" Name="EncryptionRequired" Value="1" />
+          <RegistryValue Type="string" Name="PrivacyPolicyVersion" Value="1.0" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Auto-start Settings (System-wide default) -->
+      <Component Id="AutostartRegistry" Guid="A9B0C1D2-E3F4-4A5B-6C7D-8E9F0A1B2C3D">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\Startup">
+          <RegistryValue Type="integer" Name="AutoStartDefault" Value="0" />
+          <RegistryValue Type="integer" Name="StartMinimized" Value="1" />
+          <RegistryValue Type="string" Name="StartupDelaySeconds" Value="5" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Feature Flags -->
+      <Component Id="FeatureFlagsRegistry" Guid="B0C1D2E3-F4A5-4B6C-7D8E-9F0A1B2C3D4E">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\Features">
+          <RegistryValue Type="integer" Name="CloudTranscription" Value="1" />
+          <RegistryValue Type="integer" Name="LocalTranscription" Value="1" />
+          <RegistryValue Type="integer" Name="VoiceCommands" Value="1" />
+          <RegistryValue Type="integer" Name="AutoPunctuation" Value="1" />
+          <RegistryValue Type="integer" Name="TextInjection" Value="1" />
+          <RegistryValue Type="integer" Name="HotkeyProfiles" Value="1" />
+          <RegistryValue Type="integer" Name="SystemTray" Value="1" />
+        </RegistryKey>
+      </Component>
+
+      <!-- Windows Context Menu (Right-click) -->
+      <Component Id="ContextMenuRegistry" Guid="C1D2E3F4-A5B6-4C7D-8E9F-0A1B2C3D4E5F">
+        <!-- Add to .txt file context menu -->
+        <RegistryKey Root="HKLM" Key="Software\Classes\txtfile\shell\WhisperKey">
+          <RegistryValue Type="string" Value="Dictate with WhisperKey" />
+          <RegistryValue Type="string" Name="Icon" Value="[INSTALLFOLDER]WhisperKey.exe,0" />
+        </RegistryKey>
+        <RegistryKey Root="HKLM" Key="Software\Classes\txtfile\shell\WhisperKey\command">
+          <RegistryValue Type="string" Value='"[INSTALLFOLDER]WhisperKey.exe" --dictate-to "%1"' />
+        </RegistryKey>
+      </Component>
+
+      <!-- Service Registration (for future use) -->
+      <Component Id="ServiceRegistry" Guid="D2E3F4A5-B6C7-4D8E-9F0A-1B2C3D4E5F6A">
+        <RegistryKey Root="HKLM" Key="Software\WhisperKey\WhisperKey\Service">
+          <RegistryValue Type="string" Name="ServiceName" Value="WhisperKeyService" />
+          <RegistryValue Type="string" Name="DisplayName" Value="WhisperKey Voice Dictation Service" />
+          <RegistryValue Type="string" Name="Description" Value="Background service for WhisperKey voice dictation" />
+          <RegistryValue Type="integer" Name="Enabled" Value="0" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+
+    <!-- 
+      User Registry (HKCU) 
+      Per-user settings written on first run
+    -->
+    <ComponentGroup Id="UserRegistryComponents" Directory="INSTALLFOLDER">
+      
+      <!-- User Preferences (Template - populated on first run) -->
+      <Component Id="UserPreferencesRegistry" Guid="E3F4A5B6-C7D8-4E9F-0A1B-2C3D4E5F6A7B">
+        <RegistryKey Root="HKCU" Key="Software\WhisperKey\WhisperKey">
+          <RegistryValue Type="integer" Name="FirstRun" Value="1" />
+          <RegistryValue Type="string" Name="FirstRunDate" Value="[Date]" />
+        </RegistryKey>
+        
+        <RegistryKey Root="HKCU" Key="Software\WhisperKey\WhisperKey\Preferences">
+          <RegistryValue Type="integer" Name="AutoStart" Value="0" />
+          <RegistryValue Type="integer" Name="StartMinimized" Value="1" />
+          <RegistryValue Type="integer" Name="ShowTrayIcon" Value="1" />
+          <RegistryValue Type="integer" Name="PlaySounds" Value="1" />
+          <RegistryValue Type="integer" Name="ShowNotifications" Value="1" />
+        </RegistryKey>
+        
+        <RegistryKey Root="HKCU" Key="Software\WhisperKey\WhisperKey\Hotkeys">
+          <RegistryValue Type="string" Name="DefaultProfile" Value="Default" />
+        </RegistryKey>
+      </Component>
+
+      <!-- License Acceptance Tracking -->
+      <Component Id="LicenseRegistry" Guid="F4A5B6C7-D8E9-4F0A-1B2C-3D4E5F6A7B8C">
+        <RegistryKey Root="HKCU" Key="Software\WhisperKey\WhisperKey\License">
+          <RegistryValue Type="integer" Name="Accepted" Value="0" />
+          <RegistryValue Type="string" Name="Version" Value="1.0" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+
+    <!-- 
+      Uninstall Registry Entries
+      Additional custom entries for Add/Remove Programs
+    -->
+    <ComponentGroup Id="UninstallRegistryComponents" Directory="INSTALLFOLDER">
+      
+      <Component Id="CustomUninstallRegistry" Guid="A5B6C7D8-E9F0-4A1B-2C3D-4E5F6A7B8C9D">
+        <!-- Publisher information -->
+        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\[ProductCode]">
+          <RegistryValue Type="string" Name="Publisher" Value="WhisperKey" />
+          <RegistryValue Type="string" Name="PublisherURL" Value="https://whisperkey.app" />
+          <RegistryValue Type="string" Name="HelpLink" Value="https://whisperkey.app/support" />
+          <RegistryValue Type="string" Name="HelpTelephone" Value="" />
+          <RegistryValue Type="string" Name="InstallLocation" Value="[INSTALLFOLDER]" />
+          <RegistryValue Type="string" Name="InstallSource" Value="[SourceDir]" />
+          <RegistryValue Type="string" Name="URLInfoAbout" Value="https://whisperkey.app" />
+          <RegistryValue Type="string" Name="URLUpdateInfo" Value="https://whisperkey.app/download" />
+          <RegistryValue Type="string" Name="VersionMajor" Value="1" />
+          <RegistryValue Type="string" Name="VersionMinor" Value="1" />
+          <RegistryValue Type="integer" Name="NoModify" Value="1" />
+          <RegistryValue Type="integer" Name="NoRepair" Value="1" />
+        </RegistryKey>
+      </Component>
+
+    </ComponentGroup>
+
+  </Fragment>
+</Wix>
